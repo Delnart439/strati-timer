@@ -85,8 +85,8 @@ const SC_S2F = new Array(54).fill(null);
 })();
 
 const SC_FACE_MOVES = {
-  R:{axis:'x',layer: 1,angle:+Math.PI/2},
-  L:{axis:'x',layer:-1,angle:-Math.PI/2},
+  R:{axis:'x',layer: 1,angle:-Math.PI/2},
+  L:{axis:'x',layer:-1,angle:+Math.PI/2},
   U:{axis:'y',layer: 1,angle:-Math.PI/2},
   D:{axis:'y',layer:-1,angle:+Math.PI/2},
   F:{axis:'z',layer: 1,angle:-Math.PI/2},
