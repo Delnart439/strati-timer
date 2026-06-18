@@ -108,6 +108,7 @@ let scQueueRunning=false, scCurrentFacelets=SC_SOLVED;
 
 // ─── BLE STATE ───────────────────────────────────────────────────────────────
 let scConn=null, scSub=null;
+let scLastGyroQ=null, scGyroOffset=null; // set lazily once THREE is loaded
 
 // ─── SCENE INIT ──────────────────────────────────────────────────────────────
 function scInitScene(container) {
@@ -279,17 +280,22 @@ function scHighlight(){
     el.innerHTML='<span style="color:var(--green);font-weight:800;letter-spacing:.04em">Scramble done — start solving!</span>';
     return;
   }
-  const isErr=scErrSeq.length>0;
-  const correction=isErr?scErrSeq[scErrSeq.length-1]:null;
+  if(scErrSeq.length>0){
+    // Hide scramble, show only the correction sequence
+    const todo=scErrSeq.slice().reverse(); // first move to do is first in array
+    el.innerHTML=todo.map((m,i)=>
+      i===0
+        ? `<span style="background:var(--purple);color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`
+        : `<span style="color:rgba(255,255,255,.45)">${m}</span>`
+    ).join(' ');
+    return;
+  }
   el.innerHTML=scScrambleMoves.map((m,i)=>{
     if(i<scScrambleIdx) return `<span style="color:rgba(255,255,255,.2)">${m}</span>`;
-    if(i===scScrambleIdx){
-      const bg=isErr?'#c0392b':'var(--purple)';
-      return `<span style="background:${bg};color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`;
-    }
+    if(i===scScrambleIdx)
+      return `<span style="background:var(--purple);color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`;
     return `<span style="color:#fff">${m}</span>`;
-  }).join(' ')
-  +(isErr?` <span style="font-size:13px;color:#e74c3c;font-weight:700;margin-left:4px">← do <span style="background:rgba(231,76,60,.22);border-radius:4px;padding:1px 7px;font-weight:900">${correction}</span></span>`:'');
+  }).join(' ');
 }
 
 function scClearHighlight(){
@@ -507,7 +513,7 @@ async function scConnect(){
           case 'FACELETS': scCurrentFacelets=ev.facelets; if(!scQueueRunning)scUpdateColors(scCurrentFacelets); break;
           case 'BATTERY':  scSetBattery(ev.batteryLevel+'%'); break;
           case 'HARDWARE': if(ev.hardwareName)scSetStatus('Connected — '+ev.hardwareName); break;
-          case 'GYRO':    if(scCubeGroup){const q=ev.quaternion;scCubeGroup.quaternion.set(q.x,q.y,q.z,q.w);} break;
+          case 'GYRO':    if(scCubeGroup){ const T=window.THREE; if(!scGyroOffset) scGyroOffset=new T.Quaternion(); if(!scLastGyroQ) scLastGyroQ=new T.Quaternion(); const q=ev.quaternion; scLastGyroQ.set(q.x,q.y,q.z,q.w); scCubeGroup.quaternion.copy(scGyroOffset).multiply(scLastGyroQ); } break;
           case 'DISCONNECT': scHandleDisconn(); break;
         }
       },
@@ -561,9 +567,19 @@ async function scReset(){
   if(wrap&&window.THREE) scInitScene(wrap);
 })();
 
+function scResetGyro(){
+  const T=window.THREE; if(!T||!scCubeGroup) return;
+  if(!scGyroOffset) scGyroOffset=new T.Quaternion();
+  if(scLastGyroQ) scGyroOffset.copy(scLastGyroQ).invert();
+  else scGyroOffset.identity();
+  if(scLastGyroQ) scCubeGroup.quaternion.copy(scGyroOffset).multiply(scLastGyroQ);
+  else scCubeGroup.quaternion.identity();
+}
+
 document.getElementById('scConnBtn')?.addEventListener('click', scConnect);
 document.getElementById('scDisconnBtn')?.addEventListener('click', scDisconnect);
 document.getElementById('scResetBtn')?.addEventListener('click', scReset);
+document.getElementById('scGyroBtn')?.addEventListener('click', scResetGyro);
 
 // Resize + restart render when cube mode is activated
 document.querySelector('.ac[data-mode="cube"]')?.addEventListener('click',()=>{
