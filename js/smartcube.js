@@ -241,9 +241,88 @@ function scAddOrbit(canvas){
   window.addEventListener('touchend',()=>dn=false);
 }
 
+// ─── SCRAMBLE TRACKING & AUTO TIMER ─────────────────────────────────────────
+let scPhase='idle'; // idle | scrambling | ready | solving
+let scScrambleMoves=[], scScrambleIdx=0;
+let scAutoRaf=null, scAutoStart=0;
+
+function scInCubeMode(){ return document.getElementById('pg-timer')?.classList.contains('cube-mode'); }
+
+function scInitScramble(){
+  if(!scInCubeMode()) return;
+  if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; }
+  const el=document.getElementById('scrTxt'); if(!el) return;
+  scScrambleMoves=el.textContent.trim().split(/\s+/).filter(Boolean);
+  scScrambleIdx=0;
+  scPhase=scScrambleMoves.length?'scrambling':'idle';
+  scHighlight();
+}
+
+function scHighlight(){
+  const el=document.getElementById('scrTxt'); if(!el||!scScrambleMoves.length) return;
+  if(scPhase==='ready'){
+    el.innerHTML='<span style="color:var(--green);font-weight:800;letter-spacing:.04em">Scramble done — start solving!</span>';
+    return;
+  }
+  el.innerHTML=scScrambleMoves.map((m,i)=>{
+    if(i<scScrambleIdx) return `<span style="color:rgba(255,255,255,.2)">${m}</span>`;
+    if(i===scScrambleIdx) return `<span style="background:var(--purple);color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`;
+    return `<span style="color:rgba(255,255,255,.4)">${m}</span>`;
+  }).join(' ');
+}
+
+function scClearHighlight(){
+  if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; }
+  scPhase='idle'; scScrambleMoves=[]; scScrambleIdx=0;
+  if(typeof renderScramble==='function') renderScramble();
+}
+
+function scAutoTimerStart(){
+  if(scAutoRaf) return;
+  scAutoStart=performance.now();
+  const el=document.getElementById('timerDisp'); if(el) el.className='running';
+  (function tick(){
+    const t=(performance.now()-scAutoStart)/1000;
+    const d=document.getElementById('timerDisp');
+    if(d) d.textContent=t<60?t.toFixed(3):`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`;
+    scAutoRaf=requestAnimationFrame(tick);
+  })();
+}
+
+function scAutoTimerStop(){
+  if(!scAutoRaf) return;
+  cancelAnimationFrame(scAutoRaf); scAutoRaf=null;
+  const t=(performance.now()-scAutoStart)/1000;
+  const el=document.getElementById('timerDisp');
+  if(el){ el.className='stopped'; el.textContent=t<60?t.toFixed(3):`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`; }
+}
+
 // ─── MOVE ANIMATION ──────────────────────────────────────────────────────────
 function scEnqueue(mv){
   scCurrentFacelets=scApplyMove(scCurrentFacelets,mv);
+
+  if(scInCubeMode()){
+    if(scPhase==='scrambling'){
+      scScrambleIdx++;
+      if(scScrambleIdx>=scScrambleMoves.length){ scPhase='ready'; scHighlight(); }
+      else scHighlight();
+    } else if(scPhase==='ready'){
+      scPhase='solving';
+      const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
+      scAutoTimerStart();
+      if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; }
+    } else if(scPhase==='solving'){
+      if(scCurrentFacelets===SC_SOLVED){
+        scAutoTimerStop(); scPhase='idle';
+        setTimeout(()=>{
+          if(typeof pushScramble==='function') pushScramble();
+          if(typeof renderScramble==='function') renderScramble();
+          setTimeout(scInitScramble,50);
+        },1500);
+      }
+    }
+  }
+
   scMoveQueue.push(mv);
   if(!scQueueRunning) scProcessQueue();
 }
@@ -344,6 +423,7 @@ async function scConnect(){
     scSetConnUI(true);
     scSetStatus('Connected — '+scConn.deviceName);
     scSetDevice('');
+    setTimeout(scInitScramble,100);
 
     // Reset cube to solved, then sync real state
     scCurrentFacelets=SC_SOLVED;
@@ -413,9 +493,10 @@ document.querySelector('.ac[data-mode="cube"]')?.addEventListener('click',()=>{
     if(scCamera){scCamera.aspect=W/H;scCamera.updateProjectionMatrix();}
   }
   scStartRender();
+  setTimeout(scInitScramble,50);
 });
 document.querySelectorAll('.ac[data-mode]').forEach(btn=>{
-  btn.addEventListener('click',()=>{ if(btn.dataset.mode!=='cube') scStopRender(); });
+  btn.addEventListener('click',()=>{ if(btn.dataset.mode!=='cube'){ scStopRender(); scClearHighlight(); } });
 });
 
 // Rebuild FI_DIRS now that THREE is available
