@@ -99,7 +99,7 @@ const SC_SOLVED = 'UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB';
 // ─── SCENE STATE ─────────────────────────────────────────────────────────────
 let scScene, scCamera, scRenderer, scRafId, scRenderActive=false;
 let scCubies={}, scCamTheta=0.55, scCamPhi=1.0;
-const SC_CAM_DIST = 5.6;
+const SC_CAM_DIST = 6.5;
 
 // ─── ANIMATION STATE ─────────────────────────────────────────────────────────
 const scMoveQueue=[];
@@ -121,7 +121,7 @@ function scInitScene(container) {
   container.appendChild(scRenderer.domElement);
 
   scScene  = new T.Scene();
-  scCamera = new T.PerspectiveCamera(44,W/H,0.1,100);
+  scCamera = new T.PerspectiveCamera(50,W/H,0.1,100);
   scPosCamera();
 
   scScene.add(new T.AmbientLight(0xffffff,0.75));
