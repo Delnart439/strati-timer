@@ -339,7 +339,7 @@ async function scConnect(){
 
     scSetConnUI(true);
     scSetStatus('Connected — '+scConn.deviceName);
-    scSetDevice(scConn.protocol.name);
+    scSetDevice('');
 
     // Reset cube to solved, then sync real state
     scCurrentFacelets=SC_SOLVED;
@@ -351,8 +351,8 @@ async function scConnect(){
         switch(ev.type){
           case 'MOVE':    scEnqueue(ev.move); break;
           case 'FACELETS': scCurrentFacelets=ev.facelets; if(!scQueueRunning)scUpdateColors(scCurrentFacelets); break;
-          case 'BATTERY':  scSetBattery('Battery: '+ev.batteryLevel+'%'); break;
-          case 'HARDWARE': if(ev.hardwareName)scSetDevice(scConn.protocol.name+' · '+ev.hardwareName); break;
+          case 'BATTERY':  scSetBattery(ev.batteryLevel+'%'); break;
+          case 'HARDWARE': if(ev.hardwareName)scSetStatus('Connected — '+ev.hardwareName); break;
           case 'DISCONNECT': scHandleDisconn(); break;
         }
       },
