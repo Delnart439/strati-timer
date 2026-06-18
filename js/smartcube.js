@@ -98,6 +98,7 @@ const SC_SOLVED = 'UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB';
 
 // ─── SCENE STATE ─────────────────────────────────────────────────────────────
 let scScene, scCamera, scRenderer, scRafId, scRenderActive=false;
+let scCubeGroup=null;
 let scCubies={}, scCamTheta=0.55, scCamPhi=1.0;
 const SC_CAM_DIST = 6.5;
 
@@ -165,6 +166,7 @@ function scMakeRoundedSticker(size, r) {
 
 function scBuildCubies(){
   const T=window.THREE;
+  scCubeGroup=new T.Group(); scScene.add(scCubeGroup);
   const OFF=0.473;
   const sGeo=scMakeRoundedSticker(0.82,0.09);
   // order matches SC_FI_DIRS: +x,-x,+y,-y,+z,-z
@@ -182,7 +184,7 @@ function scBuildCubies(){
       new T.BoxGeometry(0.94,0.94,0.94),
       new T.MeshPhongMaterial({color:0x1c1c1c,shininess:12})
     );
-    body.position.set(x,y,z); scScene.add(body);
+    body.position.set(x,y,z); scCubeGroup.add(body);
     const stickers=FACE.map(({p,r})=>{
       const mat=new T.MeshPhongMaterial({color:SC_INNER,shininess:110});
       const s=new T.Mesh(sGeo,mat);
@@ -403,8 +405,8 @@ function scPerformMove(mv,instant,done){
   if(!pd.length){done();return;}
 
   const T=window.THREE;
-  const pivot=new T.Group(); scScene.add(pivot);
-  pd.forEach(({mesh})=>{scScene.remove(mesh);pivot.add(mesh);});
+  const pivot=new T.Group(); scCubeGroup.add(pivot);
+  pd.forEach(({mesh})=>{scCubeGroup.remove(mesh);pivot.add(mesh);});
 
   const setR=a=>{ if(axis==='x')pivot.rotation.x=a; else if(axis==='y')pivot.rotation.y=a; else pivot.rotation.z=a; };
   const finish=()=>{
@@ -421,10 +423,19 @@ function scPerformMove(mv,instant,done){
 
 function scDetach(pivot,pd){
   const T=window.THREE;
-  const wt=pd.map(({mesh})=>{const p=new T.Vector3(),q=new T.Quaternion();mesh.getWorldPosition(p);mesh.getWorldQuaternion(q);return{p,q};});
+  // Compute each mesh's transform in scCubeGroup-local space.
+  // Using group-local space (not world) means integer position snapping
+  // is unaffected by the gyro quaternion applied to scCubeGroup.
+  const groupInvQ=scCubeGroup.quaternion.clone().invert();
+  const lt=pd.map(({mesh})=>{
+    const wp=new T.Vector3(),wq=new T.Quaternion();
+    mesh.getWorldPosition(wp); mesh.getWorldQuaternion(wq);
+    scCubeGroup.worldToLocal(wp);
+    return{p:wp, q:groupInvQ.clone().multiply(wq)};
+  });
   const updates=pd.map(({mesh,key},i)=>{
-    pivot.remove(mesh);scScene.add(mesh);
-    mesh.position.copy(wt[i].p);mesh.quaternion.copy(wt[i].q);
+    pivot.remove(mesh); scCubeGroup.add(mesh);
+    mesh.position.copy(lt[i].p); mesh.quaternion.copy(lt[i].q);
     mesh.position.x=Math.round(mesh.position.x);
     mesh.position.y=Math.round(mesh.position.y);
     mesh.position.z=Math.round(mesh.position.z);
@@ -435,7 +446,7 @@ function scDetach(pivot,pd){
   // matches another's old key, evicting the wrong entry from scCubies.
   updates.forEach(({oldKey})=>delete scCubies[oldKey]);
   updates.forEach(({mesh,newKey})=>scCubies[newKey]=mesh);
-  scScene.remove(pivot);
+  scCubeGroup.remove(pivot);
 }
 
 // ─── UI HELPERS ──────────────────────────────────────────────────────────────
@@ -491,6 +502,7 @@ async function scConnect(){
           case 'FACELETS': scCurrentFacelets=ev.facelets; if(!scQueueRunning)scUpdateColors(scCurrentFacelets); break;
           case 'BATTERY':  scSetBattery(ev.batteryLevel+'%'); break;
           case 'HARDWARE': if(ev.hardwareName)scSetStatus('Connected — '+ev.hardwareName); break;
+          case 'GYRO':    if(scCubeGroup){const q=ev.quaternion;scCubeGroup.quaternion.set(q.x,q.y,q.z,q.w);} break;
           case 'DISCONNECT': scHandleDisconn(); break;
         }
       },
