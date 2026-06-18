@@ -108,7 +108,7 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 .cube-area.cube-hidden #cubeNet{display:none}
 .mascot-area{position:absolute;bottom:36px;right:16px;display:none;align-items:flex-end;gap:10px;max-width:calc(100% - 32px)}
 /* ── CUBE MODE overrides ── */
-#pg-timer.cube-mode .timer-wrap{flex:0;padding-bottom:0;padding-top:0}
+#pg-timer.cube-mode .timer-wrap{flex:0;padding-bottom:0;padding-top:0;margin-top:18px;margin-bottom:22px}
 #pg-timer.cube-mode #timerDisp{font-size:clamp(32px,5vw,52px)}
 #cubeScArea{align-self:center}
 @keyframes spin{to{transform:rotate(360deg)}}
