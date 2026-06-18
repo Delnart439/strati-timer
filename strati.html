@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strati – Speedcubing Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link rel="stylesheet" href="css/strati.css">
+</head>
+<body>
+<div id="app" style="display:flex;width:100%;height:100%">
+
+<!-- SIDEBAR -->
+<aside id="sb">
+  <div class="sb-logo">
+    <div class="logo-dots" id="sbToggle" style="cursor:pointer" title="Collapse sidebar"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="logo-icon" id="logoIcon" style="cursor:pointer"><img src="Mascotte/logo.png" style="width:100%;height:100%;object-fit:contain;border-radius:7px"></div>
+    <span class="logo-txt">strati</span>
+  </div>
+  <div class="sb-user">
+    <div class="sb-avatar"><img src="Mascotte/normal.PNG" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>
+    <div class="sb-uinfo">
+      <div class="sb-lvl">Level <span id="sbLvl">5</span></div>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:10%"></div></div>
+      <div class="xp-txt"><span id="xpCur">10</span>/<span id="xpMax">100</span> XP</div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-item active" data-page="timer" title="Timer"><span class="nav-icon"><i data-lucide="timer"></i></span><span class="nav-lbl">Timer</span></div>
+    <div class="nav-item" data-page="stats" title="Statistics"><span class="nav-icon"><i data-lucide="bar-chart-2"></i></span><span class="nav-lbl">Statistics</span></div>
+    <div class="nav-item" data-page="algs" title="Training"><span class="nav-icon"><i data-lucide="dumbbell"></i></span><span class="nav-lbl">Training</span></div>
+    <div class="nav-item" data-page="social" title="Social"><span class="nav-icon"><i data-lucide="share-2"></i></span><span class="nav-lbl">Social</span></div>
+    <div class="nav-item" data-page="rank" title="Ranking"><span class="nav-icon"><i data-lucide="trophy"></i></span><span class="nav-lbl">Ranking</span></div>
+    <div class="nav-item" data-page="profile" title="Profile"><span class="nav-icon"><i data-lucide="user"></i></span><span class="nav-lbl">Profile</span></div>
+  </nav>
+  <div class="vip-box">
+    <div class="vip-head"><i data-lucide="star"></i><span class="nav-lbl"> Become VIP</span></div>
+    <div class="vip-desc nav-lbl">Unlock advanced features.<br>More detailed analytics, custom themes,<br>import times, algs drill…</div>
+    <button class="vip-btn nav-lbl">Upgrade now</button>
+  </div>
+  <div class="sb-set">
+    <div class="set-link" data-page="settings" title="Settings"><i data-lucide="settings"></i><span class="nav-lbl"> Settings</span></div>
+  </div>
+  <div class="sb-foot">
+    <a href="#">About</a><a href="#">Terms of Use</a><a href="#">Legal Mentions</a>
+  </div>
+  <footer class="app-footer"></footer>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+
+<!-- TOP BAR -->
+<div id="tb">
+  <div class="tb-left">
+    <div class="ses-sel">
+      <span class="ses-lbl">Session</span>
+      <div class="ses-dd" id="sesDdBtn">
+        <span id="sesName">Session 1</span><i data-lucide="chevron-down" class="ses-chevron"></i>
+        <div class="dd-menu h" id="sesDdMenu"></div>
+      </div>
+      <div class="ses-acts">
+        <button class="ib" id="newSesBtn" title="New session"><i data-lucide="plus"></i></button>
+        <button class="ib" id="renSesBtn" title="Rename"><i data-lucide="pencil"></i></button>
+        <button class="ib" id="delSesBtn" title="Delete"><i data-lucide="trash-2"></i></button>
+      </div>
+    </div>
+    <div class="puz-sel" id="puzBtn">
+      <span id="puzIcon" style="display:flex;align-items:center"></span>
+      <div class="puz-dd"><span id="puzName">3×3</span><i data-lucide="chevron-down" class="ses-chevron"></i></div>
+      <div class="dd-menu h" id="puzDdMenu"></div>
+    </div>
+    <div class="tb-acts">
+      <button class="ib tb-ib-lg" id="addTimeBtn" title="Add time manually"><i data-lucide="plus"></i></button>
+      <button class="ib tb-ib-lg" id="btBtn" title="Connect GAN Timer" style="position:relative"><i data-lucide="bluetooth"></i><span id="btDot" style="display:none;position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#00d060;box-shadow:0 0 5px #00d060"></span></button>
+      <button class="ib tb-ib-lg" id="helpBtn" title="Help"><i data-lucide="circle-help"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- TIMER PAGE -->
+<section id="pg-timer" class="page active">
+  <div class="t-lact">
+    <button class="ac on" data-mode="timer" title="Timer"><i data-lucide="timer"></i></button>
+    <button class="ac" data-mode="cube" title="Bluetooth Cube"><i data-lucide="bot"></i></button>
+    <button class="ac" data-mode="battle" title="Battle Mode"><i data-lucide="zap"></i></button>
+  </div>
+  <div class="t-center">
+    <div class="scr-area">
+      <button class="scr-arr" id="scrPrev">◀</button>
+      <div id="scrTxt">D2 B L U2 L' D B U' R U2 F' L U' L' B2 R2 B2 R B2 R</div>
+      <button class="scr-arr" id="scrNext">▶</button>
+      <button class="scr-arr" id="scrCopy" title="Copy scramble"><i data-lucide="copy" style="width:14px;height:14px"></i></button>
+    </div>
+    <div class="timer-wrap">
+      <div id="timerDisp" class="idle">0.000</div>
+    </div>
+    <div class="cube-area" id="cubeArea">
+      <button class="cube-tog" id="cubeTogBtn" title="Toggle cube net"><i data-lucide="eye-off"></i></button>
+      <svg id="cubeNet" viewBox="0 0 204 153" width="176" height="132"></svg>
+    </div>
+    <div class="mascot-area" id="mascotArea">
+      <div class="sp-bubble" id="spBubble">Hey! Ready to solve?</div>
+      <img class="mascot" id="mascot" src="Mascotte/hi.png" style="width:150px;height:150px;object-fit:contain">
+    </div>
+  </div>
+  <!-- BLUETOOTH CUBE SUB-MODE -->
+  <div class="t-submode" id="mode-cube">
+    <div id="sc3dWrap" style="width:320px;height:320px;border-radius:18px;overflow:hidden;background:#1e0940;flex-shrink:0;cursor:grab"></div>
+    <div style="text-align:center;display:flex;flex-direction:column;gap:4px">
+      <div id="scStatus" style="font-size:13px;font-weight:700;color:var(--dim)">Not connected</div>
+      <div id="scBattery" style="font-size:12px;color:var(--muted)"></div>
+      <div id="scDevice" style="font-size:11px;color:var(--muted)"></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button id="scConnBtn" style="padding:12px 28px;background:var(--purple);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px"><i data-lucide="bluetooth" style="width:15px;height:15px"></i>Connect AI Cube</button>
+      <button id="scDisconnBtn" style="display:none;padding:12px 22px;background:rgba(255,255,255,.1);border:none;border-radius:50px;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Disconnect</button>
+      <button id="scResetBtn" style="display:none;padding:11px 20px;background:rgba(255,255,255,.07);border:none;border-radius:50px;color:var(--dim);font-size:12px;font-weight:600;cursor:pointer">Reset Cube</button>
+    </div>
+  </div>
+
+  <!-- BATTLE MODE SUB-MODE -->
+  <div class="t-submode" id="mode-battle">
+    <div style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Battle Mode — hold your key to start</div>
+    <div style="font-size:clamp(16px,2vw,24px);font-weight:600;color:#fff;text-align:center;line-height:1.7;max-width:860px;padding:0 8px" id="battleScrTxt"></div>
+    <svg id="battleCubeNet" viewBox="0 0 204 153" width="260" height="195" style="display:block"></svg>
+    <div class="battle-result" id="battleResult"></div>
+    <div class="battle-wrap">
+      <div class="battle-player" id="b1-card">
+        <div class="battle-name">Player 1</div>
+        <div class="battle-score" id="b1-score">0</div>
+        <div class="battle-time idle" id="b1-time">0.000</div>
+        <div class="battle-hint" id="b1-hint">Hold <strong>Space</strong> to ready</div>
+        <div class="battle-key">Key: Space</div>
+      </div>
+      <div class="battle-player" id="b2-card">
+        <div class="battle-name">Player 2</div>
+        <div class="battle-score" id="b2-score">0</div>
+        <div class="battle-time idle" id="b2-time">0.000</div>
+        <div class="battle-hint" id="b2-hint">Hold <strong>Enter</strong> to ready</div>
+        <div class="battle-key">Key: Enter</div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="t-rp">
+    <div class="rp-sec">
+      <div class="rp-title"><i data-lucide="bar-chart-2"></i> Statistics</div>
+      <div class="sg">
+        <div class="sh"></div><div class="sh">current</div><div class="sh">best</div>
+        <div class="sl">single</div><div class="sv clickable" id="s-single" data-stat="single" data-type="current">–</div><div class="sv b clickable" id="b-single" data-stat="single" data-type="best">–</div>
+        <div class="sl">ao5</div><div class="sv clickable" id="s-ao5" data-stat="ao5" data-type="current">–</div><div class="sv b clickable" id="b-ao5" data-stat="ao5" data-type="best">–</div>
+        <div class="sl">ao12</div><div class="sv clickable" id="s-ao12" data-stat="ao12" data-type="current">–</div><div class="sv b clickable" id="b-ao12" data-stat="ao12" data-type="best">–</div>
+        <div class="sl">ao100</div><div class="sv clickable" id="s-ao100" data-stat="ao100" data-type="current">–</div><div class="sv b clickable" id="b-ao100" data-stat="ao100" data-type="best">–</div>
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-title" style="flex-shrink:0;position:relative"><i data-lucide="timer"></i> Time List<button id="clearTimesBtn" title="Delete all times" style="position:absolute;right:0;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'"><i data-lucide="x" style="width:14px;height:14px"></i></button></div>
+      <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:2px">mean</div>
+      <div id="s-mean" style="text-align:center;font-size:18px;font-weight:700;margin-bottom:8px">–</div>
+      <div class="tl-area">
+        <div class="tl-hdr"><span></span><span class="sortable" data-sort="single" style="text-align:center">single</span><span class="sortable" data-sort="ao5" style="text-align:center">ao5</span></div>
+        <div id="timeList"></div>
+      </div>
+    </div>
+  </aside>
+</section>
+
+<!-- STATISTICS PAGE -->
+<section id="pg-stats" class="page">
+  <div class="stats-right">
+    <div class="stats-top">
+      <div class="stats-fox">
+        <div class="stats-fox-bub">Want to share your times with friends?</div>
+        <img src="Mascotte/hi.png" alt="fox">
+        <button id="shareSelectBtn" class="stl-share-rect" title="Share solves"><i data-lucide="camera" style="width:15px;height:15px"></i>Share</button>
+      </div>
+      <div class="stc">
+      <div class="st-main">
+        <div class="stb"><div class="stb-lbl">Total Solves</div><div class="stb-val" id="st-total">0</div></div>
+        <div class="stb"><div class="stb-lbl">Best Single</div><div class="stb-val" id="st-best">–</div></div>
+      </div>
+      <div class="st-mid">
+        <div class="stm"><div class="stm-lbl">MEAN</div><div class="stm-val" id="st-mean">–</div></div>
+        <div class="stm"><div class="stm-lbl">AO5</div><div class="stm-val" id="st-ao5">–</div></div>
+        <div class="stm"><div class="stm-lbl">AO12</div><div class="stm-val" id="st-ao12">–</div></div>
+        <div class="stm"><div class="stm-lbl">AO100</div><div class="stm-val" id="st-ao100">–</div></div>
+      </div>
+      <div class="st-best">
+        <div class="ste"><div class="ste-lbl">BEST SINGLE</div><div class="ste-val" id="stb-single">–</div></div>
+        <div class="ste"><div class="ste-lbl">BEST AO5</div><div class="ste-val" id="stb-ao5">–</div></div>
+        <div class="ste"><div class="ste-lbl">BEST AO12</div><div class="ste-val" id="stb-ao12">–</div></div>
+        <div class="ste"><div class="ste-lbl">BEST AO100</div><div class="ste-val" id="stb-ao100">–</div></div>
+      </div>
+    </div><!-- end .stc -->
+    </div><!-- end .stats-top -->
+    <div class="stl-card">
+      <div class="stl-hdr">
+        <div class="stl-title"><i data-lucide="timer"></i> Time List <button id="graphToggleBtn" class="graph-toggle-btn" title="Show graphs"><i data-lucide="line-chart" style="width:28px;height:28px"></i></button><span id="shareBarCount" style="display:none;font-size:12px;color:var(--dim);margin-left:6px">0 selected</span><button id="shareBarGenerate" style="display:none;padding:5px 12px;background:var(--purple);border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:5px;margin-left:8px"><i data-lucide="image" style="width:13px;height:13px"></i> Generate Image</button><button id="shareBarCancel" class="share-btn" style="display:none;margin-left:6px">Cancel</button></div>
+        <div class="stl-acts">
+          <button class="clear-btn" id="clearBtn">Clear Session</button>
+        </div>
+      </div>
+      <div class="sq-row" id="shareQuickSel">
+        <span class="sq-lbl">Quick select:</span>
+        <button class="sq-btn" data-n="5">Ao5</button>
+        <button class="sq-btn" data-n="12">Ao12</button>
+        <button class="sq-btn" data-n="20">Last 20</button>
+        <button class="sq-btn" data-n="50">Last 50</button>
+        <button class="sq-btn" data-n="100">Last 100</button>
+      </div>
+      <div id="statsGraphs" style="display:none">
+        <div class="sg-wrap">
+          <div class="sg-label">Time Trend</div>
+          <svg id="sgTimes" class="sg-svg"></svg>
+        </div>
+        <div class="sg-wrap">
+          <div class="sg-label">Time Distribution</div>
+          <svg id="sgDist" class="sg-svg"></svg>
+        </div>
+      </div>
+      <div class="stl-grid" id="statsGrid"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ALGORITHMS PAGE -->
+<section id="pg-algs" class="page" style="flex-direction:column">
+  <div class="alg-top">
+    <div class="alg-cats">
+      <button class="alg-cat on" data-cat="3x3">3×3</button>
+      <button class="alg-cat" data-cat="3BLD">3BLD</button>
+      <button class="alg-cat" data-cat="Other">Other</button>
+    </div>
+    <div class="alg-tabs" id="algSubTabs">
+      <button class="alg-tab on" data-alg="OLL">OLL</button>
+      <button class="alg-tab" data-alg="PLL">PLL</button>
+      <button class="alg-tab" data-alg="ZBLL">ZBLL</button>
+      <button class="alg-tab" data-alg="Other3x3">Other</button>
+    </div>
+    <div class="alg-count" id="algCount">18/57</div>
+    <div class="alg-prog"><div class="alg-prog-fill" id="algProgFill" style="width:31%"></div></div>
+    <div class="alg-filter-wrap h" id="algFilterWrap">
+      <div class="alg-filter-btn" id="algFilterBtn">
+        <i data-lucide="sliders-horizontal" style="width:13px;height:13px"></i>
+        <span id="algFilterLabel">Filter</span>
+        <i data-lucide="chevron-down" style="width:12px;height:12px;transition:transform .15s" id="algFilterChevron"></i>
+      </div>
+      <div class="alg-filter-chips h" id="algStatusChips"></div>
+      <div class="alg-filter-chips" id="algFilterChips"></div>
+    </div>
+  </div>
+  <div class="alg-content">
+    <div class="alg-sec-title" id="algSecTitle">All OLL Cases (57)</div>
+    <div class="alg-grid" id="algGrid"></div>
+  </div>
+  <div class="alg-bot">
+    <button class="drill-btn"><i data-lucide="target"></i> DRILL ALGS</button>
+    <button class="drill-btn" id="pllrec-open-btn" style="display:none"><i data-lucide="eye"></i> TRAIN RECOGNITION</button>
+    <div class="bot-mascot"><div class="bot-bub" id="algBotMsg">Ready to train?</div><img src="Mascotte/train.png" style="width:160px;height:160px;object-fit:contain"></div>
+  </div>
+</section>
+
+<!-- SOCIAL PAGE -->
+<section id="pg-social" class="page" style="flex-direction:column;padding:0;overflow:hidden">
+  <!-- Top nav bar -->
+  <div class="soc-nav">
+    <div class="soc-nav-title" id="socNavTitle">Social</div>
+    <div class="soc-nav-btns">
+      <button class="soc-nav-ico on" id="socHomeBtn" title="Home"><i data-lucide="home"></i></button>
+      <button class="soc-prof-btn" id="socProfBtn" title="My profile">
+        <div class="soc-nav-av"><img src="Mascotte/normal.PNG" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Home view -->
+  <div class="soc-view" id="socHomeView">
+    <div class="soc-search"><i data-lucide="search"></i><input type="text" placeholder="Search speedcubers and see their results…"></div>
+    <div class="reco-filters" id="recoFilters">
+      <button class="reco-filter on" data-f="all">All</button>
+      <button class="reco-filter" data-f="3x3">3×3</button>
+      <button class="reco-filter" data-f="3bld">3BLD</button>
+    </div>
+    <div id="recoFeed"></div>
+  </div>
+
+  <!-- Profile view -->
+  <div class="soc-view h" id="socProfileView">
+    <div class="soc-search"><i data-lucide="search"></i><input type="text" placeholder="Search speedcubers and see their results…"></div>
+    <div class="soc-top-row">
+      <div class="soc-pcard">
+        <div class="soc-av"><img src="Mascotte/normal.PNG" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>
+        <div class="soc-pi">
+          <div class="soc-name" id="socName">Delnart</div>
+          <div class="soc-since" id="socSince">Playing since June 2026</div>
+          <div class="sb-lvl">Level <span id="socLvl">5</span></div>
+          <div class="xp-bar"><div class="xp-fill" id="socXpFill" style="width:10%"></div></div>
+          <div class="xp-txt"><span id="socXpCur">10</span>/<span id="socXpMax">100</span> XP</div>
+        </div>
+      </div>
+      <div class="soc-rec" id="socRecSec">
+        <div class="soc-rt"><i data-lucide="award"></i> Personal Records</div>
+        <div class="soc-rg">
+          <div class="soc-ri"><div class="soc-rl">SINGLE</div><div class="soc-rv" id="pr-s">–</div></div>
+          <div class="soc-ri"><div class="soc-rl">AO5</div><div class="soc-rv" id="pr-5">–</div></div>
+          <div class="soc-ri"><div class="soc-rl">AO12</div><div class="soc-rv" id="pr-12">–</div></div>
+          <div class="soc-ri"><div class="soc-rl">AO100</div><div class="soc-rv" id="pr-100">–</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="soc-algs" id="socAlgsSec">
+      <div class="soc-alg-t"><i data-lucide="book-open"></i> Algorithms</div>
+      <div class="soc-alg-g">
+        <div class="alg-chip" id="soc-chip-oll"><div class="alg-chip-ic" id="soc-ic-oll" style="background:rgba(234,179,8,.2)"></div><div><div class="alg-chip-n">OLL</div><div class="alg-chip-s" id="soc-oll">0/57 learned</div></div></div>
+        <div class="alg-chip" id="soc-chip-pll"><div class="alg-chip-ic" id="soc-ic-pll" style="background:rgba(34,197,94,.2)"></div><div><div class="alg-chip-n">PLL</div><div class="alg-chip-s" id="soc-pll">0/21 learned</div></div></div>
+        <div class="alg-chip" id="soc-chip-zbll"><div class="alg-chip-ic" id="soc-ic-zbll" style="background:rgba(124,58,237,.2)"></div><div><div class="alg-chip-n">ZBLL</div><div class="alg-chip-s" id="soc-zbll">0/493 learned</div></div></div>
+      </div>
+    </div>
+    <div class="soc-ls" id="socLsSec">
+      <div class="soc-ls-t"><i data-lucide="timer"></i> Last Shared Session<div class="soc-ev-icons" id="socEvIcons"></div></div>
+      <div class="soc-ls-g" id="socLastSes"></div>
+    </div>
+  </div>
+</section>
+
+<!-- RANKING PAGE -->
+<section id="pg-rank" class="page" style="flex-direction:column">
+  <div class="rank-hdr">
+    <div class="rank-info">Top 10 reach the next league</div>
+    <div class="rank-time">7 days left · <span style="color:var(--dim);font-weight:600">24 players</span></div>
+  </div>
+  <div class="rank-leagues">
+    <div class="league-icon"><i data-lucide="circle"></i><span class="league-lbl">Rookie</span></div>
+    <div class="league-icon"><i data-lucide="shield"></i><span class="league-lbl">Bronze</span></div>
+    <div class="league-icon"><i data-lucide="award"></i><span class="league-lbl">Silver</span></div>
+    <div class="league-icon"><i data-lucide="star"></i><span class="league-lbl">Gold</span></div>
+    <div class="league-icon current"><i data-lucide="gem"></i><span class="league-lbl">Platinum</span></div>
+    <div class="league-icon"><i data-lucide="zap"></i><span class="league-lbl">Elite</span></div>
+    <div class="league-icon"><i data-lucide="trophy"></i><span class="league-lbl">Legend</span></div>
+  </div>
+  <div class="rank-row r1"><div class="rank-n">#1</div><div class="rank-av">🐉</div><div class="rank-name">Player 1</div><div class="rank-xp">1000xp</div></div>
+  <div class="rank-row r2"><div class="rank-n">#2</div><div class="rank-av">🦅</div><div class="rank-name">Player 2</div><div class="rank-xp">950xp</div></div>
+  <div class="rank-row r3"><div class="rank-n">#3</div><div class="rank-av">🐺</div><div class="rank-name">Player 3</div><div class="rank-xp">800xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#4</div><div class="rank-av">🦊</div><div class="rank-name">Player 4</div><div class="rank-xp">670xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#5</div><div class="rank-av">🐻</div><div class="rank-name">Player 5</div><div class="rank-xp">590xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#6</div><div class="rank-av">🦁</div><div class="rank-name">Player 6</div><div class="rank-xp">510xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#7</div><div class="rank-av">🐯</div><div class="rank-name">Player 7</div><div class="rank-xp">470xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#8</div><div class="rank-av">🦋</div><div class="rank-name">Player 8</div><div class="rank-xp">430xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#9</div><div class="rank-av">🐬</div><div class="rank-name">Player 9</div><div class="rank-xp">390xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#10</div><div class="rank-av">🦜</div><div class="rank-name">Player 10</div><div class="rank-xp">350xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#11</div><div class="rank-av">🐙</div><div class="rank-name">Player 11</div><div class="rank-xp">310xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#12</div><div class="rank-av">🦈</div><div class="rank-name">Player 12</div><div class="rank-xp">280xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#13</div><div class="rank-av">🐘</div><div class="rank-name">Player 13</div><div class="rank-xp">250xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#14</div><div class="rank-av">🦚</div><div class="rank-name">Player 14</div><div class="rank-xp">220xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#15</div><div class="rank-av">🐋</div><div class="rank-name">Player 15</div><div class="rank-xp">190xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#16</div><div class="rank-av">🦩</div><div class="rank-name">Player 16</div><div class="rank-xp">160xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#17</div><div class="rank-av">🐊</div><div class="rank-name">Player 17</div><div class="rank-xp">140xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#18</div><div class="rank-av">🦦</div><div class="rank-name">Player 18</div><div class="rank-xp">120xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#19</div><div class="rank-av">🐧</div><div class="rank-name">Player 19</div><div class="rank-xp">100xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#20</div><div class="rank-av">🦝</div><div class="rank-name">Player 20</div><div class="rank-xp">80xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#21</div><div class="rank-av">🐢</div><div class="rank-name">Player 21</div><div class="rank-xp">65xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#22</div><div class="rank-av">🦔</div><div class="rank-name">Player 22</div><div class="rank-xp">50xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#23</div><div class="rank-av">🐿️</div><div class="rank-name">Player 23</div><div class="rank-xp">35xp</div></div>
+  <div class="rank-row ro"><div class="rank-n">#24</div><div class="rank-av">🐌</div><div class="rank-name">Player 24</div><div class="rank-xp">20xp</div></div>
+</section>
+
+<!-- PROFILE PAGE -->
+<section id="pg-profile" class="page" style="flex-direction:column">
+  <div class="soc-top-row">
+    <div class="soc-pcard">
+      <div class="soc-av"><img src="Mascotte/normal.PNG" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>
+      <div class="soc-pi">
+        <div class="soc-name" id="profName">Delnart</div>
+        <div class="soc-since" id="profSince">Playing since June 2026</div>
+        <div class="sb-lvl">Level <span id="profLvl">5</span></div>
+        <div class="xp-bar"><div class="xp-fill" id="profXpFill" style="width:10%"></div></div>
+        <div class="xp-txt"><span id="profXpCur">10</span>/<span id="profXpMax">100</span> XP</div>
+      </div>
+    </div>
+    <div class="soc-rec">
+      <div class="soc-rt"><i data-lucide="award"></i> Personal Records</div>
+      <div class="soc-rg">
+        <div class="soc-ri"><div class="soc-rl">SINGLE</div><div class="soc-rv" id="prof-s">–</div></div>
+        <div class="soc-ri"><div class="soc-rl">AO5</div><div class="soc-rv" id="prof-5">–</div></div>
+        <div class="soc-ri"><div class="soc-rl">AO12</div><div class="soc-rv" id="prof-12">–</div></div>
+        <div class="soc-ri"><div class="soc-rl">AO100</div><div class="soc-rv" id="prof-100">–</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="soc-algs">
+    <div class="soc-alg-t"><i data-lucide="book-open"></i> Algorithms</div>
+    <div class="soc-alg-g">
+      <div class="alg-chip" id="prof-chip-oll"><div class="alg-chip-ic" id="prof-ic-oll" style="background:rgba(234,179,8,.2)"></div><div><div class="alg-chip-n">OLL</div><div class="alg-chip-s" id="prof-oll">0/57 learned</div></div></div>
+      <div class="alg-chip" id="prof-chip-pll"><div class="alg-chip-ic" id="prof-ic-pll" style="background:rgba(34,197,94,.2)"></div><div><div class="alg-chip-n">PLL</div><div class="alg-chip-s" id="prof-pll">0/21 learned</div></div></div>
+      <div class="alg-chip" id="prof-chip-zbll"><div class="alg-chip-ic" id="prof-ic-zbll" style="background:rgba(124,58,237,.2)"></div><div><div class="alg-chip-n">ZBLL</div><div class="alg-chip-s" id="prof-zbll">0/493 learned</div></div></div>
+    </div>
+  </div>
+  <div class="soc-ls prof-share">
+    <div class="soc-ls-t"><i data-lucide="link"></i> Share on public profile</div>
+    <div class="prof-share-list">
+      <div class="prof-share-item">
+        <div class="tgl-lbl"><div class="tgl-ic"><i data-lucide="book-open" style="width:13px;height:13px"></i></div>Alg learned</div>
+        <label class="sw"><input type="checkbox" id="share-algs" checked><span class="sl2"></span></label>
+      </div>
+      <div class="prof-share-item prof-share-ses-wrap">
+        <div class="prof-share-row">
+          <div class="tgl-lbl"><div class="tgl-ic"><i data-lucide="timer" style="width:13px;height:13px"></i></div>Session time</div>
+          <label class="sw"><input type="checkbox" id="share-session" checked><span class="sl2"></span></label>
+        </div>
+        <div class="prof-ses-checks" id="shareSessionPick"></div>
+      </div>
+      <div class="prof-share-item">
+        <div class="tgl-lbl"><div class="tgl-ic"><i data-lucide="award" style="width:13px;height:13px"></i></div>Personal records</div>
+        <label class="sw"><input type="checkbox" id="share-prs" checked><span class="sl2"></span></label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SETTINGS PAGE -->
+<section id="pg-settings" class="page" style="flex-direction:column">
+  <div class="set-title">Settings</div>
+  <div class="set-grid">
+    <div class="set-card">
+      <div class="set-ct">Profile Information</div>
+      <div class="set-field"><div class="set-lbl">Username</div><input class="set-inp" id="setUsername" type="text" placeholder="Your username"></div>
+      <div class="set-field"><div class="set-lbl">Email</div><input class="set-inp" id="setEmail" type="email" placeholder="Your email"></div>
+      <button class="vip-btn" id="saveProfileBtn" style="margin-top:8px">Save</button>
+    </div>
+    <div class="set-card">
+      <div class="set-ct">Timer settings</div>
+      <div class="set-row">
+        <div class="set-rl">Use Inspection</div>
+        <label class="sw"><input type="checkbox" id="setInspection"><span class="sl2"></span></label>
+      </div>
+      <div class="set-row">
+        <div class="set-rl">Timer Delay</div>
+        <div class="stpr">
+          <button class="stpr-btn" id="delayMinus">−</button>
+          <span class="stpr-val" id="delayVal">0.30s</span>
+          <button class="stpr-btn" id="delayPlus">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="set-card" style="grid-column:1/-1">
+      <div class="set-ct">Solving Preferences</div>
+      <div class="set-lbl">Average Time Goal</div>
+      <input type="range" class="set-slider" id="goalSlider" min="2" max="60" value="10">
+      <div class="set-slider-labels"><span>60s</span><span id="goalVal">10s</span><span>2s</span></div>
+    </div>
+  </div>
+</section>
+
+<footer class="app-footer"></footer>
+</main>
+</div>
+
+<!-- BLUETOOTH MODAL -->
+<div class="ov h" id="btModal">
+  <div class="mo" style="max-width:400px">
+    <button class="mo-x" id="btModalClose">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <i data-lucide="bluetooth" style="width:26px;height:26px;color:var(--purple)"></i>
+      <div style="font-size:19px;font-weight:800">Connect Timer</div>
+    </div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:20px">GAN Smart Timer &amp; GAN Halo Smart Timer</div>
+    <div id="btStatus" style="text-align:center;padding:18px 0;font-size:13px;color:var(--dim)">Press scan to search for nearby GAN timers.</div>
+    <button id="btScanBtn" style="width:100%;padding:13px;background:var(--purple);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      <i data-lucide="scan-line" style="width:16px;height:16px"></i> Scan for devices
+    </button>
+    <button id="btDisconnBtn" style="display:none;width:100%;padding:13px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:50px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px">
+      <i data-lucide="bluetooth-off" style="width:16px;height:16px"></i> Disconnect
+    </button>
+    <div id="btUnsupported" style="display:none;margin-top:12px;font-size:12px;color:var(--red);text-align:center">Web Bluetooth is not supported in this browser. Use Chrome or Edge.</div>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div class="ov h" id="helpModal">
+  <div class="mo" style="max-width:460px">
+    <button class="mo-x" id="helpModalClose">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <i data-lucide="circle-help" style="width:26px;height:26px;color:var(--purple)"></i>
+      <div style="font-size:19px;font-weight:800">How it works</div>
+    </div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:20px">Timer usage &amp; keyboard shortcuts</div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Timer</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:14px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="background:rgba(255,255,255,.08);border-radius:7px;padding:4px 12px;font-weight:700;font-size:13px;min-width:80px;text-align:center">Hold Space</span><span style="color:var(--dim)">Hold to prepare — release to start the timer</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><span style="background:rgba(255,255,255,.08);border-radius:7px;padding:4px 12px;font-weight:700;font-size:13px;min-width:80px;text-align:center">Space</span><span style="color:var(--dim)">Stop the timer and save the solve</span></div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">After a solve</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;font-size:14px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="background:rgba(255,255,255,.08);border-radius:7px;padding:4px 12px;font-weight:700;font-size:13px;min-width:80px;text-align:center">D</span><span style="color:var(--dim)">Mark last solve as DNF</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><span style="background:rgba(255,255,255,.08);border-radius:7px;padding:4px 12px;font-weight:700;font-size:13px;min-width:80px;text-align:center">2</span><span style="color:var(--dim)">Apply +2 penalty to last solve</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><span style="background:rgba(255,255,255,.08);border-radius:7px;padding:4px 12px;font-weight:700;font-size:13px;min-width:80px;text-align:center">Delete / ⌫</span><span style="color:var(--dim)">Delete the last solve</span></div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Statistics</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--dim)">
+      <div><b style="color:#fff">Single</b> — your fastest individual solve this session</div>
+      <div><b style="color:#fff">ao5 / ao12 / ao100</b> — average of 5/12/100, trimming best &amp; worst</div>
+      <div><b style="color:#fff">Mean</b> — straight average of all solves in the session</div>
+      <div><b style="color:#fff">Best</b> — your all-time best for that stat this session</div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE SOLVE CONFIRM MODAL -->
+<div class="ov h" id="delSolveModal">
+  <div class="mo" style="max-width:320px;text-align:center">
+    <div style="font-size:18px;font-weight:800;margin-bottom:8px">Delete solve?</div>
+    <div id="delSolveInfo" style="font-size:13px;color:var(--dim);margin-bottom:20px"></div>
+    <div style="display:flex;gap:10px">
+      <button id="delSolveCancel" style="flex:1;padding:11px;background:rgba(255,255,255,.08);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Cancel</button>
+      <button id="delSolveConfirm" style="flex:1;padding:11px;background:var(--red);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- SOLVE MODAL -->
+<!-- SESSION NAME MODAL (add & rename) -->
+<div class="ov h" id="sesNameModal">
+  <div class="mo" style="max-width:400px;text-align:center">
+    <button class="mo-x" id="sesNameModalClose">✕</button>
+    <div class="mo-num" id="sesNameModalTitle" style="margin-bottom:14px">New Session</div>
+    <input id="sesNameInput" type="text" placeholder="Session name" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:12px 16px;color:#fff;font-size:18px;font-weight:600;text-align:center;outline:none;font-family:inherit">
+    <button id="sesNameConfirm" style="margin-top:14px;width:100%;background:var(--purple);border:none;border-radius:10px;padding:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Confirm</button>
+  </div>
+</div>
+
+<!-- AO DETAIL MODAL -->
+<div class="ov h" id="aoDetailModal">
+  <div class="mo" style="max-width:320px">
+    <button class="mo-x" id="aoDetailClose">✕</button>
+    <div style="font-size:14px;font-weight:700;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px" id="aoDetailTitle"></div>
+    <div style="font-size:36px;font-weight:900;text-align:center;margin-bottom:16px;font-variant-numeric:tabular-nums" id="aoDetailAvg"></div>
+    <div id="aoDetailList" style="display:flex;flex-direction:column;gap:4px;max-height:340px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- CLEAR TIMES MODAL -->
+<div class="ov h" id="clearTimesModal">
+  <div class="mo" style="max-width:320px;text-align:center">
+    <button class="mo-x" id="clearTimesClose">✕</button>
+    <div style="font-size:19px;font-weight:800;margin-bottom:8px">Clear all times?</div>
+    <div id="clearTimesInfo" style="font-size:13px;color:var(--dim);margin-bottom:20px"></div>
+    <div style="display:flex;gap:10px">
+      <button id="clearTimesCancel" style="flex:1;padding:11px;background:rgba(255,255,255,.08);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Cancel</button>
+      <button id="clearTimesConfirm" style="flex:1;padding:11px;background:var(--red);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Delete all</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE SESSION MODAL -->
+<div class="ov h" id="delSesModal">
+  <div class="mo" style="max-width:360px">
+    <button class="mo-x" id="delSesModalClose">✕</button>
+    <div style="font-size:19px;font-weight:800;margin-bottom:6px">Delete a session</div>
+    <div style="font-size:13px;color:var(--dim);margin-bottom:16px">Choose which session to delete</div>
+    <div id="delSesList" style="display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;margin-bottom:18px"></div>
+    <div id="delSesConfirmRow" style="display:none;flex-direction:column;gap:10px">
+      <div style="background:rgba(255,80,80,.12);border:1px solid rgba(255,80,80,.3);border-radius:10px;padding:12px;font-size:14px;text-align:center">
+        Delete <strong id="delSesTargetName"></strong>? This cannot be undone.
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="delSesBack" style="flex:1;padding:11px;background:rgba(255,255,255,.08);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Back</button>
+        <button id="delSesConfirm" style="flex:1;padding:11px;background:var(--red);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TIME MODAL -->
+<div class="ov h" id="addTimeModal">
+  <div class="mo" style="max-width:420px;text-align:center">
+    <button class="mo-x" id="addTimeClose">✕</button>
+    <div class="mo-num" style="margin-bottom:14px">Add a time</div>
+    <input id="addTimeInput" type="text" placeholder="1234 → 12.34s · 1 → 1:00" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:12px 16px;color:#fff;font-size:22px;font-weight:700;text-align:center;outline:none;font-family:inherit">
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Press Enter or click Add</div>
+    <button class="mb" id="addTimeConfirm" style="margin-top:16px;width:100%;background:var(--purple);border:none;border-radius:10px;padding:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Add</button>
+  </div>
+</div>
+
+<div class="ov h" id="solveModal">
+  <div class="mo">
+    <button id="mo-prev" class="mo-side-btn mo-side-left">◀</button>
+    <button id="mo-next" class="mo-side-btn mo-side-right">▶</button>
+    <button class="mo-x" id="solveModalClose">✕</button>
+    <div class="mo-num" id="mo-num">#1</div>
+    <div class="mo-time" id="mo-time">0.000</div>
+    <div class="mo-scr">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <div class="mo-scr-lbl" style="margin-bottom:0">Scramble</div>
+        <button id="mo-copy-scr" title="Copy scramble" style="background:rgba(255,255,255,.1);border:none;border-radius:7px;color:#fff;cursor:pointer;padding:4px 8px;font-size:11px;display:flex;align-items:center;gap:4px"><i data-lucide="copy" style="width:12px;height:12px"></i></button>
+      </div>
+      <div id="mo-scr"></div>
+    </div>
+    <svg id="mo-net" class="mo-net" viewBox="0 0 204 153" width="220" height="165"></svg>
+    <div class="mo-dt">
+      <div class="mo-di"><div class="mo-dl">Date:</div><div class="mo-dv" id="mo-date">–</div></div>
+      <div class="mo-di"><div class="mo-dl">Time:</div><div class="mo-dv" id="mo-clock">–</div></div>
+    </div>
+    <div class="mo-acts">
+      <button class="mb mb-dnf" id="mo-dnf">DNF</button>
+      <button class="mb mb-p2" id="mo-p2">+2</button>
+      <button class="mb mb-del" id="mo-del">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE IMAGE MODAL -->
+<div class="ov h" id="shareImgModal">
+  <div class="mo" style="width:max-content;max-width:92vw;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column">
+    <button class="mo-x" id="shareImgClose">✕</button>
+    <div style="font-size:18px;font-weight:800;margin-bottom:14px;text-align:center">Share Solves</div>
+    <canvas id="shareCanvas" style="border-radius:10px;display:block;margin-bottom:14px"></canvas>
+    <div style="display:flex;gap:8px">
+      <button id="shareImgDownload" style="flex:1;padding:11px;background:var(--purple);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Download Image</button>
+      <button id="shareImgCopy" style="flex:1;padding:11px;background:rgba(255,255,255,.1);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALG MODAL -->
+<div class="ov h" id="algModal">
+  <div class="mo alg-mo">
+    <button class="mo-x" id="algModalClose">✕</button>
+    <button class="am-nav-btn" id="am-prev">&#8249;</button>
+    <button class="am-nav-btn" id="am-next">&#8250;</button>
+    <div class="alg-mo-h">
+      <div class="alg-mo-n" id="am-num">#27</div>
+      <span class="alg-mo-s bl" id="am-badge">LEARNED</span>
+    </div>
+    <div class="alg-mo-body">
+      <svg id="am-svg" viewBox="0 0 70 70" width="150" height="150"></svg>
+      <div>
+        <div class="alg-mo-info">
+          <div class="ami-l" id="am-alg-l">Alg:</div><div class="ami-v" id="am-alg">R U R' U R U2 R'</div>
+          <div class="ami-l">Setup:</div><div class="ami-v" id="am-setup">R U2 R' U' R U' R'</div>
+        </div>
+        <div class="alg-mo-stat">
+          <div class="ams"><div class="ams-l">Median</div><div class="ams-v" id="am-med">–</div></div>
+          <div class="ams"><div class="ams-l">Best</div><div class="ams-v" id="am-best">–</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="alg-mo-act">
+      <button class="amab amab-l" id="am-learned">✓ Learned</button>
+      <button class="amab amab-g" id="am-learning">~ Learning</button>
+      <button class="amab amab-u" id="am-unknown">? Unknown</button>
+    </div>
+    <div class="am-alts-wrap" id="am-alts-wrap" style="display:none">
+      <div class="am-alts-title">Alternatives<span class="am-alts-count" id="am-alts-count"></span></div>
+      <div id="am-alts-list" class="am-alts-list"></div>
+    </div>
+    <button class="am-alts-btn" id="am-alts-btn">Show alternatives</button>
+  </div>
+</div>
+
+<!-- DRILL MODAL -->
+<div class="ov h" id="drillModal">
+  <div class="mo drill-mo">
+    <button class="mo-x" id="drillClose">✕</button>
+    <div class="drill-hdr">
+      <div class="drill-title" id="drill-title">OLL Drill</div>
+      <div class="drill-count" id="drill-count">0 solves</div>
+    </div>
+    <div class="drill-scramble" id="drill-scramble">–</div>
+    <div class="drill-timer-wrap" id="drill-timer-wrap">
+      <div class="drill-disp" id="drill-disp">0.000</div>
+      <div class="drill-hint" id="drill-hint">Press SPACE to start</div>
+    </div>
+    <div class="h" id="drill-reveal">
+      <div class="drill-reveal-inner">
+        <div id="drill-diagram"></div>
+        <div class="drill-case-info">
+          <div class="drill-case-num" id="drill-case-num">#1</div>
+          <div class="drill-case-name" id="drill-case-name"></div>
+          <div class="drill-case-alg" id="drill-case-alg"></div>
+        </div>
+      </div>
+      <div class="drill-act">
+        <button class="drill-st drill-st-l" id="drill-st-learned">✓ Learned</button>
+        <button class="drill-st drill-st-g" id="drill-st-learning">~ Learning</button>
+        <button class="drill-st drill-st-u" id="drill-st-unknown">? Unknown</button>
+        <button class="drill-del" id="drill-del">✕ Delete</button>
+        <button class="drill-next" id="drill-next">Next →</button>
+      </div>
+    </div>
+    <div class="drill-log">
+      <div class="drill-log-hdr">
+        <div class="drill-log-title">Session Results</div>
+        <div class="drill-sort-btns">
+          <button class="drill-sort-btn" id="drill-sort-best">Best</button>
+          <button class="drill-sort-btn" id="drill-sort-worst">Worst</button>
+        </div>
+      </div>
+      <div class="drill-log-list" id="drill-log-list"><div class="drill-log-empty">No solves yet</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PLL RECOGNITION MODAL -->
+<div class="ov h" id="pllRecModal">
+  <div class="mo pllrec-mo">
+    <button class="mo-x" id="pllRecClose">✕</button>
+    <div class="pllrec-main">
+      <div class="pllrec-hdr">
+        <div class="pllrec-title">PLL Recognition</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="pllrec-view-tabs">
+            <button class="pllrec-view-tab on" id="pllrec-2d-btn">2D</button>
+            <button class="pllrec-view-tab" id="pllrec-3d-btn">3D</button>
+          </div>
+          <div class="pllrec-scorebox">
+            <span class="pllrec-correct" id="pllrec-correct">0</span>
+            <span class="pllrec-sep">/</span>
+            <span class="pllrec-total" id="pllrec-total">0</span>
+            <span class="pllrec-streak" id="pllrec-streak"></span>
+          </div>
+        </div>
+      </div>
+      <div class="pllrec-svg-wrap" id="pllrec-svg-wrap">
+        <svg id="pllrec-svg" viewBox="0 0 70 70" width="220" height="220"></svg>
+      </div>
+      <div class="pllrec-fb h" id="pllrec-fb"></div>
+      <div class="pllrec-grid" id="pllrec-grid"></div>
+      <div class="pllrec-roundend" id="pllrec-roundend" style="display:none">
+        <div class="pllrec-re-score" id="pllrec-re-score"></div>
+        <button class="pllrec-re-btn" id="pllrec-re-btn">Continue</button>
+        <div class="pllrec-re-hint">or press Space</div>
+      </div>
+    </div>
+    <div class="pllrec-history">
+      <div class="pllrec-history-hdr">History</div>
+      <div class="pllrec-history-list" id="pllrec-history-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+<script src="js/data.js"></script>
+<script src="js/state.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/render.js"></script>
+<script src="js/timer.js"></script>
+<script src="js/session.js"></script>
+<script src="js/algs.js"></script>
+<script src="js/settings.js"></script>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="js/smartcube-lib.js"></script>
+<script src="js/bluetooth.js"></script>
+<script src="js/smartcube.js"></script>
+</body>
+</html>
