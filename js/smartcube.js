@@ -244,44 +244,61 @@ function scAddOrbit(canvas){
 // ─── SCRAMBLE TRACKING & AUTO TIMER ─────────────────────────────────────────
 let scPhase='idle'; // idle | scrambling | ready | solving
 let scScrambleMoves=[], scScrambleIdx=0, scMoveCount=0;
+let scErrSeq=[]; // stack of correction moves needed (pop = next to do)
+let scR2Dir=null; // direction locked in for the first event of a '2' move
 let scAutoRaf=null, scAutoStart=0;
+
+function scInverse(mv){
+  if(!mv) return '';
+  if(mv.endsWith("'")) return mv.slice(0,-1);
+  if(mv.endsWith('2')) return mv;
+  return mv+"'";
+}
+
+// Base face letter without modifiers, e.g. "R" from "R'", "R2", "Rw"
+function scFaceBase(m){ return m.replace(/[2']/g,''); }
 
 function scInCubeMode(){ return document.getElementById('pg-timer')?.classList.contains('cube-mode'); }
 
 function scInitScramble(){
-  if(!scInCubeMode()) return;
+  if(!scInCubeMode()||!scConn) return;
   if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; }
   const el=document.getElementById('scrTxt'); if(!el) return;
   scScrambleMoves=el.textContent.trim().split(/\s+/).filter(Boolean);
-  scScrambleIdx=0; scMoveCount=0;
+  scScrambleIdx=0; scMoveCount=0; scErrSeq=[]; scR2Dir=null;
   scPhase=scScrambleMoves.length?'scrambling':'idle';
   scHighlight();
 }
 
 function scHighlight(){
-  const el=document.getElementById('scrTxt'); if(!el||!scScrambleMoves.length) return;
+  const el=document.getElementById('scrTxt'); if(!el||!scScrambleMoves.length||!scConn) return;
   if(scPhase==='ready'){
     el.innerHTML='<span style="color:var(--green);font-weight:800;letter-spacing:.04em">Scramble done — start solving!</span>';
     return;
   }
+  const isErr=scErrSeq.length>0;
+  const correction=isErr?scErrSeq[scErrSeq.length-1]:null;
   el.innerHTML=scScrambleMoves.map((m,i)=>{
     if(i<scScrambleIdx) return `<span style="color:rgba(255,255,255,.2)">${m}</span>`;
-    if(i===scScrambleIdx) return `<span style="background:var(--purple);color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`;
-    return `<span style="color:rgba(255,255,255,.4)">${m}</span>`;
-  }).join(' ');
+    if(i===scScrambleIdx&&isErr)
+      return `<span style="background:#c0392b;color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`;
+    return `<span style="color:#fff">${m}</span>`;
+  }).join(' ')
+  +(isErr?` <span style="font-size:13px;color:#e74c3c;font-weight:700;margin-left:4px">← do <span style="background:rgba(231,76,60,.22);border-radius:4px;padding:1px 7px;font-weight:900">${correction}</span></span>`:'');
 }
 
 function scClearHighlight(){
-  if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; }
+  if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; } scAutoStart=0;
   scPhase='idle'; scScrambleMoves=[]; scScrambleIdx=0;
   if(typeof renderScramble==='function') renderScramble();
 }
 
 function scAutoTimerStart(){
-  if(scAutoRaf) return;
+  if(scAutoStart>0) return;
   scAutoStart=performance.now();
   const el=document.getElementById('timerDisp'); if(el) el.className='running';
   (function tick(){
+    if(scAutoStart===0) return;
     const t=(performance.now()-scAutoStart)/1000;
     const d=document.getElementById('timerDisp');
     if(d) d.textContent=t<60?t.toFixed(3):`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`;
@@ -290,11 +307,11 @@ function scAutoTimerStart(){
 }
 
 function scAutoTimerStop(){
-  if(!scAutoRaf) return;
-  cancelAnimationFrame(scAutoRaf); scAutoRaf=null;
-  const t=(performance.now()-scAutoStart)/1000;
-  const el=document.getElementById('timerDisp');
-  if(el){ el.className='stopped'; el.textContent=t<60?t.toFixed(3):`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`; }
+  if(scAutoStart===0) return;
+  const ms=Math.round(performance.now()-scAutoStart);
+  scAutoStart=0;
+  if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; }
+  stopTimer(ms);
 }
 
 // ─── MOVE ANIMATION ──────────────────────────────────────────────────────────
@@ -303,26 +320,58 @@ function scEnqueue(mv){
 
   if(scInCubeMode()){
     if(scPhase==='scrambling'){
-      const needed=scScrambleMoves[scScrambleIdx]?.endsWith('2')?2:1;
-      scMoveCount++;
-      if(scMoveCount>=needed){
-        scMoveCount=0; scScrambleIdx++;
-        if(scScrambleIdx>=scScrambleMoves.length){ scPhase='ready'; scHighlight(); }
-        else scHighlight();
+      if(scErrSeq.length>0){
+        // error recovery: next needed correction is at the top of the stack
+        const need=scErrSeq[scErrSeq.length-1];
+        if(mv===need){
+          scErrSeq.pop();
+          if(scErrSeq.length===0){ scMoveCount=0; scR2Dir=null; }
+        } else {
+          scErrSeq.push(scInverse(mv));
+        }
+        scHighlight();
+      } else {
+        const cur=scScrambleMoves[scScrambleIdx];
+        const isDouble=cur?.endsWith('2');
+        const base=scFaceBase(cur||'');
+        const mvBase=scFaceBase(mv);
+        let correct=false;
+        if(isDouble){
+          if(scMoveCount===0){
+            // accept R or R' for R2 — any direction on the right face
+            correct=(mvBase===base);
+            if(correct) scR2Dir=mv; // lock in direction for 2nd event
+          } else {
+            // 2nd event must match the locked direction
+            correct=(mv===scR2Dir);
+          }
+        } else {
+          correct=(mv===cur);
+        }
+        if(correct){
+          scMoveCount++;
+          if(scMoveCount>=(isDouble?2:1)){
+            scMoveCount=0; scR2Dir=null; scScrambleIdx++;
+            if(scScrambleIdx>=scScrambleMoves.length){ scPhase='ready'; scHighlight(); }
+            else scHighlight();
+          }
+        } else {
+          // wrong move — push correction for any partial R2 progress, then for the wrong move
+          if(scMoveCount>0&&scR2Dir) scErrSeq.push(scInverse(scR2Dir)); // undo locked R2 first half (done last)
+          scMoveCount=0; scR2Dir=null;
+          scErrSeq.push(scInverse(mv)); // undo wrong move (done first, on top)
+          scHighlight();
+        }
       }
     } else if(scPhase==='ready'){
       scPhase='solving';
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
-      if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; }
+      if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
     } else if(scPhase==='solving'){
       if(scCurrentFacelets===SC_SOLVED){
         scAutoTimerStop(); scPhase='idle';
-        setTimeout(()=>{
-          if(typeof pushScramble==='function') pushScramble();
-          if(typeof renderScramble==='function') renderScramble();
-          setTimeout(scInitScramble,50);
-        },1500);
+        scInitScramble();
       }
     }
   }
@@ -464,15 +513,26 @@ async function scConnect(){
 
 function scHandleDisconn(){
   scSub?.unsubscribe?.(); scSub=null; scConn=null;
+  if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; } scAutoStart=0;
+  scPhase='idle'; scErrSeq=[]; scMoveCount=0;
+  if(typeof renderScramble==='function') renderScramble(); // restore plain text
   scSetStatus(''); scSetBattery(''); scSetDevice(''); scSetConnUI(false);
 }
 
 async function scDisconnect(){ try{await scConn?.disconnect();}catch(e){} scHandleDisconn(); }
 
 async function scReset(){
-  if(!scConn||!scConn.capabilities.reset) return;
-  try{await scConn.sendCommand({type:'REQUEST_RESET'});}catch(e){}
-  scCurrentFacelets=SC_SOLVED; scMoveQueue.length=0; scUpdateColors(SC_SOLVED);
+  // Stop any running auto-timer
+  if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; } scAutoStart=0;
+  // Reset virtual cube
+  scCurrentFacelets=SC_SOLVED; scMoveQueue.length=0; scQueueRunning=false;
+  scUpdateColors(SC_SOLVED);
+  // Re-init scramble tracking from the beginning
+  scErrSeq=[]; scMoveCount=0;
+  scPhase='idle';
+  scInitScramble();
+  // Try physical cube reset if supported
+  if(scConn?.capabilities?.reset) try{await scConn.sendCommand({type:'REQUEST_RESET'});}catch(e){}
 }
 
 // ─── INIT & WIRING ───────────────────────────────────────────────────────────
