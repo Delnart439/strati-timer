@@ -376,7 +376,7 @@ async function scConnect(){
 
 function scHandleDisconn(){
   scSub?.unsubscribe?.(); scSub=null; scConn=null;
-  scSetStatus('Disconnected'); scSetBattery(''); scSetDevice(''); scSetConnUI(false);
+  scSetStatus(''); scSetBattery(''); scSetDevice(''); scSetConnUI(false);
 }
 
 async function scDisconnect(){ try{await scConn?.disconnect();}catch(e){} scHandleDisconn(); }
