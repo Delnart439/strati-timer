@@ -114,20 +114,20 @@ function scInitScene(container) {
   const T = window.THREE;
   if(!T){ console.error('Three.js not loaded'); return; }
 
-  const W=container.clientWidth||320, H=container.clientHeight||320;
-  scRenderer = new T.WebGLRenderer({antialias:true});
+  const W=container.clientWidth||360, H=container.clientHeight||360;
+  scRenderer = new T.WebGLRenderer({antialias:true, alpha:true});
   scRenderer.setSize(W,H);
   scRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  scRenderer.setClearColor(0x1e0940);
   container.appendChild(scRenderer.domElement);
 
   scScene  = new T.Scene();
   scCamera = new T.PerspectiveCamera(44,W/H,0.1,100);
   scPosCamera();
 
-  scScene.add(new T.AmbientLight(0xffffff,0.65));
-  const dl=new T.DirectionalLight(0xffffff,0.9); dl.position.set(5,10,7); scScene.add(dl);
-  const dl2=new T.DirectionalLight(0x8888ff,0.25); dl2.position.set(-4,-6,-3); scScene.add(dl2);
+  scScene.add(new T.AmbientLight(0xffffff,0.75));
+  const dl=new T.DirectionalLight(0xffffff,1.0); dl.position.set(4,8,6); scScene.add(dl);
+  const dl2=new T.DirectionalLight(0xffffff,0.35); dl2.position.set(-3,-4,-3); scScene.add(dl2);
+  const dl3=new T.DirectionalLight(0xffffff,0.2); dl3.position.set(0,-5,4); scScene.add(dl3);
 
   scBuildCubies();
   scAddOrbit(scRenderer.domElement);
@@ -152,13 +152,45 @@ function scStartRender(){
 function scStopRender(){ scRenderActive=false; if(scRafId){cancelAnimationFrame(scRafId);scRafId=null;} }
 
 // ─── CUBIES ──────────────────────────────────────────────────────────────────
+function scMakeRoundedSticker(size, r) {
+  const T=window.THREE, s=size/2;
+  const shape=new T.Shape();
+  shape.moveTo(-s+r,-s); shape.lineTo(s-r,-s); shape.quadraticCurveTo(s,-s,s,-s+r);
+  shape.lineTo(s,s-r);   shape.quadraticCurveTo(s,s,s-r,s);
+  shape.lineTo(-s+r,s);  shape.quadraticCurveTo(-s,s,-s,s-r);
+  shape.lineTo(-s,-s+r); shape.quadraticCurveTo(-s,-s,-s+r,-s);
+  shape.closePath();
+  return new T.ShapeGeometry(shape);
+}
+
 function scBuildCubies(){
   const T=window.THREE;
+  const OFF=0.473;
+  const sGeo=scMakeRoundedSticker(0.82,0.09);
+  // order matches SC_FI_DIRS: +x,-x,+y,-y,+z,-z
+  const FACE=[
+    {p:[OFF,0,0],   r:[0,Math.PI/2,0]},
+    {p:[-OFF,0,0],  r:[0,-Math.PI/2,0]},
+    {p:[0,OFF,0],   r:[-Math.PI/2,0,0]},
+    {p:[0,-OFF,0],  r:[Math.PI/2,0,0]},
+    {p:[0,0,OFF],   r:[0,0,0]},
+    {p:[0,0,-OFF],  r:[0,Math.PI,0]},
+  ];
   for(let x=-1;x<=1;x++) for(let y=-1;y<=1;y++) for(let z=-1;z<=1;z++){
     if(x===0&&y===0&&z===0) continue;
-    const mats=Array.from({length:6},()=>new T.MeshPhongMaterial({color:SC_INNER,shininess:60}));
-    const mesh=new T.Mesh(new T.BoxGeometry(0.93,0.93,0.93),mats);
-    mesh.position.set(x,y,z); scScene.add(mesh); scCubies[`${x},${y},${z}`]=mesh;
+    const body=new T.Mesh(
+      new T.BoxGeometry(0.94,0.94,0.94),
+      new T.MeshPhongMaterial({color:0x1c1c1c,shininess:12})
+    );
+    body.position.set(x,y,z); scScene.add(body);
+    const stickers=FACE.map(({p,r})=>{
+      const mat=new T.MeshPhongMaterial({color:SC_INNER,shininess:110});
+      const s=new T.Mesh(sGeo,mat);
+      s.position.set(...p); s.rotation.set(...r); body.add(s);
+      return mat;
+    });
+    body.userData.stickers=stickers;
+    scCubies[`${x},${y},${z}`]=body;
   }
   scUpdateColors(SC_SOLVED);
 }
@@ -183,7 +215,8 @@ function scUpdateColors(facelets){
   for(let i=0;i<54;i++){
     const sf=SC_S2F[i]; if(!sf) continue;
     const c=scCubies[sf.key]; if(!c) continue;
-    c.material[scGetLocalFi(c,sf.fi)].color.setHex(SC_COLORS[facelets[i]]??SC_INNER);
+    const fi=scGetLocalFi(c,sf.fi);
+    (c.userData.stickers||c.material)[fi].color.setHex(SC_COLORS[facelets[i]]??SC_INNER);
   }
 }
 
