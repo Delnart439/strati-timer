@@ -248,6 +248,7 @@ let scPhase='idle'; // idle | scrambling | ready | solving
 let scScrambleMoves=[], scScrambleIdx=0, scMoveCount=0;
 let scErrSeq=[]; // stack of correction moves needed (pop = next to do)
 let scR2Dir=null; // direction locked in for the first event of a '2' move
+let scSolveMoves=0; // move count for the current solve
 let scAutoRaf=null, scAutoStart=0;
 
 function scInverse(mv){
@@ -315,6 +316,9 @@ function scAutoTimerStop(){
   const ms=Math.round(performance.now()-scAutoStart);
   scAutoStart=0;
   if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; }
+  const tEl=document.getElementById('s-turns'), pEl=document.getElementById('s-tps');
+  if(tEl) tEl.textContent=scSolveMoves;
+  if(pEl) pEl.textContent=ms>0?(scSolveMoves/(ms/1000)).toFixed(2):'–';
   stopTimer(ms);
 }
 
@@ -368,11 +372,12 @@ function scEnqueue(mv){
         }
       }
     } else if(scPhase==='ready'){
-      scPhase='solving';
+      scPhase='solving'; scSolveMoves=0;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
       if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
     } else if(scPhase==='solving'){
+      scSolveMoves++;
       if(scCurrentFacelets===SC_SOLVED){
         scAutoTimerStop(); scPhase='idle';
         scInitScramble();
