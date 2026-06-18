@@ -139,10 +139,14 @@ document.querySelectorAll('.ac[data-mode]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     const mode = btn.dataset.mode;
     document.querySelectorAll('.ac[data-mode]').forEach(b=>b.classList.toggle('on', b===btn));
-    document.querySelector('.t-center').style.display = mode==='timer' ? '' : 'none';
-    document.getElementById('mode-cube').classList.toggle('active', mode==='cube');
-    document.getElementById('mode-battle').classList.toggle('active', mode==='battle');
-    document.querySelector('.t-rp').style.display = mode==='timer' ? '' : 'none';
+    const isBattle = mode === 'battle';
+    const isCube   = mode === 'cube';
+    document.querySelector('.t-center').style.display = isBattle ? 'none' : '';
+    document.querySelector('.t-rp').style.display     = isBattle ? 'none' : '';
+    document.getElementById('cubeArea').style.display    = isCube ? 'none' : '';
+    document.getElementById('cubeScArea').style.display  = isCube ? '' : 'none';
+    document.getElementById('mode-battle').classList.toggle('active', isBattle);
+    document.getElementById('pg-timer').classList.toggle('cube-mode', isCube);
   });
 });
 

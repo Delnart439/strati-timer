@@ -114,7 +114,7 @@ function scInitScene(container) {
   const T = window.THREE;
   if(!T){ console.error('Three.js not loaded'); return; }
 
-  const W=container.clientWidth||360, H=container.clientHeight||360;
+  const W=container.clientWidth||300, H=container.clientHeight||300;
   scRenderer = new T.WebGLRenderer({antialias:true, alpha:true});
   scRenderer.setSize(W,H);
   scRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
@@ -404,7 +404,7 @@ document.querySelector('.ac[data-mode="cube"]')?.addEventListener('click',()=>{
   const wrap=document.getElementById('sc3dWrap');
   if(!scScene&&wrap&&window.THREE) scInitScene(wrap);
   if(scRenderer&&wrap){
-    const W=wrap.clientWidth||320,H=wrap.clientHeight||320;
+    const W=wrap.clientWidth||300,H=wrap.clientHeight||300;
     scRenderer.setSize(W,H);
     if(scCamera){scCamera.aspect=W/H;scCamera.updateProjectionMatrix();}
   }

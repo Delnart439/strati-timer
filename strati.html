@@ -101,23 +101,18 @@
       <button class="cube-tog" id="cubeTogBtn" title="Toggle cube net"><i data-lucide="eye-off"></i></button>
       <svg id="cubeNet" viewBox="0 0 204 153" width="176" height="132"></svg>
     </div>
+    <div id="cubeScArea" style="display:none;position:relative;flex-shrink:0">
+      <div id="sc3dWrap" style="width:300px;height:300px;cursor:grab"></div>
+      <div id="scStatus" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;color:rgba(255,255,255,.45);white-space:nowrap;pointer-events:none">Not connected</div>
+      <div id="scBattery" style="position:absolute;top:6px;right:8px;font-size:10px;color:rgba(255,255,255,.38);pointer-events:none"></div>
+      <div id="scDevice" style="position:absolute;top:6px;left:8px;font-size:10px;color:rgba(255,255,255,.38);pointer-events:none"></div>
+      <button id="scConnBtn" style="position:absolute;bottom:8px;left:8px;background:var(--purple);border:none;border-radius:50px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;padding:6px 14px;z-index:1"><i data-lucide="bluetooth" style="width:11px;height:11px"></i>Connect</button>
+      <button id="scDisconnBtn" style="display:none;position:absolute;bottom:8px;left:8px;background:rgba(255,255,255,.12);border:none;border-radius:50px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;padding:6px 14px;z-index:1">Disconnect</button>
+      <button id="scResetBtn" style="display:none;position:absolute;bottom:8px;right:8px;background:rgba(255,255,255,.07);border:none;border-radius:50px;color:var(--dim);font-size:11px;font-weight:600;cursor:pointer;padding:5px 10px;z-index:1">Reset</button>
+    </div>
     <div class="mascot-area" id="mascotArea">
       <div class="sp-bubble" id="spBubble">Hey! Ready to solve?</div>
       <img class="mascot" id="mascot" src="Mascotte/hi.png" style="width:150px;height:150px;object-fit:contain">
-    </div>
-  </div>
-  <!-- BLUETOOTH CUBE SUB-MODE -->
-  <div class="t-submode" id="mode-cube">
-    <div id="sc3dWrap" style="width:360px;height:360px;flex-shrink:0;cursor:grab"></div>
-    <div style="text-align:center;display:flex;flex-direction:column;gap:4px">
-      <div id="scStatus" style="font-size:13px;font-weight:700;color:var(--dim)">Not connected</div>
-      <div id="scBattery" style="font-size:12px;color:var(--muted)"></div>
-      <div id="scDevice" style="font-size:11px;color:var(--muted)"></div>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-      <button id="scConnBtn" style="padding:12px 28px;background:var(--purple);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px"><i data-lucide="bluetooth" style="width:15px;height:15px"></i>Connect AI Cube</button>
-      <button id="scDisconnBtn" style="display:none;padding:12px 22px;background:rgba(255,255,255,.1);border:none;border-radius:50px;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Disconnect</button>
-      <button id="scResetBtn" style="display:none;padding:11px 20px;background:rgba(255,255,255,.07);border:none;border-radius:50px;color:var(--dim);font-size:12px;font-weight:600;cursor:pointer">Reset Cube</button>
     </div>
   </div>
 
