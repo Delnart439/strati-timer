@@ -251,24 +251,48 @@ let scErrSeq=[]; // stack of correction moves needed (pop = next to do)
 let scR2Dir=null; // direction locked in for the first event of a '2' move
 let scSolveMoves=0; // move count for the current solve
 let scCfopTimes={cross:null,f2l:null,oll:null,pll:null};
+let scCfopFace=null; // SC_CFOP_DATA entry for the detected cross face
 
-// CFOP phase detectors — facelets string positions:
-// U=0-8, R=9-17, F=18-26, D=27-35, L=36-44, B=45-53
+// CFOP detection — cross is detected on whichever of the 6 faces it was solved on.
+// Each entry: fc=cross face color, cx=[[crossSticker,adjSticker]×4],
+// f2l=side bands for first-two-layers, fr=full face range, oll_r/oll_c=OLL face.
+const SC_FI_TO_COLOR=['R','L','U','D','F','B'];
+const SC_CFOP_DATA=[
+  {fc:'U',cx:[[1,46],[3,37],[5,10],[7,19]],
+   f2l:[{idx:[9,10,11,12,13,14],col:'R'},{idx:[18,19,20,21,22,23],col:'F'},{idx:[36,37,38,39,40,41],col:'L'},{idx:[45,46,47,48,49,50],col:'B'}],
+   fr:[0,8],oll_r:[27,35],oll_c:'D'},
+  {fc:'D',cx:[[28,25],[30,43],[32,16],[34,52]],
+   f2l:[{idx:[12,13,14,15,16,17],col:'R'},{idx:[21,22,23,24,25,26],col:'F'},{idx:[39,40,41,42,43,44],col:'L'},{idx:[48,49,50,51,52,53],col:'B'}],
+   fr:[27,35],oll_r:[0,8],oll_c:'U'},
+  {fc:'F',cx:[[19,7],[21,41],[23,12],[25,28]],
+   f2l:[{idx:[3,4,5,6,7,8],col:'U'},{idx:[9,10,12,13,15,16],col:'R'},{idx:[27,28,29,30,31,32],col:'D'},{idx:[37,38,40,41,43,44],col:'L'}],
+   fr:[18,26],oll_r:[45,53],oll_c:'B'},
+  {fc:'B',cx:[[46,1],[48,14],[50,39],[52,34]],
+   f2l:[{idx:[0,1,2,3,4,5],col:'U'},{idx:[10,11,13,14,16,17],col:'R'},{idx:[30,31,32,33,34,35],col:'D'},{idx:[36,37,39,40,42,43],col:'L'}],
+   fr:[45,53],oll_r:[18,26],oll_c:'F'},
+  {fc:'R',cx:[[10,5],[12,23],[14,48],[16,32]],
+   f2l:[{idx:[1,2,4,5,7,8],col:'U'},{idx:[19,20,22,23,25,26],col:'F'},{idx:[28,29,31,32,34,35],col:'D'},{idx:[45,46,48,49,51,52],col:'B'}],
+   fr:[9,17],oll_r:[36,44],oll_c:'L'},
+  {fc:'L',cx:[[37,3],[39,50],[41,21],[43,30]],
+   f2l:[{idx:[0,1,3,4,6,7],col:'U'},{idx:[18,19,21,22,24,25],col:'F'},{idx:[27,28,30,31,33,34],col:'D'},{idx:[46,47,49,50,52,53],col:'B'}],
+   fr:[36,44],oll_r:[9,17],oll_c:'R'},
+];
 function scCheckCross(fl){
-  return fl[28]==='D'&&fl[25]==='F' // front D edge
-      && fl[32]==='D'&&fl[16]==='R' // right D edge
-      && fl[34]==='D'&&fl[52]==='B' // back D edge
-      && fl[30]==='D'&&fl[43]==='L'; // left D edge
+  for(const fd of SC_CFOP_DATA){
+    if(fd.cx.every(([fi,ai])=>fl[fi]===fd.fc&&fl[ai]===SC_FI_TO_COLOR[SC_S2F[ai].fi]))
+      return fd;
+  }
+  return null;
 }
-function scCheckF2L(fl){
-  for(let i=27;i<=35;i++) if(fl[i]!=='D') return false; // full D face
-  for(let i=12;i<=17;i++) if(fl[i]!=='R') return false; // R bottom 2 rows
-  for(let i=21;i<=26;i++) if(fl[i]!=='F') return false; // F bottom 2 rows
-  for(let i=39;i<=44;i++) if(fl[i]!=='L') return false; // L bottom 2 rows
-  for(let i=48;i<=53;i++) if(fl[i]!=='B') return false; // B bottom 2 rows
+function scCheckF2L(fl,fd){
+  for(let i=fd.fr[0];i<=fd.fr[1];i++) if(fl[i]!==fd.fc) return false;
+  for(const {idx,col} of fd.f2l) for(const i of idx) if(fl[i]!==col) return false;
   return true;
 }
-function scCheckOLL(fl){ for(let i=0;i<9;i++) if(fl[i]!=='U') return false; return true; }
+function scCheckOLL(fl,fd){
+  for(let i=fd.oll_r[0];i<=fd.oll_r[1];i++) if(fl[i]!==fd.oll_c) return false;
+  return true;
+}
 
 function scUpdateCfopBar(){
   const bar=document.getElementById('cfopBar'), lbl=document.getElementById('cfopLabels');
@@ -282,7 +306,7 @@ function scUpdateCfopBar(){
     {name:'PLL',  ms:p-o,    col:'#34d399'},
   ];
   bar.innerHTML=segs.map(s=>`<div style="width:${(s.ms/p*100).toFixed(1)}%;background:${s.col}"></div>`).join('');
-  lbl.innerHTML=segs.map(s=>`<div style="font-size:9px;font-weight:700;color:${s.col}">${s.name}<br><span style="color:#fff;font-weight:800;font-size:11px">${(s.ms/1000).toFixed(2)}s</span></div>`).join('');
+  lbl.innerHTML=segs.map(s=>`<div style="font-size:11px;font-weight:700;color:${s.col}">${s.name}<br><span style="color:#fff;font-weight:800;font-size:15px">${(s.ms/1000).toFixed(2)}s</span></div>`).join('');
 }
 let scAutoRaf=null, scAutoStart=0;
 
@@ -336,6 +360,23 @@ function scClearHighlight(){
   if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; } scAutoStart=0;
   scPhase='idle'; scScrambleMoves=[]; scScrambleIdx=0;
   if(typeof renderScramble==='function') renderScramble();
+}
+
+function scCfopTick(fl){
+  if(scPhase!=='solving') return;
+  const e=scAutoStart>0?Math.round(performance.now()-scAutoStart):0;
+  if(scCfopTimes.cross===null){const fd=scCheckCross(fl);if(fd){scCfopTimes.cross=e;scCfopFace=fd;}}
+  if(scCfopFace&&scCfopTimes.f2l===null&&scCheckF2L(fl,scCfopFace)) scCfopTimes.f2l=e;
+  if(scCfopFace&&scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&fl!==SC_SOLVED&&scCheckOLL(fl,scCfopFace)) scCfopTimes.oll=e;
+  if(fl===SC_SOLVED){
+    if(scCfopTimes.cross===null) scCfopTimes.cross=e;
+    if(scCfopTimes.f2l===null) scCfopTimes.f2l=e;
+    if(scCfopTimes.oll===null) scCfopTimes.oll=e;
+    scCfopTimes.pll=e;
+    scUpdateCfopBar();
+    scAutoTimerStop(); scPhase='idle';
+    scInitScramble();
+  }
 }
 
 function scAutoTimerStart(){
@@ -413,25 +454,13 @@ function scEnqueue(mv){
       }
     } else if(scPhase==='ready'){
       scPhase='solving'; scSolveMoves=0;
-      scCfopTimes={cross:null,f2l:null,oll:null,pll:null};
+      scCfopTimes={cross:null,f2l:null,oll:null,pll:null}; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
       if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
     } else if(scPhase==='solving'){
       scSolveMoves++;
-      const elapsed=scAutoStart>0?Math.round(performance.now()-scAutoStart):0;
-      if(scCfopTimes.cross===null&&scCheckCross(scCurrentFacelets)) scCfopTimes.cross=elapsed;
-      if(scCfopTimes.f2l===null&&scCheckF2L(scCurrentFacelets)) scCfopTimes.f2l=elapsed;
-      if(scCfopTimes.oll===null&&scCheckOLL(scCurrentFacelets)) scCfopTimes.oll=elapsed;
-      if(scCurrentFacelets===SC_SOLVED){
-        if(scCfopTimes.cross===null) scCfopTimes.cross=elapsed;
-        if(scCfopTimes.f2l===null) scCfopTimes.f2l=elapsed;
-        if(scCfopTimes.oll===null) scCfopTimes.oll=elapsed;
-        scCfopTimes.pll=elapsed;
-        scUpdateCfopBar();
-        scAutoTimerStop(); scPhase='idle';
-        scInitScramble();
-      }
+      scCfopTick(scCurrentFacelets);
     }
   }
 
@@ -554,7 +583,7 @@ async function scConnect(){
       next(ev){
         switch(ev.type){
           case 'MOVE':    scEnqueue(ev.move); break;
-          case 'FACELETS': scCurrentFacelets=ev.facelets; if(!scQueueRunning)scUpdateColors(scCurrentFacelets); break;
+          case 'FACELETS': scCurrentFacelets=ev.facelets; if(!scQueueRunning)scUpdateColors(scCurrentFacelets); scCfopTick(scCurrentFacelets); break;
           case 'BATTERY':  scSetBattery(ev.batteryLevel+'%'); break;
           case 'HARDWARE': if(ev.hardwareName)scSetStatus('Connected — '+ev.hardwareName); break;
           case 'GYRO':    if(scCubeGroup){ const T=window.THREE; if(!scGyroOffset) scGyroOffset=new T.Quaternion(); if(!scLastGyroQ) scLastGyroQ=new T.Quaternion(); const q=ev.quaternion; scLastGyroQ.set(q.x,q.y,q.z,q.w); scCubeGroup.quaternion.copy(scGyroOffset).multiply(scLastGyroQ); } break;
