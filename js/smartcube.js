@@ -250,6 +250,40 @@ let scScrambleMoves=[], scScrambleIdx=0, scMoveCount=0;
 let scErrSeq=[]; // stack of correction moves needed (pop = next to do)
 let scR2Dir=null; // direction locked in for the first event of a '2' move
 let scSolveMoves=0; // move count for the current solve
+let scCfopTimes={cross:null,f2l:null,oll:null,pll:null};
+
+// CFOP phase detectors — facelets string positions:
+// U=0-8, R=9-17, F=18-26, D=27-35, L=36-44, B=45-53
+function scCheckCross(fl){
+  return fl[28]==='D'&&fl[25]==='F' // front D edge
+      && fl[32]==='D'&&fl[16]==='R' // right D edge
+      && fl[34]==='D'&&fl[52]==='B' // back D edge
+      && fl[30]==='D'&&fl[43]==='L'; // left D edge
+}
+function scCheckF2L(fl){
+  for(let i=27;i<=35;i++) if(fl[i]!=='D') return false; // full D face
+  for(let i=12;i<=17;i++) if(fl[i]!=='R') return false; // R bottom 2 rows
+  for(let i=21;i<=26;i++) if(fl[i]!=='F') return false; // F bottom 2 rows
+  for(let i=39;i<=44;i++) if(fl[i]!=='L') return false; // L bottom 2 rows
+  for(let i=48;i<=53;i++) if(fl[i]!=='B') return false; // B bottom 2 rows
+  return true;
+}
+function scCheckOLL(fl){ for(let i=0;i<9;i++) if(fl[i]!=='U') return false; return true; }
+
+function scUpdateCfopBar(){
+  const bar=document.getElementById('cfopBar'), lbl=document.getElementById('cfopLabels');
+  if(!bar||!lbl) return;
+  const {cross,f2l,oll,pll}=scCfopTimes; if(pll==null) return;
+  const c=cross??0, f=f2l??oll??pll, o=oll??pll, p=pll;
+  const segs=[
+    {name:'Cross',ms:c,      col:'#60a5fa'},
+    {name:'F2L',  ms:f-c,    col:'#fb923c'},
+    {name:'OLL',  ms:o-f,    col:'#a78bfa'},
+    {name:'PLL',  ms:p-o,    col:'#34d399'},
+  ];
+  bar.innerHTML=segs.map(s=>`<div style="width:${(s.ms/p*100).toFixed(1)}%;background:${s.col}"></div>`).join('');
+  lbl.innerHTML=segs.map(s=>`<div style="font-size:9px;font-weight:700;color:${s.col}">${s.name}<br><span style="color:#fff;font-weight:800;font-size:11px">${(s.ms/1000).toFixed(2)}s</span></div>`).join('');
+}
 let scAutoRaf=null, scAutoStart=0;
 
 function scInverse(mv){
@@ -379,12 +413,22 @@ function scEnqueue(mv){
       }
     } else if(scPhase==='ready'){
       scPhase='solving'; scSolveMoves=0;
+      scCfopTimes={cross:null,f2l:null,oll:null,pll:null};
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
       if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
     } else if(scPhase==='solving'){
       scSolveMoves++;
+      const elapsed=scAutoStart>0?Math.round(performance.now()-scAutoStart):0;
+      if(scCfopTimes.cross===null&&scCheckCross(scCurrentFacelets)) scCfopTimes.cross=elapsed;
+      if(scCfopTimes.f2l===null&&scCheckF2L(scCurrentFacelets)) scCfopTimes.f2l=elapsed;
+      if(scCfopTimes.oll===null&&scCheckOLL(scCurrentFacelets)) scCfopTimes.oll=elapsed;
       if(scCurrentFacelets===SC_SOLVED){
+        if(scCfopTimes.cross===null) scCfopTimes.cross=elapsed;
+        if(scCfopTimes.f2l===null) scCfopTimes.f2l=elapsed;
+        if(scCfopTimes.oll===null) scCfopTimes.oll=elapsed;
+        scCfopTimes.pll=elapsed;
+        scUpdateCfopBar();
         scAutoTimerStop(); scPhase='idle';
         scInitScramble();
       }
