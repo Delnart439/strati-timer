@@ -442,10 +442,9 @@ function scSetBattery(t){ const el=document.getElementById('scBattery');if(el)el
 function scSetDevice(t){ const el=document.getElementById('scDevice');if(el)el.textContent=t; }
 
 function scSetConnUI(on){
-  const c=document.getElementById('scConnBtn'),d=document.getElementById('scDisconnBtn'),r=document.getElementById('scResetBtn');
+  const c=document.getElementById('scConnBtn'),d=document.getElementById('scDisconnBtn');
   if(c)c.style.display=on?'none':'flex';
   if(d)d.style.display=on?'':'none';
-  if(r)r.style.display=on?'':'none';
 }
 
 // ─── BLE CONNECTION ──────────────────────────────────────────────────────────
