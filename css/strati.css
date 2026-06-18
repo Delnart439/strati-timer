@@ -56,10 +56,10 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 .app-footer{height:22px;flex-shrink:0;background:#250a4d}
 
 /* ── TOPBAR ── */
-#tb{height:var(--tbh);min-height:var(--tbh);display:flex;align-items:center;justify-content:center;padding:0 20px;gap:14px;overflow:hidden}
+#tb{height:var(--tbh);min-height:var(--tbh);display:flex;align-items:center;justify-content:center;padding:0 20px;gap:14px;overflow-x:clip}
 .ses-sel{display:flex;align-items:center;gap:10px;background:#3c146b;border-radius:50px;padding:8px 32px;position:relative;min-width:0;flex-shrink:1}
 .ses-lbl{font-size:18px;font-weight:700;color:#fff;white-space:nowrap}
-.ses-dd{display:flex;align-items:center;gap:5px;background:#250a4d;border-radius:50px;padding:8px 18px;cursor:pointer;font-size:15px;font-weight:600;min-width:260px;flex:1;position:relative;overflow:hidden}
+.ses-dd{display:flex;align-items:center;gap:5px;background:#250a4d;border-radius:50px;padding:8px 18px;cursor:pointer;font-size:15px;font-weight:600;min-width:260px;flex:1;position:relative}
 .ses-dd>span:first-child{flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .ses-chevron{width:16px;height:16px;flex-shrink:0}
 .ses-dd:hover{background:rgba(255,255,255,.13)}
@@ -72,7 +72,7 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 .puz-sel{display:flex;align-items:center;gap:10px;background:#3c146b;border-radius:50px;padding:10px 22px;cursor:pointer;position:relative}
 .puz-dd{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
 .puz-sel svg{width:20px;height:20px}
-.tb-left{display:flex;align-items:center;gap:14px;min-width:0;overflow:hidden}
+.tb-left{display:flex;align-items:center;gap:14px;min-width:0;overflow-x:clip}
 .tb-acts{display:flex;gap:10px;flex-shrink:0}
 .tb-ib-lg{width:50px!important;height:50px!important;background:transparent!important}
 .tb-ib-lg svg{width:28px!important;height:28px!important}
@@ -656,7 +656,7 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
   #sb{transition:none}
 
   /* Top bar */
-  #tb{height:56px;min-height:56px;padding:0 10px;gap:8px;flex-wrap:nowrap;overflow:hidden}
+  #tb{height:56px;min-height:56px;padding:0 10px;gap:8px;flex-wrap:nowrap;overflow-x:clip}
   --tbh:56px;
   .ses-lbl{display:none}
   .ses-sel{padding:6px 12px;min-width:0;flex-shrink:1}
