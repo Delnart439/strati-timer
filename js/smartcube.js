@@ -280,8 +280,10 @@ function scHighlight(){
   const correction=isErr?scErrSeq[scErrSeq.length-1]:null;
   el.innerHTML=scScrambleMoves.map((m,i)=>{
     if(i<scScrambleIdx) return `<span style="color:rgba(255,255,255,.2)">${m}</span>`;
-    if(i===scScrambleIdx&&isErr)
-      return `<span style="background:#c0392b;color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`;
+    if(i===scScrambleIdx){
+      const bg=isErr?'#c0392b':'var(--purple)';
+      return `<span style="background:${bg};color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`;
+    }
     return `<span style="color:#fff">${m}</span>`;
   }).join(' ')
   +(isErr?` <span style="font-size:13px;color:#e74c3c;font-weight:700;margin-left:4px">← do <span style="background:rgba(231,76,60,.22);border-radius:4px;padding:1px 7px;font-weight:900">${correction}</span></span>`:'');
