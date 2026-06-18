@@ -288,15 +288,19 @@ function scPerformMove(mv,instant,done){
 function scDetach(pivot,pd){
   const T=window.THREE;
   const wt=pd.map(({mesh})=>{const p=new T.Vector3(),q=new T.Quaternion();mesh.getWorldPosition(p);mesh.getWorldQuaternion(q);return{p,q};});
-  pd.forEach(({mesh,key},i)=>{
+  const updates=pd.map(({mesh,key},i)=>{
     pivot.remove(mesh);scScene.add(mesh);
     mesh.position.copy(wt[i].p);mesh.quaternion.copy(wt[i].q);
     mesh.position.x=Math.round(mesh.position.x);
     mesh.position.y=Math.round(mesh.position.y);
     mesh.position.z=Math.round(mesh.position.z);
-    const nk=`${mesh.position.x},${mesh.position.y},${mesh.position.z}`;
-    delete scCubies[key];scCubies[nk]=mesh;
+    return{mesh,oldKey:key,newKey:`${mesh.position.x},${mesh.position.y},${mesh.position.z}`};
   });
+  // Two-phase: delete all old keys first, then write new keys.
+  // Single-pass delete+write causes collisions when one piece's new key
+  // matches another's old key, evicting the wrong entry from scCubies.
+  updates.forEach(({oldKey})=>delete scCubies[oldKey]);
+  updates.forEach(({mesh,newKey})=>scCubies[newKey]=mesh);
   scScene.remove(pivot);
 }
 
