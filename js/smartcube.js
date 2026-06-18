@@ -243,7 +243,7 @@ function scAddOrbit(canvas){
 
 // ─── SCRAMBLE TRACKING & AUTO TIMER ─────────────────────────────────────────
 let scPhase='idle'; // idle | scrambling | ready | solving
-let scScrambleMoves=[], scScrambleIdx=0;
+let scScrambleMoves=[], scScrambleIdx=0, scMoveCount=0;
 let scAutoRaf=null, scAutoStart=0;
 
 function scInCubeMode(){ return document.getElementById('pg-timer')?.classList.contains('cube-mode'); }
@@ -253,7 +253,7 @@ function scInitScramble(){
   if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; }
   const el=document.getElementById('scrTxt'); if(!el) return;
   scScrambleMoves=el.textContent.trim().split(/\s+/).filter(Boolean);
-  scScrambleIdx=0;
+  scScrambleIdx=0; scMoveCount=0;
   scPhase=scScrambleMoves.length?'scrambling':'idle';
   scHighlight();
 }
@@ -303,9 +303,13 @@ function scEnqueue(mv){
 
   if(scInCubeMode()){
     if(scPhase==='scrambling'){
-      scScrambleIdx++;
-      if(scScrambleIdx>=scScrambleMoves.length){ scPhase='ready'; scHighlight(); }
-      else scHighlight();
+      const needed=scScrambleMoves[scScrambleIdx]?.endsWith('2')?2:1;
+      scMoveCount++;
+      if(scMoveCount>=needed){
+        scMoveCount=0; scScrambleIdx++;
+        if(scScrambleIdx>=scScrambleMoves.length){ scPhase='ready'; scHighlight(); }
+        else scHighlight();
+      }
     } else if(scPhase==='ready'){
       scPhase='solving';
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
