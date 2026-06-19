@@ -795,9 +795,11 @@ async function scReset(){
   // Reset virtual cube
   scCurrentFacelets=SC_SOLVED; scMoveQueue.length=0; scQueueRunning=false;
   scUpdateColors(SC_SOLVED);
-  // Re-init scramble tracking from the beginning
+  // Generate a new scramble and re-init tracking
   scErrSeq=[]; scMoveCount=0;
   scPhase='idle';
+  if(typeof pushScramble==='function') pushScramble();
+  if(typeof renderScramble==='function') renderScramble();
   scInitScramble();
   // Try physical cube reset if supported
   if(scConn?.capabilities?.reset) try{await scConn.sendCommand({type:'REQUEST_RESET'});}catch(e){}
