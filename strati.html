@@ -623,34 +623,45 @@
     </div>
     <div class="mo-time" id="mo-time">0.000</div>
     <div class="mo-scr">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-        <div class="mo-scr-lbl" style="margin-bottom:0">Scramble</div>
-        <button id="mo-copy-scr" title="Copy scramble" style="background:rgba(255,255,255,.1);border:none;border-radius:7px;color:#fff;cursor:pointer;padding:4px 8px;font-size:11px;display:flex;align-items:center;gap:4px"><i data-lucide="copy" style="width:12px;height:12px"></i></button>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <div class="mo-scr-lbl" style="margin-bottom:0;flex-shrink:0">Scramble</div>
+        <div id="mo-scr" style="flex:1;min-width:0"></div>
+        <button id="mo-copy-scr" title="Copy scramble" style="background:rgba(255,255,255,.1);border:none;border-radius:7px;color:#fff;cursor:pointer;padding:4px 8px;font-size:11px;display:flex;align-items:center;gap:4px;flex-shrink:0"><i data-lucide="copy" style="width:12px;height:12px"></i></button>
       </div>
-      <div id="mo-scr"></div>
     </div>
     <div class="mo-net-row">
-      <svg id="mo-net" class="mo-net" viewBox="0 0 204 153" width="220" height="165"></svg>
+      <div id="mo-net-slot" style="flex-shrink:0">
+        <div style="position:relative">
+          <div id="mo-rp-canvas" style="width:220px;height:165px;border-radius:10px;overflow:hidden;box-sizing:border-box;display:none"></div>
+          <svg id="mo-net" class="mo-net" viewBox="0 0 204 153" width="220" height="165"></svg>
+          <button id="mo-rp-toggle" title="Switch view" style="display:none;position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;color:rgba(255,255,255,.8);cursor:pointer;padding:4px 5px;line-height:0;z-index:2">
+            <svg id="mo-rp-ico-net" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="1"/><line x1="9" y1="2" x2="9" y2="22"/><line x1="15" y1="2" x2="15" y2="22"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="2" y1="15" x2="22" y2="15"/></svg>
+            <svg id="mo-rp-ico-3d" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </button>
+        </div>
+        <div id="mo-rp-bar" style="display:none;width:220px;margin-top:6px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+            <button id="mo-rp-bk" style="background:rgba(255,255,255,.1);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:13px;padding:3px 7px;line-height:1">⏮</button>
+            <button id="mo-rp-play" style="background:var(--purple);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:13px;padding:3px 0;line-height:1;flex:1">▶</button>
+            <button id="mo-rp-fwd" style="background:rgba(255,255,255,.1);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:13px;padding:3px 7px;line-height:1">⏭</button>
+            <span id="mo-rp-count" style="color:rgba(255,255,255,.45);font-size:10px;font-weight:600;min-width:36px;text-align:center">0 / 0</span>
+            <select id="mo-rp-speed" style="background:rgba(255,255,255,.1);border:none;border-radius:6px;padding:3px 4px;color:#fff;font-size:10px;cursor:pointer">
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+            </select>
+            <button id="mo-rp-gyro" title="Toggle gyro" style="background:rgba(255,255,255,.1);border:none;border-radius:6px;color:#fff;cursor:pointer;padding:3px 5px;line-height:0;opacity:.4">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
+            </button>
+          </div>
+          <input id="mo-rp-prog" type="range" min="0" value="0" style="width:100%;margin:0;accent-color:var(--purple);cursor:pointer">
+        </div>
+      </div>
       <div id="mo-recon-wrap" class="mo-recon-panel" style="display:none">
         <div class="mo-recon-panel-lbl">Reconstruction</div>
         <div id="mo-recon" class="mo-recon-moves"></div>
       </div>
-    </div>
-    <div id="mo-rp-wrap" style="display:none;margin-top:10px;margin-bottom:6px">
-      <div id="mo-rp-canvas" style="width:100%;height:190px;border-radius:12px;overflow:hidden;background:#111;box-sizing:border-box"></div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:7px">
-        <button id="mo-rp-bk" style="background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:5px 10px;color:#fff;cursor:pointer;font-size:15px">⏮</button>
-        <button id="mo-rp-play" style="background:var(--purple);border:none;border-radius:8px;padding:5px 0;color:#fff;cursor:pointer;font-size:15px;flex:1">▶</button>
-        <button id="mo-rp-fwd" style="background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:5px 10px;color:#fff;cursor:pointer;font-size:15px">⏭</button>
-        <span id="mo-rp-count" style="color:rgba(255,255,255,.45);font-size:11px;font-weight:600;min-width:48px;text-align:center">0 / 0</span>
-        <select id="mo-rp-speed" style="background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:5px 6px;color:#fff;font-size:11px;cursor:pointer">
-          <option value="0.5">0.5×</option>
-          <option value="1" selected>1×</option>
-          <option value="2">2×</option>
-          <option value="4">4×</option>
-        </select>
-      </div>
-      <input id="mo-rp-prog" type="range" min="0" value="0" style="width:100%;margin-top:5px;accent-color:var(--purple);cursor:pointer">
     </div>
     <div id="mo-cfop" style="display:none;margin-bottom:18px"></div>
     <div class="mo-acts">

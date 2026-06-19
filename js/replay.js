@@ -5,27 +5,46 @@
 let rpScene=null,rpCamera=null,rpRenderer=null,rpGroup=null;
 let rpCubies={},rpRafId=null,rpRendering=false;
 let rpFacelets='',rpMoves=[],rpStates=[],rpIdx=0;
-let rpPlaying=false,rpSpeed=1,rpAnimating=false;
+let rpPlaying=false,rpSpeed=1,rpAnimating=false,rpGyroEnabled=false;
 
 // ── Facelets permutation tables for whole-cube rotations ─────────────────────
 let RP_ROT_PERMS=null;
+// Unit vectors for each face index (R,L,U,D,F,B = 0..5)
+const RP_FI_VECS=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+
 function rpGetPerms(){
   if(RP_ROT_PERMS) return RP_ROT_PERMS;
+  // Key includes both cubie position AND face direction so corners/edges don't collide
   const posToIdx={};
-  for(let i=0;i<54;i++){const s=SC_S2F[i];if(s)posToIdx[s.key]=i;}
+  for(let i=0;i<54;i++){const s=SC_S2F[i];if(s)posToIdx[`${s.key}_${s.fi}`]=i;}
+
+  function transformFi(fn,fi){
+    const [fdx,fdy,fdz]=RP_FI_VECS[fi];
+    const [nx,ny,nz]=fn(fdx,fdy,fdz);
+    let best=fi,bestD=-Infinity;
+    for(let j=0;j<6;j++){
+      const [vx,vy,vz]=RP_FI_VECS[j];
+      const d=vx*nx+vy*ny+vz*nz;
+      if(d>bestD){bestD=d;best=j;}
+    }
+    return best;
+  }
+
   function make(fn){
     const p=new Array(54).fill(-1);
     for(let i=0;i<54;i++){
       const s=SC_S2F[i];if(!s){p[i]=i;continue;}
       const [x,y,z]=s.key.split(',').map(Number);
       const [nx,ny,nz]=fn(x,y,z);
-      p[i]=posToIdx[`${Math.round(nx)},${Math.round(ny)},${Math.round(nz)}`]??i;
+      const newFi=transformFi(fn,s.fi);
+      p[i]=posToIdx[`${Math.round(nx)},${Math.round(ny)},${Math.round(nz)}_${newFi}`]??i;
     }
     return p;
   }
+
   // y CW from top: (x,y,z)→(z,y,-x)
-  // x CW from right (like R): (x,y,z)→(x,-z,y)
-  // z CW from front (like F): (x,y,z)→(-y,x,z)
+  // x CW from right: (x,y,z)→(x,-z,y)
+  // z CW from front: (x,y,z)→(-y,x,z)
   RP_ROT_PERMS={
     'y' :make((x,y,z)=>[ z, y,-x]),
     "y'":make((x,y,z)=>[-z, y, x]),
@@ -62,8 +81,8 @@ function rpInit(){
   rpRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   wrap.appendChild(rpRenderer.domElement);
   rpScene=new T.Scene();
-  rpCamera=new T.PerspectiveCamera(50,W/H,0.1,100);
-  rpCamera.position.set(0,1.5,6.5); rpCamera.lookAt(0,0,0);
+  rpCamera=new T.PerspectiveCamera(55,W/H,0.1,100);
+  rpCamera.position.set(-2.2,2.8,6.5); rpCamera.lookAt(1.2,0,0);
   rpScene.add(new T.AmbientLight(0xffffff,0.8));
   const dl=new T.DirectionalLight(0xffffff,1.0); dl.position.set(4,8,6); rpScene.add(dl);
   const dl2=new T.DirectionalLight(0xffffff,0.3); dl2.position.set(-3,-4,-3); rpScene.add(dl2);
@@ -187,7 +206,12 @@ function rpPerformMove(mv,instant,done){
 function rpStartRender(){
   if(rpRendering||!rpRenderer) return;
   rpRendering=true;
-  (function loop(){if(!rpRendering)return;rpRafId=requestAnimationFrame(loop);rpRenderer.render(rpScene,rpCamera);})();
+  (function loop(){
+    if(!rpRendering) return;
+    rpRafId=requestAnimationFrame(loop);
+    if(rpGyroEnabled&&rpGroup&&window.scCubeGroup) rpGroup.quaternion.copy(window.scCubeGroup.quaternion);
+    rpRenderer.render(rpScene,rpCamera);
+  })();
 }
 function rpStopRender(){
   rpRendering=false;
@@ -252,15 +276,40 @@ function rpUpdateUI(){
   if(prog){prog.max=n;prog.value=rpIdx;}
 }
 
+
 // ── Public entry point ───────────────────────────────────────────────────────
+let rpShowingNet=false;
+
+function rpSetView(showNet){
+  rpShowingNet=showNet;
+  const canvas=document.getElementById('mo-rp-canvas');
+  const net=document.getElementById('mo-net');
+  const icoNet=document.getElementById('mo-rp-ico-net');
+  const ico3d=document.getElementById('mo-rp-ico-3d');
+  if(canvas) canvas.style.display=showNet?'none':'';
+  if(net) net.style.display=showNet?'':'none';
+  if(icoNet) icoNet.style.display=showNet?'none':'';
+  if(ico3d) ico3d.style.display=showNet?'':'none';
+  if(!showNet) rpStartRender(); else rpStopRender();
+}
+
 function rpOpen(solve){
-  const wrap=document.getElementById('mo-rp-wrap');
+  const bar=document.getElementById('mo-rp-bar');
+  const tog=document.getElementById('mo-rp-toggle');
+  const canvas=document.getElementById('mo-rp-canvas');
+  const net=document.getElementById('mo-net');
   if(!solve||!solve.moves||solve.moves.length===0){
-    if(wrap) wrap.style.display='none';
+    if(bar) bar.style.display='none';
+    if(tog) tog.style.display='none';
+    if(canvas) canvas.style.display='none';
+    if(net) net.style.display='';
     rpPause(); rpStopRender();
     return;
   }
-  if(wrap) wrap.style.display='';
+  if(bar) bar.style.display='';
+  if(tog) tog.style.display='';
+  rpShowingNet=false;
+  rpSetView(false);
   rpInit();
   // Pre-compute facelets at every move index
   const startFl=solve.startFl||SC_SOLVED;
@@ -276,6 +325,10 @@ function rpOpen(solve){
 function rpClose(){
   rpPause();
   rpStopRender();
+  rpGyroEnabled=false;
+  const btn=document.getElementById('mo-rp-gyro');
+  if(btn) btn.style.opacity='.4';
+  if(rpGroup) rpGroup.quaternion.identity();
 }
 
 // ── Controls ─────────────────────────────────────────────────────────────────
@@ -289,5 +342,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('mo-rp-prog')?.addEventListener('input',e=>{
     rpPause();
     if(!rpAnimating) rpGoTo(+e.target.value);
+  });
+  document.getElementById('mo-rp-toggle')?.addEventListener('click',()=>{
+    rpSetView(!rpShowingNet);
+  });
+  document.getElementById('mo-rp-gyro')?.addEventListener('click',()=>{
+    rpGyroEnabled=!rpGyroEnabled;
+    const btn=document.getElementById('mo-rp-gyro');
+    if(btn) btn.style.opacity=rpGyroEnabled?'1':'.4';
+    if(!rpGyroEnabled&&rpGroup) rpGroup.quaternion.identity();
   });
 });
