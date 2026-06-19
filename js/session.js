@@ -276,37 +276,31 @@ function openSolveModal(idx, sesIdx) {
         default:  return o;
       }};
       // Initial orientation from solve-start facelets (center positions 4,13,22,31,40,49)
-      let orient=startFl
+      const orient=startFl
         ?{U:startFl[4],R:startFl[13],F:startFl[22],D:startFl[31],L:startFl[40],B:startFl[49]}
         :{U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
-      // Compute setup rotations to reach green-front/white-top (cross on D)
-      // orient is NOT modified here — it stays as the user's actual starting orientation
-      // for correct move transformation in normMoves below
+      // Compute setup rotations: green-front/white-top → user's starting orientation.
+      // Step 1: fix U — find rotation that brings user's U sticker to the U position.
+      // Step 2: fix F — y-rotate to bring user's F sticker to the F position.
+      // After setupRot the viewer is in the exact same orientation the solver had,
+      // so the recorded moves apply directly (no transformation needed).
       const setupRot=(()=>{
-        const res=[]; let o={...orient};
-        // Step 1: bring cross face to D
-        // Mapping: which rotation moves 'cp' face to D position
-        // x:D=old_F, x':D=old_B, x2:D=old_U, z:D=old_L, z':D=old_R
-        const cf=ct?.crossFc||'D';
-        const cp=Object.keys(o).find(k=>o[k]===cf);
-        if(cp&&cp!=='D'){
-          const r=cp==='U'?'x2':cp==='F'?'x':cp==='B'?"x'":cp==='R'?"z'":cp==='L'?'z':null;
+        const res=[]; let o={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
+        const uSt=orient['U'];
+        if(uSt!=='U'){
+          const r={D:'x2',F:"x'",B:'x',R:'z',L:"z'"}[uSt]||null;
           if(r){res.push(r);o=applyRot(o,r);}
         }
-        // Step 2: y-rotate to bring green ('F') to front
-        const gp=Object.keys(o).find(k=>o[k]==='F');
-        if(gp&&gp!=='F'&&gp!=='U'&&gp!=='D'){
-          const r=gp==='R'?"y'":gp==='L'?'y':gp==='B'?'y2':null;
+        const fSt=orient['F'];
+        const fPos=Object.keys(o).find(k=>o[k]===fSt);
+        if(fPos&&fPos!=='F'){
+          const r={R:"y'",L:'y',B:'y2'}[fPos]||null;
           if(r)res.push(r);
         }
         return res;
       })();
-      // Transform moves to normalized frame; cube rotations update the running orient
-      const normMoves=moves.map(mv=>{
-        if(CUBE_ROTS.has(mv)){orient=applyRot(orient,mv);return mv;}
-        const face=mv[0],mod=mv.slice(1);
-        return(orient[face]||face)+mod;
-      });
+      // No move transformation needed: after setupRot the viewer is at the solver's start.
+      const normMoves=moves;
       // ── Build segments ───────────────────────────────────────────────────────
       const pairColors=['#3B9EFF','#3B9EFF','#3B9EFF','#3B9EFF'];
       const crossEnd=ct?.crossMI??moves.length;
