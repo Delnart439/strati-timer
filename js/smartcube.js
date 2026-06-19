@@ -300,10 +300,10 @@ function scUpdateCfopBar(){
   const {cross,f2l,oll,pll}=scCfopTimes; if(pll==null) return;
   const c=cross??0, f=f2l??oll??pll, o=oll??pll, p=pll;
   const segs=[
-    {name:'Cross',ms:c,      col:'#60a5fa'},
-    {name:'F2L',  ms:f-c,    col:'#fb923c'},
-    {name:'OLL',  ms:o-f,    col:'#a78bfa'},
-    {name:'PLL',  ms:p-o,    col:'#34d399'},
+    {name:'Cross',ms:c,      col:'#FFFFFF'},
+    {name:'F2L',  ms:f-c,    col:'#3B9EFF'},
+    {name:'OLL',  ms:o-f,    col:'#FFD700'},
+    {name:'PLL',  ms:p-o,    col:'#FF8000'},
   ];
   bar.innerHTML=segs.map(s=>`<div style="width:${(s.ms/p*100).toFixed(1)}%;background:${s.col}"></div>`).join('');
   lbl.innerHTML=segs.map(s=>`<div style="font-size:11px;font-weight:700;color:${s.col}">${s.name}<br><span style="color:#fff;font-weight:800;font-size:15px">${(s.ms/1000).toFixed(2)}s</span></div>`).join('');
