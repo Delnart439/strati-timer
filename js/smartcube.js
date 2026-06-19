@@ -187,7 +187,7 @@ function scBuildCubies(){
     );
     body.position.set(x,y,z); scCubeGroup.add(body);
     const stickers=FACE.map(({p,r})=>{
-      const mat=new T.MeshPhongMaterial({color:SC_INNER,shininess:110});
+      const mat=new T.MeshBasicMaterial({color:SC_INNER});
       const s=new T.Mesh(sGeo,mat);
       s.position.set(...p); s.rotation.set(...r); body.add(s);
       return mat;
