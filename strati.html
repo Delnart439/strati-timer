@@ -636,6 +636,22 @@
         <div id="mo-recon" class="mo-recon-moves"></div>
       </div>
     </div>
+    <div id="mo-rp-wrap" style="display:none;margin-top:10px;margin-bottom:6px">
+      <div id="mo-rp-canvas" style="width:100%;height:190px;border-radius:12px;overflow:hidden;background:#111;box-sizing:border-box"></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:7px">
+        <button id="mo-rp-bk" style="background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:5px 10px;color:#fff;cursor:pointer;font-size:15px">⏮</button>
+        <button id="mo-rp-play" style="background:var(--purple);border:none;border-radius:8px;padding:5px 0;color:#fff;cursor:pointer;font-size:15px;flex:1">▶</button>
+        <button id="mo-rp-fwd" style="background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:5px 10px;color:#fff;cursor:pointer;font-size:15px">⏭</button>
+        <span id="mo-rp-count" style="color:rgba(255,255,255,.45);font-size:11px;font-weight:600;min-width:48px;text-align:center">0 / 0</span>
+        <select id="mo-rp-speed" style="background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:5px 6px;color:#fff;font-size:11px;cursor:pointer">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </div>
+      <input id="mo-rp-prog" type="range" min="0" value="0" style="width:100%;margin-top:5px;accent-color:var(--purple);cursor:pointer">
+    </div>
     <div id="mo-cfop" style="display:none;margin-bottom:18px"></div>
     <div class="mo-acts">
       <button class="mb mb-dnf" id="mo-dnf">DNF</button>
@@ -793,5 +809,6 @@
 <script src="js/smartcube-lib.js"></script>
 <script src="js/bluetooth.js"></script>
 <script src="js/smartcube.js"></script>
+<script src="js/replay.js"></script>
 </body>
 </html>

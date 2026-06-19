@@ -346,13 +346,14 @@ function openSolveModal(idx, sesIdx) {
       ).join('');
     } else { reconWrap.style.display='none'; }
   }
+  if(typeof rpOpen==='function') rpOpen(t);
   document.getElementById('solveModal').classList.remove('h');
 }
 
 document.getElementById('solveModal').addEventListener('click', e=>{
-  if (e.target===document.getElementById('solveModal')) document.getElementById('solveModal').classList.add('h');
+  if (e.target===document.getElementById('solveModal')){document.getElementById('solveModal').classList.add('h');if(typeof rpClose==='function')rpClose();}
 });
-document.getElementById('solveModalClose').addEventListener('click', ()=>document.getElementById('solveModal').classList.add('h'));
+document.getElementById('solveModalClose').addEventListener('click', ()=>{document.getElementById('solveModal').classList.add('h');if(typeof rpClose==='function')rpClose();});
 document.getElementById('mo-prev').addEventListener('click', e=>{ e.stopPropagation(); if(state.modalSolveIdx > 0) openSolveModal(state.modalSolveIdx-1, state.modalSesIdx); });
 document.getElementById('mo-next').addEventListener('click', e=>{ e.stopPropagation(); if(state.modalSolveIdx < modalSes().times.length-1) openSolveModal(state.modalSolveIdx+1, state.modalSesIdx); });
 document.addEventListener('keydown', e=>{
