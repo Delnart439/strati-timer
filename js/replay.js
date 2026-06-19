@@ -59,6 +59,39 @@ function rpGetPerms(){
   return RP_ROT_PERMS;
 }
 
+// ── Normalize moves: eliminate whole-cube rotations (bld-ninja approach) ──────
+// For each rotation event, update a running orientation tracker and rewrite
+// subsequent face moves into the original reference frame, then drop rotations.
+// orient[physicalFace] = which original face is currently at that position.
+const RP_CUBE_ROTS=new Set(['x',"x'",'x2','y',"y'",'y2','z',"z'",'z2']);
+
+function rpApplyRot(o,r){
+  switch(r){
+    case'y':  return{U:o.U,R:o.F,F:o.L,D:o.D,L:o.B,B:o.R};
+    case"y'": return{U:o.U,R:o.B,F:o.R,D:o.D,L:o.F,B:o.L};
+    case'y2': return{U:o.U,R:o.L,F:o.B,D:o.D,L:o.R,B:o.F};
+    case'x':  return{U:o.B,R:o.R,F:o.U,D:o.F,L:o.L,B:o.D};
+    case"x'": return{U:o.F,R:o.R,F:o.D,D:o.B,L:o.L,B:o.U};
+    case'x2': return{U:o.D,R:o.R,F:o.B,D:o.U,L:o.L,B:o.F};
+    case'z':  return{U:o.R,R:o.D,F:o.F,D:o.L,L:o.U,B:o.B};
+    case"z'": return{U:o.L,R:o.U,F:o.F,D:o.R,L:o.D,B:o.B};
+    case'z2': return{U:o.D,R:o.L,F:o.F,D:o.U,L:o.R,B:o.B};
+    default:  return o;
+  }
+}
+
+function rpNormalizeMoves(moves){
+  const out=[];
+  let o={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
+  for(const mv of moves){
+    if(RP_CUBE_ROTS.has(mv)){o=rpApplyRot(o,mv);continue;}
+    const face=mv[0].toUpperCase();
+    const orig=o[face]??face;
+    out.push(orig+mv.slice(1));
+  }
+  return out;
+}
+
 function rpApplyMove(fl,mv){
   const perms=rpGetPerms();
   const perm=perms[mv];
@@ -311,12 +344,13 @@ function rpOpen(solve){
   rpShowingNet=false;
   rpSetView(false);
   rpInit();
-  // Pre-compute facelets at every move index
+  // Remove rotation events and rewrite subsequent face moves into the original
+  // reference frame (bld-ninja approach). This ensures facelets end at solved.
   const startFl=solve.startFl||SC_SOLVED;
-  rpMoves=solve.moves;
+  rpMoves=rpNormalizeMoves(solve.moves||[]);
   rpStates=[startFl];
   let fl=startFl;
-  for(const mv of rpMoves){fl=rpApplyMove(fl,mv);rpStates.push(fl);}
+  for(const mv of rpMoves){fl=scApplyMove(fl,mv);rpStates.push(fl);}
   rpPause();
   rpGoTo(0);
   rpStartRender();
