@@ -248,7 +248,8 @@ function scAddOrbit(canvas){
 let scPhase='idle'; // idle | scrambling | ready | solving
 let scScrambleMoves=[], scScrambleIdx=0, scMoveCount=0;
 let scErrSeq=[]; // stack of correction moves needed (pop = next to do)
-let scR2Dir=null; // direction locked in for the first event of a '2' move
+let scR2Dir=null; // direction locked in for the first event of a '2' scramble move
+let scErrDir=null; // direction locked in for the first event of a '2' correction move
 let scSolveMoves=0; // move count for the current solve
 let scMoveLog=[]; // all moves recorded during the current solve
 let scStartFl=null; // facelets at the very start of the solve (before first move)
@@ -364,7 +365,7 @@ function scInitScramble(){
   if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; }
   const el=document.getElementById('scrTxt'); if(!el) return;
   scScrambleMoves=el.textContent.trim().split(/\s+/).filter(Boolean);
-  scScrambleIdx=0; scMoveCount=0; scErrSeq=[]; scR2Dir=null;
+  scScrambleIdx=0; scMoveCount=0; scErrSeq=[]; scR2Dir=null; scErrDir=null;
   scPhase=scScrambleMoves.length?'scrambling':'idle';
   scHighlight();
 }
@@ -572,9 +573,23 @@ function scEnqueue(mv){
       if(scErrSeq.length>0){
         // error recovery: next needed correction is at the top of the stack
         const need=scErrSeq[scErrSeq.length-1];
-        if(mv===need){
+        const needBase=scFaceBase(need), mvBase=scFaceBase(mv);
+        const isPair=scErrSeq.length>=2&&scErrSeq[scErrSeq.length-2]===need&&!need.endsWith('2');
+        if(scErrDir){
+          // already locked into a direction for a paired correction (U2 either way)
+          if(mv===scErrDir){
+            scErrSeq.pop(); scErrDir=null;
+            if(scErrSeq.length===0){ scMoveCount=0; scR2Dir=null; }
+          } else {
+            scErrSeq.push(scInverse(scErrDir)); scErrDir=null; // undo locked first half
+            scErrSeq.push(scInverse(mv));
+          }
+        } else if(mv===need){
           scErrSeq.pop();
           if(scErrSeq.length===0){ scMoveCount=0; scR2Dir=null; }
+        } else if(isPair&&mvBase===needBase){
+          // same face, opposite direction — accept as first half of a 180° correction
+          scErrSeq.pop(); scErrDir=mv;
         } else {
           scErrSeq.push(scInverse(mv));
         }
@@ -789,7 +804,7 @@ async function scConnect(){
 function scHandleDisconn(){
   scSub?.unsubscribe?.(); scSub=null; scConn=null;
   if(scAutoRaf){ cancelAnimationFrame(scAutoRaf); scAutoRaf=null; } scAutoStart=0;
-  scPhase='idle'; scErrSeq=[]; scMoveCount=0;
+  scPhase='idle'; scErrSeq=[]; scMoveCount=0; scErrDir=null;
   if(typeof renderScramble==='function') renderScramble(); // restore plain text
   scSetStatus(''); scSetBattery(''); scSetDevice(''); scSetConnUI(false);
 }
@@ -803,7 +818,7 @@ async function scReset(){
   scCurrentFacelets=SC_SOLVED; scMoveQueue.length=0; scQueueRunning=false;
   scUpdateColors(SC_SOLVED);
   // Generate a new scramble and re-init tracking
-  scErrSeq=[]; scMoveCount=0;
+  scErrSeq=[]; scMoveCount=0; scErrDir=null;
   scPhase='idle';
   if(typeof pushScramble==='function') pushScramble();
   if(typeof renderScramble==='function') renderScramble();
