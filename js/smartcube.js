@@ -251,6 +251,8 @@ let scErrSeq=[]; // stack of correction moves needed (pop = next to do)
 let scR2Dir=null; // direction locked in for the first event of a '2' move
 let scSolveMoves=0; // move count for the current solve
 let scMoveLog=[]; // all moves recorded during the current solve
+let scStartFl=null; // facelets at the very start of the solve (before first move)
+let scLastCenters=null; // center stickers after last fromMove=true tick (for rotation detection)
 let scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
 let scSolvedPairMask=0; // bitmask of which fd.pairs[0..3] are currently recorded as solved
 let scCfopFace=null; // SC_CFOP_DATA entry for the detected cross face
@@ -436,11 +438,50 @@ function scDetectPLL(fl) {
   return null;
 }
 
+function scDetectCubeRotation(oc,nc){
+  // oc/nc = [U,R,F,D,L,B] center stickers at positions [4,13,22,31,40,49]
+  const [ou,or_,of_,od,ol,ob]=oc,[nu,nr,nf,nd,nl,nb]=nc;
+  // y: U/D unchanged; new F=old L, new R=old F, new B=old R, new L=old B
+  if(nu===ou&&nd===od){
+    if(nf===ol&&nr===of_&&nb===or_&&nl===ob) return 'y';
+    if(nf===or_&&nl===of_&&nb===ol&&nr===ob) return "y'";
+    if(nf===ob&&nr===ol&&nb===of_&&nl===or_) return 'y2';
+  }
+  // x: R/L unchanged; new U=old B, new F=old U, new D=old F, new B=old D
+  if(nr===or_&&nl===ol){
+    if(nu===ob&&nf===ou&&nd===of_&&nb===od) return 'x';
+    if(nu===of_&&nf===od&&nd===ob&&nb===ou) return "x'";
+    if(nu===od&&nf===ob&&nd===ou&&nb===of_) return 'x2';
+  }
+  // z: F/B unchanged; new U=old R, new R=old D, new D=old L, new L=old U
+  if(nf===of_&&nb===ob){
+    if(nu===or_&&nr===od&&nd===ol&&nl===ou) return 'z';
+    if(nu===ol&&nr===ou&&nd===or_&&nl===od) return "z'";
+    if(nu===od&&nr===ol&&nd===ou&&nl===or_) return 'z2';
+  }
+  return null;
+}
+
 function scCfopTick(fl, fromMove=false){
   if(scPhase!=='solving') return;
   const e=scAutoStart>0?Math.round(performance.now()-scAutoStart):0;
   const pc=scCfopTimes.f2lPairs.length;
   if(fromMove){
+    // Cube rotation detection: face moves don't change centers; center change = whole-cube rotation
+    const CP=[4,13,22,31,40,49],curC=CP.map(i=>fl[i]);
+    if(scLastCenters){
+      const rot=scDetectCubeRotation(scLastCenters,curC);
+      if(rot){
+        const ins=scMoveLog.length-1;
+        scMoveLog.splice(ins,0,rot);
+        const bump=v=>(v!=null&&v>ins)?v+1:v;
+        scCfopTimes.crossMI=bump(scCfopTimes.crossMI);
+        scCfopTimes.f2lMI=bump(scCfopTimes.f2lMI);
+        scCfopTimes.ollMI=bump(scCfopTimes.ollMI);
+        scCfopTimes.f2lPairs.forEach(p=>{p.mi=bump(p.mi);});
+      }
+    }
+    scLastCenters=curC;
     if(scCfopTimes.cross!==null&&pc<4&&scCfopTimes.f2lNextStart===null) scCfopTimes.f2lNextStart=e;
     if(scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&scCfopTimes.ollStart===null) scCfopTimes.ollStart=e;
     if(scCfopTimes.oll!==null&&scCfopTimes.pll===null&&scCfopTimes.pllStart===null) scCfopTimes.pllStart=e;
@@ -510,7 +551,7 @@ function scAutoTimerStop(){
   const tEl=document.getElementById('s-turns'), pEl=document.getElementById('s-tps');
   if(tEl) tEl.textContent=scSolveMoves;
   if(pEl) pEl.textContent=ms>0?(scSolveMoves/(ms/1000)).toFixed(2):'–';
-  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog]};
+  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog],startFl:scStartFl};
   stopTimer(ms);
   scPendingSolveData=null;
 }
@@ -566,6 +607,7 @@ function scEnqueue(mv){
       }
     } else if(scPhase==='ready'){
       scPhase='solving'; scSolveMoves=0; scMoveLog=[];
+      scStartFl=scCurrentFacelets; scLastCenters=null;
       scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
       scSolvedPairMask=0; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
@@ -590,6 +632,22 @@ function scProcessQueue(){
 }
 
 function scPerformMove(mv,instant,done){
+  const T=window.THREE;
+  // Whole-cube rotation moves (x/y/z)
+  const CR={'y':{a:'y',m:1},"y'":{a:'y',m:-1},'y2':{a:'y',m:2},'x':{a:'x',m:1},"x'":{a:'x',m:-1},'x2':{a:'x',m:2},'z':{a:'z',m:1},"z'":{a:'z',m:-1},'z2':{a:'z',m:2}};
+  if(CR[mv]&&scCubeGroup){
+    const{a,m}=CR[mv],angle=(Math.PI/2)*m;
+    const pd=Object.entries(scCubies).map(([k,mesh])=>({mesh,key:k}));
+    if(!pd.length){done();return;}
+    const pivot=new T.Group();scCubeGroup.add(pivot);
+    pd.forEach(({mesh})=>{scCubeGroup.remove(mesh);pivot.add(mesh);});
+    const setR=ang=>{if(a==='x')pivot.rotation.x=ang;else if(a==='y')pivot.rotation.y=ang;else pivot.rotation.z=ang;};
+    const finish=()=>{setR(angle);pivot.updateMatrixWorld(true);scDetach(pivot,pd);done();};
+    if(instant){finish();return;}
+    const dur=Math.abs(m)===2?200:150,t0=performance.now();
+    (function fr(now){const t=Math.min(1,(now-t0)/dur),e=t<0.5?2*t*t:-1+(4-2*t)*t;setR(angle*e);if(t<1)requestAnimationFrame(fr);else finish();})(performance.now());
+    return;
+  }
   const face=mv[0].toUpperCase(),mod=mv.slice(1).trim();
   const def=SC_FACE_MOVES[face]; if(!def){done();return;}
   const mult=mod==="'"?-1:mod==='2'?2:1, target=def.angle*mult;
@@ -602,7 +660,6 @@ function scPerformMove(mv,instant,done){
   }
   if(!pd.length){done();return;}
 
-  const T=window.THREE;
   const pivot=new T.Group(); scCubeGroup.add(pivot);
   pd.forEach(({mesh})=>{scCubeGroup.remove(mesh);pivot.add(mesh);});
 

@@ -258,15 +258,61 @@ function openSolveModal(idx, sesIdx) {
   const reconWrap=document.getElementById('mo-recon-wrap');
   const reconEl=document.getElementById('mo-recon');
   if(reconWrap&&reconEl){
-    const moves=t.moves, ct=t.cfop;
+    const moves=t.moves, ct=t.cfop, startFl=t.startFl;
     if(moves&&moves.length>0){
       reconWrap.style.display='';
+      // ── Orientation helpers ──────────────────────────────────────────────────
+      const CUBE_ROTS=new Set(['x',"x'",'x2','y',"y'",'y2','z',"z'",'z2']);
+      const applyRot=(o,r)=>{switch(r){
+        case'y':  return{U:o.U,R:o.F,F:o.L,D:o.D,L:o.B,B:o.R};
+        case"y'": return{U:o.U,R:o.B,F:o.R,D:o.D,L:o.F,B:o.L};
+        case'y2': return{U:o.U,R:o.L,F:o.B,D:o.D,L:o.R,B:o.F};
+        case'x':  return{U:o.B,R:o.R,F:o.U,D:o.F,L:o.L,B:o.D};
+        case"x'": return{U:o.F,R:o.R,F:o.D,D:o.B,L:o.L,B:o.U};
+        case'x2': return{U:o.D,R:o.R,F:o.B,D:o.U,L:o.L,B:o.F};
+        case'z':  return{U:o.R,R:o.D,F:o.F,D:o.L,L:o.U,B:o.B};
+        case"z'": return{U:o.L,R:o.U,F:o.F,D:o.R,L:o.D,B:o.B};
+        case'z2': return{U:o.D,R:o.L,F:o.F,D:o.U,L:o.R,B:o.B};
+        default:  return o;
+      }};
+      // Initial orientation from solve-start facelets (center positions 4,13,22,31,40,49)
+      let orient=startFl
+        ?{U:startFl[4],R:startFl[13],F:startFl[22],D:startFl[31],L:startFl[40],B:startFl[49]}
+        :{U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
+      // Compute setup rotations to reach green-front/white-top (cross on D)
+      // orient is NOT modified here — it stays as the user's actual starting orientation
+      // for correct move transformation in normMoves below
+      const setupRot=(()=>{
+        const res=[]; let o={...orient};
+        // Step 1: bring cross face to D
+        // Mapping: which rotation moves 'cp' face to D position
+        // x:D=old_F, x':D=old_B, x2:D=old_U, z:D=old_L, z':D=old_R
+        const cf=ct?.crossFc||'D';
+        const cp=Object.keys(o).find(k=>o[k]===cf);
+        if(cp&&cp!=='D'){
+          const r=cp==='U'?'x2':cp==='F'?'x':cp==='B'?"x'":cp==='R'?"z'":cp==='L'?'z':null;
+          if(r){res.push(r);o=applyRot(o,r);}
+        }
+        // Step 2: y-rotate to bring green ('F') to front
+        const gp=Object.keys(o).find(k=>o[k]==='F');
+        if(gp&&gp!=='F'&&gp!=='U'&&gp!=='D'){
+          const r=gp==='R'?"y'":gp==='L'?'y':gp==='B'?'y2':null;
+          if(r)res.push(r);
+        }
+        return res;
+      })();
+      // Transform moves to normalized frame; cube rotations update the running orient
+      const normMoves=moves.map(mv=>{
+        if(CUBE_ROTS.has(mv)){orient=applyRot(orient,mv);return mv;}
+        const face=mv[0],mod=mv.slice(1);
+        return(orient[face]||face)+mod;
+      });
+      // ── Build segments ───────────────────────────────────────────────────────
       const pairColors=['#3B9EFF','#3B9EFF','#3B9EFF','#3B9EFF'];
       const crossEnd=ct?.crossMI??moves.length;
       const f2lEnd=ct?.f2lMI??moves.length;
       const ollEnd=ct?.ollMI??moves.length;
       const pairMIs=(ct?.f2lPairs||[]).map(p=>p.mi??moves.length);
-      // Build segments: [{label, col, moves[]}]
       const segments=[];
       const compress=mvs=>{const r=[];let i=0;while(i<mvs.length){const m=mvs[i];if(i+1<mvs.length&&mvs[i+1]===m&&!m.endsWith('2')){r.push(m.replace("'",'')+'2');i+=2;}else{r.push(m);i++;}}return r;};
       const faceHex={'U':'#FFFFFF','D':'#FFE000','R':'#FF2A2A','L':'#FF8000','F':'#00CC55','B':'#1A8FFF'};
@@ -274,8 +320,10 @@ function openSolveModal(idx, sesIdx) {
       const fmt=ms=>(ms/1000).toFixed(2)+'s';
       const pairs=ct?.f2lPairs||[];
       const addSeg=(label,col,from,to,time_ms,dots)=>{
-        if(to>from) segments.push({label,col,moves:compress(moves.slice(from,to)),time_ms,dots:dots||''});
+        if(to>from) segments.push({label,col,moves:compress(normMoves.slice(from,to)),time_ms,dots:dots||''});
       };
+      // Prepend setup rotation segment if cube needs to be reoriented
+      if(setupRot.length>0) segments.push({label:'Setup',col:'#888888',moves:setupRot,time_ms:null,dots:'',isSetup:true});
       const preSolved = pairs.filter(p=>p.start===null&&p.t!=null&&p.t===(ct?.cross??-1));
       const xLabel = preSolved.length===1?'XCross':preSolved.length>=2?'XXCross':'Cross';
       const xDots = dot(ct?.crossFc)+preSolved.map(p=>(p.colors||[]).map(fc=>dot(fc)).join('')).join('');
@@ -299,7 +347,7 @@ function openSolveModal(idx, sesIdx) {
       reconEl.innerHTML=segments.map(seg=>
         `<div style="margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:11px;font-weight:700;color:${seg.col};text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px">${seg.dots}${seg.label}${seg.time_ms!=null?` <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,.45);margin-left:2px">(${fmt(seg.time_ms)})</span>`:''} :</span>
-          <span style="font-size:15px;font-weight:600">${seg.moves.map(mv=>`<span style="color:#fff;margin-right:5px">${mv}</span>`).join('')}</span>
+          <span style="font-size:15px;font-weight:600">${seg.moves.map(mv=>CUBE_ROTS.has(mv)||seg.isSetup?`<span style="color:#aaaaaa;font-style:italic;margin-right:5px">${mv}</span>`:`<span style="color:#fff;margin-right:5px">${mv}</span>`).join('')}</span>
         </div>`
       ).join('');
     } else { reconWrap.style.display='none'; }
