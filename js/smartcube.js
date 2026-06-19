@@ -99,7 +99,7 @@ const SC_SOLVED = 'UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB';
 // ─── SCENE STATE ─────────────────────────────────────────────────────────────
 let scScene, scCamera, scRenderer, scRafId, scRenderActive=false;
 let scCubeGroup=null;
-let scCubies={}, scCamTheta=0.55, scCamPhi=1.0;
+let scCubies={}, scCamTheta=0, scCamPhi=Math.PI/2;
 const SC_CAM_DIST = 6.5;
 
 // ─── ANIMATION STATE ─────────────────────────────────────────────────────────
