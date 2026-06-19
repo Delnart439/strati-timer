@@ -108,7 +108,7 @@ let scQueueRunning=false, scCurrentFacelets=SC_SOLVED;
 
 // ─── BLE STATE ───────────────────────────────────────────────────────────────
 let scConn=null, scSub=null;
-let scLastGyroQ=null, scGyroOffset=null; // set lazily once THREE is loaded
+let scLastGyroQ=null, scGyroOffset=null, scGyroAppliedQ=null;
 
 // ─── SCENE INIT ──────────────────────────────────────────────────────────────
 function scInitScene(container) {
@@ -757,7 +757,7 @@ async function scConnect(){
           case 'FACELETS': scCurrentFacelets=ev.facelets; if(!scQueueRunning)scUpdateColors(scCurrentFacelets); scCfopTick(scCurrentFacelets); break;
           case 'BATTERY':  scSetBattery(ev.batteryLevel+'%'); break;
           case 'HARDWARE': if(ev.hardwareName)scSetStatus('Connected — '+ev.hardwareName); break;
-          case 'GYRO':    if(scCubeGroup){ const T=window.THREE; if(!scGyroOffset) scGyroOffset=new T.Quaternion(); if(!scLastGyroQ) scLastGyroQ=new T.Quaternion(); const q=ev.quaternion; scLastGyroQ.set(q.x,q.y,q.z,q.w); scCubeGroup.quaternion.copy(scGyroOffset).multiply(scLastGyroQ); } break;
+          case 'GYRO': if(scCubeGroup){ const T=window.THREE; if(!scLastGyroQ) scLastGyroQ=new T.Quaternion(); const q=ev.quaternion; scLastGyroQ.set(q.x,q.y,q.z,q.w); if(!scGyroOffset){ scGyroOffset=new T.Quaternion().copy(scLastGyroQ).invert(); if(!scGyroAppliedQ) scGyroAppliedQ=new T.Quaternion(); scCubeGroup.quaternion.identity(); scGyroAppliedQ.identity(); } else { const tQ=new T.Quaternion().copy(scGyroOffset).multiply(scLastGyroQ); if(!scGyroAppliedQ) scGyroAppliedQ=new T.Quaternion(); const ang=2*Math.acos(Math.min(1,Math.abs(scGyroAppliedQ.dot(tQ)))); if(ang>0.15){ scCubeGroup.quaternion.copy(tQ); scGyroAppliedQ.copy(tQ); } } } break;
           case 'DISCONNECT': scHandleDisconn(); break;
         }
       },
@@ -816,10 +816,11 @@ async function scReset(){
 function scResetGyro(){
   const T=window.THREE; if(!T||!scCubeGroup) return;
   if(!scGyroOffset) scGyroOffset=new T.Quaternion();
+  if(!scGyroAppliedQ) scGyroAppliedQ=new T.Quaternion();
   if(scLastGyroQ) scGyroOffset.copy(scLastGyroQ).invert();
   else scGyroOffset.identity();
-  if(scLastGyroQ) scCubeGroup.quaternion.copy(scGyroOffset).multiply(scLastGyroQ);
-  else scCubeGroup.quaternion.identity();
+  scCubeGroup.quaternion.identity();
+  scGyroAppliedQ.identity();
 }
 
 document.getElementById('scConnBtn')?.addEventListener('click', scConnect);
