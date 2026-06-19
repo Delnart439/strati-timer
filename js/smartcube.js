@@ -377,7 +377,14 @@ function scHighlight(){
   }
   if(scErrSeq.length>0){
     // Hide scramble, show only the correction sequence
-    const todo=scErrSeq.slice().reverse(); // first move to do is first in array
+    const raw=scErrSeq.slice().reverse(); // first move to do is first in array
+    // Compress consecutive identical moves (D D or D' D') into D2
+    const todo=[]; let j=0;
+    while(j<raw.length){
+      if(j+1<raw.length&&raw[j]===raw[j+1]&&!raw[j].endsWith('2')){
+        todo.push(raw[j].replace("'",'')+'2'); j+=2;
+      } else { todo.push(raw[j]); j++; }
+    }
     el.innerHTML=todo.map((m,i)=>
       i===0
         ? `<span style="background:var(--purple);color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`
