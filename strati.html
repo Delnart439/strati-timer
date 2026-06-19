@@ -160,7 +160,7 @@
     </div>
     <div id="tpsSec" class="rp-sec" style="padding:10px 14px;display:none">
       <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">CFOP Split</div>
-      <div id="cfopBar" style="display:flex;height:16px;border-radius:7px;overflow:hidden;background:rgba(255,255,255,.08);margin-bottom:8px">
+      <div id="cfopBar" style="display:flex;height:16px;border-radius:7px;background:rgba(255,255,255,.08);margin-bottom:8px;position:relative">
         <div style="flex:1;background:rgba(255,255,255,.06)"></div>
       </div>
       <div id="cfopLabels" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;text-align:center;margin-bottom:12px">
@@ -615,10 +615,12 @@
 
 <div class="ov h" id="solveModal">
   <div class="mo">
-    <button id="mo-prev" class="mo-side-btn mo-side-left">◀</button>
-    <button id="mo-next" class="mo-side-btn mo-side-right">▶</button>
-    <button class="mo-x" id="solveModalClose">✕</button>
-    <div class="mo-num" id="mo-num">#1</div>
+    <div class="mo-header">
+      <button id="mo-prev" class="mo-side-btn">◀</button>
+      <div class="mo-num" id="mo-num">#1</div>
+      <button id="mo-next" class="mo-side-btn">▶</button>
+      <button class="mo-x" id="solveModalClose">✕</button>
+    </div>
     <div class="mo-time" id="mo-time">0.000</div>
     <div class="mo-scr">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
@@ -627,15 +629,22 @@
       </div>
       <div id="mo-scr"></div>
     </div>
-    <svg id="mo-net" class="mo-net" viewBox="0 0 204 153" width="220" height="165"></svg>
-    <div class="mo-dt">
-      <div class="mo-di"><div class="mo-dl">Date:</div><div class="mo-dv" id="mo-date">–</div></div>
-      <div class="mo-di"><div class="mo-dl">Time:</div><div class="mo-dv" id="mo-clock">–</div></div>
+    <div class="mo-net-row">
+      <svg id="mo-net" class="mo-net" viewBox="0 0 204 153" width="220" height="165"></svg>
+      <div id="mo-recon-wrap" class="mo-recon-panel" style="display:none">
+        <div class="mo-recon-panel-lbl">Reconstruction</div>
+        <div id="mo-recon" class="mo-recon-moves"></div>
+      </div>
     </div>
+    <div id="mo-cfop" style="display:none;margin-bottom:18px"></div>
     <div class="mo-acts">
       <button class="mb mb-dnf" id="mo-dnf">DNF</button>
       <button class="mb mb-p2" id="mo-p2">+2</button>
       <button class="mb mb-del" id="mo-del">Delete</button>
+    </div>
+    <div class="mo-dt">
+      <div class="mo-di"><div class="mo-dl">Date:</div><div class="mo-dv" id="mo-date">–</div></div>
+      <div class="mo-di"><div class="mo-dl">Time:</div><div class="mo-dv" id="mo-clock">–</div></div>
     </div>
   </div>
 </div>

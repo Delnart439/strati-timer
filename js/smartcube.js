@@ -250,7 +250,9 @@ let scScrambleMoves=[], scScrambleIdx=0, scMoveCount=0;
 let scErrSeq=[]; // stack of correction moves needed (pop = next to do)
 let scR2Dir=null; // direction locked in for the first event of a '2' move
 let scSolveMoves=0; // move count for the current solve
-let scCfopTimes={cross:null,f2l:null,oll:null,pll:null};
+let scMoveLog=[]; // all moves recorded during the current solve
+let scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
+let scSolvedPairMask=0; // bitmask of which fd.pairs[0..3] are currently recorded as solved
 let scCfopFace=null; // SC_CFOP_DATA entry for the detected cross face
 
 // CFOP detection — cross is detected on whichever of the 6 faces it was solved on.
@@ -260,22 +262,28 @@ const SC_FI_TO_COLOR=['R','L','U','D','F','B'];
 const SC_CFOP_DATA=[
   {fc:'U',cx:[[1,46],[3,37],[5,10],[7,19]],
    f2l:[{idx:[9,10,11,12,13,14],col:'R'},{idx:[18,19,20,21,22,23],col:'F'},{idx:[36,37,38,39,40,41],col:'L'},{idx:[45,46,47,48,49,50],col:'B'}],
-   fr:[0,8],oll_r:[27,35],oll_c:'D'},
+   fr:[0,8],oll_r:[27,35],oll_c:'D',
+   pairs:[[[8,'U'],[9,'R'],[20,'F'],[12,'R'],[23,'F']],[[2,'U'],[11,'R'],[45,'B'],[14,'R'],[48,'B']],[[6,'U'],[18,'F'],[38,'L'],[21,'F'],[41,'L']],[[0,'U'],[36,'L'],[47,'B'],[39,'L'],[50,'B']]]},
   {fc:'D',cx:[[28,25],[30,43],[32,16],[34,52]],
    f2l:[{idx:[12,13,14,15,16,17],col:'R'},{idx:[21,22,23,24,25,26],col:'F'},{idx:[39,40,41,42,43,44],col:'L'},{idx:[48,49,50,51,52,53],col:'B'}],
-   fr:[27,35],oll_r:[0,8],oll_c:'U'},
+   fr:[27,35],oll_r:[0,8],oll_c:'U',
+   pairs:[[[29,'D'],[15,'R'],[26,'F'],[12,'R'],[23,'F']],[[35,'D'],[17,'R'],[51,'B'],[14,'R'],[48,'B']],[[27,'D'],[24,'F'],[44,'L'],[21,'F'],[41,'L']],[[33,'D'],[42,'L'],[53,'B'],[39,'L'],[50,'B']]]},
   {fc:'F',cx:[[19,7],[21,41],[23,12],[25,28]],
    f2l:[{idx:[3,4,5,6,7,8],col:'U'},{idx:[9,10,12,13,15,16],col:'R'},{idx:[27,28,29,30,31,32],col:'D'},{idx:[37,38,40,41,43,44],col:'L'}],
-   fr:[18,26],oll_r:[45,53],oll_c:'B'},
+   fr:[18,26],oll_r:[45,53],oll_c:'B',
+   pairs:[[[20,'F'],[8,'U'],[9,'R'],[5,'U'],[10,'R']],[[18,'F'],[6,'U'],[38,'L'],[3,'U'],[37,'L']],[[26,'F'],[29,'D'],[15,'R'],[32,'D'],[16,'R']],[[24,'F'],[27,'D'],[44,'L'],[30,'D'],[43,'L']]]},
   {fc:'B',cx:[[46,1],[48,14],[50,39],[52,34]],
    f2l:[{idx:[0,1,2,3,4,5],col:'U'},{idx:[10,11,13,14,16,17],col:'R'},{idx:[30,31,32,33,34,35],col:'D'},{idx:[36,37,39,40,42,43],col:'L'}],
-   fr:[45,53],oll_r:[18,26],oll_c:'F'},
+   fr:[45,53],oll_r:[18,26],oll_c:'F',
+   pairs:[[[45,'B'],[2,'U'],[11,'R'],[5,'U'],[10,'R']],[[47,'B'],[0,'U'],[36,'L'],[3,'U'],[37,'L']],[[51,'B'],[35,'D'],[17,'R'],[32,'D'],[16,'R']],[[53,'B'],[33,'D'],[42,'L'],[30,'D'],[43,'L']]]},
   {fc:'R',cx:[[10,5],[12,23],[14,48],[16,32]],
    f2l:[{idx:[1,2,4,5,7,8],col:'U'},{idx:[19,20,22,23,25,26],col:'F'},{idx:[28,29,31,32,34,35],col:'D'},{idx:[45,46,48,49,51,52],col:'B'}],
-   fr:[9,17],oll_r:[36,44],oll_c:'L'},
+   fr:[9,17],oll_r:[36,44],oll_c:'L',
+   pairs:[[[9,'R'],[8,'U'],[20,'F'],[7,'U'],[19,'F']],[[11,'R'],[2,'U'],[45,'B'],[1,'U'],[46,'B']],[[15,'R'],[29,'D'],[26,'F'],[28,'D'],[25,'F']],[[17,'R'],[35,'D'],[51,'B'],[34,'D'],[52,'B']]]},
   {fc:'L',cx:[[37,3],[39,50],[41,21],[43,30]],
    f2l:[{idx:[0,1,3,4,6,7],col:'U'},{idx:[18,19,21,22,24,25],col:'F'},{idx:[27,28,30,31,33,34],col:'D'},{idx:[46,47,49,50,52,53],col:'B'}],
-   fr:[36,44],oll_r:[9,17],oll_c:'R'},
+   fr:[36,44],oll_r:[9,17],oll_c:'R',
+   pairs:[[[38,'L'],[6,'U'],[18,'F'],[7,'U'],[19,'F']],[[36,'L'],[0,'U'],[47,'B'],[1,'U'],[46,'B']],[[44,'L'],[27,'D'],[24,'F'],[28,'D'],[25,'F']],[[42,'L'],[33,'D'],[53,'B'],[34,'D'],[52,'B']]]},
 ];
 function scCheckCross(fl){
   for(const fd of SC_CFOP_DATA){
@@ -297,16 +305,43 @@ function scCheckOLL(fl,fd){
 function scUpdateCfopBar(){
   const bar=document.getElementById('cfopBar'), lbl=document.getElementById('cfopLabels');
   if(!bar||!lbl) return;
-  const {cross,f2l,oll,pll}=scCfopTimes; if(pll==null) return;
-  const c=cross??0, f=f2l??oll??pll, o=oll??pll, p=pll;
-  const segs=[
-    {name:'Cross',ms:c,      col:'#FFFFFF'},
-    {name:'F2L',  ms:f-c,    col:'#3B9EFF'},
-    {name:'OLL',  ms:o-f,    col:'#FFD700'},
-    {name:'PLL',  ms:p-o,    col:'#FF8000'},
-  ];
-  bar.innerHTML=segs.map(s=>`<div style="width:${(s.ms/p*100).toFixed(1)}%;background:${s.col}"></div>`).join('');
-  lbl.innerHTML=segs.map(s=>`<div style="font-size:11px;font-weight:700;color:${s.col}">${s.name}<br><span style="color:#fff;font-weight:800;font-size:15px">${(s.ms/1000).toFixed(2)}s</span></div>`).join('');
+  const {cross,f2lPairs,f2l,oll,pll,ollStart,pllStart}=scCfopTimes; if(pll==null) return;
+  const c=cross??0, o=oll??pll, p=pll;
+  const f2lEnd=f2lPairs.length===4?f2lPairs[3].t:(f2l??o);
+  const os=ollStart??f2lEnd, ps=pllStart??o;
+  const fmt=ms=>(ms/1000).toFixed(2)+'s';
+  const mkSeg=(ms,col,tip)=>{
+    if(ms<=0) return '';
+    const w=(ms/p*100).toFixed(1);
+    return tip
+      ?`<div class="cfop-recog" style="width:${w}%;background:${col}"><span class="cfop-tip">${tip}</span></div>`
+      :`<div style="width:${w}%;background:${col}"></div>`;
+  };
+  let barHtml=mkSeg(c,'#FFFFFF','');
+  if(f2lPairs.length===4){
+    let prev=c;
+    f2lPairs.forEach(pair=>{
+      const recog=pair.start!=null?pair.start-prev:0;
+      barHtml+=mkSeg(recog,'rgba(59,158,255,.28)',recog>0?fmt(recog):'');
+      barHtml+=mkSeg(pair.t-(pair.start??prev),'#3B9EFF','');
+      prev=pair.t;
+    });
+  } else {
+    barHtml+=mkSeg(f2lEnd-c,'#3B9EFF','');
+  }
+  const ollRecog=os-f2lEnd, pllRecog=ps-o;
+  barHtml+=mkSeg(ollRecog,'rgba(255,215,0,.30)',ollRecog>0?fmt(ollRecog):'');
+  barHtml+=mkSeg(o-os,'#FFD700','');
+  barHtml+=mkSeg(pllRecog,'rgba(255,128,0,.30)',pllRecog>0?fmt(pllRecog):'');
+  barHtml+=mkSeg(p-ps,'#FF8000','');
+  bar.innerHTML=barHtml;
+  lbl.style.gridTemplateColumns='1fr 1fr 1fr 1fr';
+  lbl.innerHTML=[
+    {name:'Cross',col:'#FFFFFF',total:c},
+    {name:'F2L',  col:'#3B9EFF',total:f2lEnd-c},
+    {name:'OLL',  col:'#FFD700',total:o-f2lEnd},
+    {name:'PLL',  col:'#FF8000',total:p-o},
+  ].map(s=>`<div style="font-size:11px;font-weight:700;color:${s.col}">${s.name}<br><span style="color:#fff;font-weight:800;font-size:15px">${fmt(s.total)}</span></div>`).join('');
 }
 let scAutoRaf=null, scAutoStart=0;
 
@@ -362,19 +397,94 @@ function scClearHighlight(){
   if(typeof renderScramble==='function') renderScramble();
 }
 
-function scCfopTick(fl){
+// OLL/PLL case detection (D cross only — cross on D, OLL/PLL on U face)
+function scDetectOLL(fl) {
+  if (!scCfopFace || scCfopFace.fc !== 'D') return null;
+  const uc = fl[4];
+  const top = [0,1,2,3,4,5,6,7,8].map(i => fl[i]===uc ? 1 : 0);
+  // sides order: [B=[47,46,45], R=[11,10,9], F=[18,19,20], L=[36,37,38]]
+  let s = [[47,46,45],[11,10,9],[18,19,20],[36,37,38]].map(ix=>ix.map(i=>fl[i]===uc?1:0));
+  const rv = a => [a[2],a[1],a[0]];
+  // rotT and rotS both rotate U' (CCW) so they stay consistent
+  const rotT = t => [t[6],t[3],t[0],t[7],t[4],t[1],t[8],t[5],t[2]];
+  const rotS = s => [rv(s[3]), s[0], rv(s[1]), s[2]];
+  let ct=top, cs=s;
+  for (let r=0; r<4; r++) {
+    for (const o of OLL) {
+      if (o.top.every((v,i)=>v===ct[i]) && o.sides.every((strip,si)=>strip.every((v,j)=>v===cs[si][j])))
+        return o.id;
+    }
+    ct=rotT(ct); cs=rotS(cs);
+  }
+  return null;
+}
+
+function scDetectPLL(fl) {
+  if (!scCfopFace || scCfopFace.fc !== 'D') return null;
+  const L2P = {R:'R',F:'G',B:'B',L:'O',U:'W',D:'N'};
+  // sides order: [F=[18,19,20], R=[9,10,11], B=[45,46,47], L=[38,37,36]]
+  let cs = [[18,19,20],[9,10,11],[45,46,47],[38,37,36]].map(ix=>ix.map(i=>L2P[fl[i]]||'?'));
+  const rv = a => [a[2],a[1],a[0]];
+  const rotS = s => [rv(s[1]), s[2], rv(s[3]), s[0]];
+  for (let r=0; r<4; r++) {
+    for (const p of PLL) {
+      if (p.sides.every((strip,si)=>strip.every((v,j)=>v===cs[si][j])))
+        return p.id;
+    }
+    cs=rotS(cs);
+  }
+  return null;
+}
+
+function scCfopTick(fl, fromMove=false){
   if(scPhase!=='solving') return;
   const e=scAutoStart>0?Math.round(performance.now()-scAutoStart):0;
-  if(scCfopTimes.cross===null){const fd=scCheckCross(fl);if(fd){scCfopTimes.cross=e;scCfopFace=fd;}}
-  if(scCfopFace&&scCfopTimes.f2l===null&&scCheckF2L(fl,scCfopFace)) scCfopTimes.f2l=e;
-  if(scCfopFace&&scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&fl!==SC_SOLVED&&scCheckOLL(fl,scCfopFace)) scCfopTimes.oll=e;
+  const pc=scCfopTimes.f2lPairs.length;
+  if(fromMove){
+    if(scCfopTimes.cross!==null&&pc<4&&scCfopTimes.f2lNextStart===null) scCfopTimes.f2lNextStart=e;
+    if(scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&scCfopTimes.ollStart===null) scCfopTimes.ollStart=e;
+    if(scCfopTimes.oll!==null&&scCfopTimes.pll===null&&scCfopTimes.pllStart===null) scCfopTimes.pllStart=e;
+  }
+  // Cross
+  if(scCfopTimes.cross===null){
+    const fd=scCheckCross(fl);
+    if(fd){
+      scCfopTimes.cross=e;scCfopTimes.crossMI=scMoveLog.length;scCfopTimes.crossFc=fd.fc;scCfopFace=fd;scSolvedPairMask=0;
+      for(let pi=0;pi<4;pi++){
+        if(fd.pairs[pi].every(([si,c])=>fl[si]===c)){
+          scSolvedPairMask|=(1<<pi);
+          scCfopTimes.f2lPairs.push({t:e,start:null,mi:scMoveLog.length,colors:[fd.pairs[pi][1][1],fd.pairs[pi][2][1]]});
+        }
+      }
+    }
+  }
+  // Individual F2L pairs
+  if(scCfopFace&&scCfopTimes.f2l===null){
+    const fd=scCfopFace;
+    for(let pi=0;pi<4;pi++){
+      if(!(scSolvedPairMask&(1<<pi))&&fd.pairs[pi].every(([si,c])=>fl[si]===c)){
+        scSolvedPairMask|=(1<<pi);
+        scCfopTimes.f2lPairs.push({t:e,start:scCfopTimes.f2lNextStart,mi:scMoveLog.length,colors:[fd.pairs[pi][1][1],fd.pairs[pi][2][1]]});
+        scCfopTimes.f2lNextStart=null;
+        if(scCfopTimes.f2lPairs.length===4){scCfopTimes.f2l=e;scCfopTimes.f2lMI=scMoveLog.length;scCfopTimes.ollCase=scDetectOLL(fl);}
+      }
+    }
+  }
+  // Retry OLL/PLL case detection on each tick until matched (handles BLE state desync at detection time)
+  if(scCfopFace&&scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&scCfopTimes.ollCase===null) scCfopTimes.ollCase=scDetectOLL(fl);
+  if(scCfopFace&&scCfopTimes.oll!==null&&scCfopTimes.pll===null&&scCfopTimes.pllCase===null&&scCfopTimes.pllStart===null) scCfopTimes.pllCase=scDetectPLL(fl);
+  // OLL
+  if(scCfopFace&&scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&fl!==SC_SOLVED&&scCheckOLL(fl,scCfopFace)){scCfopTimes.oll=e;scCfopTimes.ollMI=scMoveLog.length;if(!scCfopTimes.pllCase)scCfopTimes.pllCase=scDetectPLL(fl);}
   if(fl===SC_SOLVED){
-    if(scCfopTimes.cross===null) scCfopTimes.cross=e;
-    if(scCfopTimes.f2l===null) scCfopTimes.f2l=e;
-    if(scCfopTimes.oll===null) scCfopTimes.oll=e;
+    if(scCfopTimes.cross===null){scCfopTimes.cross=e;scCfopTimes.crossMI=scMoveLog.length;}
+    while(scCfopTimes.f2lPairs.length<4)
+      scCfopTimes.f2lPairs.push({t:e,start:scCfopTimes.f2lNextStart,mi:scMoveLog.length,colors:null});
+    scCfopTimes.f2lNextStart=null;
+    if(scCfopTimes.f2l===null){scCfopTimes.f2l=e;scCfopTimes.f2lMI=scMoveLog.length;}
+    if(scCfopTimes.oll===null){scCfopTimes.oll=e;scCfopTimes.ollMI=scMoveLog.length;}
     scCfopTimes.pll=e;
     scUpdateCfopBar();
-    scAutoTimerStop(); scPhase='idle';
+    scAutoTimerStop();scPhase='idle';
     scInitScramble();
   }
 }
@@ -400,7 +510,9 @@ function scAutoTimerStop(){
   const tEl=document.getElementById('s-turns'), pEl=document.getElementById('s-tps');
   if(tEl) tEl.textContent=scSolveMoves;
   if(pEl) pEl.textContent=ms>0?(scSolveMoves/(ms/1000)).toFixed(2):'–';
+  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog]};
   stopTimer(ms);
+  scPendingSolveData=null;
 }
 
 // ─── MOVE ANIMATION ──────────────────────────────────────────────────────────
@@ -453,14 +565,16 @@ function scEnqueue(mv){
         }
       }
     } else if(scPhase==='ready'){
-      scPhase='solving'; scSolveMoves=0;
-      scCfopTimes={cross:null,f2l:null,oll:null,pll:null}; scCfopFace=null;
+      scPhase='solving'; scSolveMoves=0; scMoveLog=[];
+      scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
+      scSolvedPairMask=0; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
       if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
     } else if(scPhase==='solving'){
       scSolveMoves++;
-      scCfopTick(scCurrentFacelets);
+      scMoveLog.push(mv);
+      scCfopTick(scCurrentFacelets, true);
     }
   }
 

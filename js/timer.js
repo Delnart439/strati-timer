@@ -60,7 +60,8 @@ function stopTimer(overrideMs) {
   const solve = {
     ms, dnf:false, plus2:false,
     scramble: state.scrHistory[state.scrIdx]||'',
-    date: new Date().toISOString()
+    date: new Date().toISOString(),
+    ...(typeof scPendingSolveData!=='undefined'&&scPendingSolveData?scPendingSolveData:{})
   };
   curSes().times.unshift(solve);
   save();

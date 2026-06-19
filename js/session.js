@@ -206,10 +206,104 @@ function openSolveModal(idx, sesIdx) {
   document.getElementById('mo-p2').style.opacity  = t.plus2?'.5':'1';
   const prevBtn = document.getElementById('mo-prev');
   const nextBtn = document.getElementById('mo-next');
-  prevBtn.style.opacity = idx < ts.length - 1 ? '1' : '0.3';
-  prevBtn.disabled = idx >= ts.length - 1;
-  nextBtn.style.opacity = idx > 0 ? '1' : '0.3';
-  nextBtn.disabled = idx <= 0;
+  prevBtn.style.opacity = idx > 0 ? '1' : '0.3';
+  prevBtn.disabled = idx <= 0;
+  nextBtn.style.opacity = idx < ts.length - 1 ? '1' : '0.3';
+  nextBtn.disabled = idx >= ts.length - 1;
+  // CFOP split
+  const cfopEl=document.getElementById('mo-cfop');
+  if(cfopEl){
+    const ct=t.cfop;
+    if(ct&&ct.pll!=null){
+      const c=ct.cross??0, o=ct.oll??ct.pll, p=ct.pll;
+      const pairs=ct.f2lPairs||[];
+      const f2lEnd=pairs.length===4?pairs[3].t:(ct.f2l??o);
+      const os=ct.ollStart??f2lEnd, ps=ct.pllStart??o;
+      const fmt=ms=>(ms/1000).toFixed(2)+'s';
+      const ollRecog=os-f2lEnd, pllRecog=ps-o;
+      const mkSeg=(ms,col,tip)=>{if(ms<=0)return '';const w=(ms/p*100).toFixed(1);return tip?`<div class="cfop-recog" style="width:${w}%;background:${col};height:100%"><span class="cfop-tip">${tip}</span></div>`:`<div style="width:${w}%;background:${col};height:100%"></div>`;};
+      let barHtml=mkSeg(c,'#FFFFFF','');
+      if(pairs.length===4){
+        let prev=c;
+        pairs.forEach(pair=>{
+          const recog=pair.start!=null?pair.start-prev:0;
+          barHtml+=mkSeg(recog,'rgba(59,158,255,.28)',recog>0?fmt(recog):'');
+          barHtml+=mkSeg(pair.t-(pair.start??prev),'#3B9EFF','');
+          prev=pair.t;
+        });
+      } else {
+        barHtml+=mkSeg(f2lEnd-c,'#3B9EFF','');
+      }
+      barHtml+=mkSeg(ollRecog,'rgba(255,215,0,.30)',ollRecog>0?fmt(ollRecog):'');
+      barHtml+=mkSeg(o-os,'#FFD700','');
+      barHtml+=mkSeg(pllRecog,'rgba(255,128,0,.30)',pllRecog>0?fmt(pllRecog):'');
+      barHtml+=mkSeg(p-ps,'#FF8000','');
+      const preCount=pairs.filter(p=>p.start===null&&p.t===c).length;
+      const crossName=preCount===1?'XCross':preCount>=2?'XXCross':'Cross';
+      const lblItems=[
+        {name:crossName,col:'#FFFFFF',total:c},
+        {name:'F2L',    col:'#3B9EFF',total:f2lEnd-c},
+        {name:'OLL',    col:'#FFD700',total:o-f2lEnd},
+        {name:'PLL',    col:'#FF8000',total:p-o},
+      ];
+      cfopEl.style.display='';
+      cfopEl.innerHTML=`
+        <div id="mo-cfop-bar" style="display:flex;height:10px;border-radius:5px;background:rgba(255,255,255,.08);margin-bottom:7px;position:relative">${barHtml}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;text-align:center">
+          ${lblItems.map(s=>`<div style="font-size:10px;font-weight:700;color:${s.col}">${s.name}<br><span style="color:#fff;font-size:13px;font-weight:800">${fmt(s.total)}</span></div>`).join('')}
+        </div>`;
+    } else { cfopEl.style.display='none'; cfopEl.innerHTML=''; }
+  }
+  // Reconstruction
+  const reconWrap=document.getElementById('mo-recon-wrap');
+  const reconEl=document.getElementById('mo-recon');
+  if(reconWrap&&reconEl){
+    const moves=t.moves, ct=t.cfop;
+    if(moves&&moves.length>0){
+      reconWrap.style.display='';
+      const pairColors=['#3B9EFF','#3B9EFF','#3B9EFF','#3B9EFF'];
+      const crossEnd=ct?.crossMI??moves.length;
+      const f2lEnd=ct?.f2lMI??moves.length;
+      const ollEnd=ct?.ollMI??moves.length;
+      const pairMIs=(ct?.f2lPairs||[]).map(p=>p.mi??moves.length);
+      // Build segments: [{label, col, moves[]}]
+      const segments=[];
+      const compress=mvs=>{const r=[];let i=0;while(i<mvs.length){const m=mvs[i];if(i+1<mvs.length&&mvs[i+1]===m&&!m.endsWith('2')){r.push(m.replace("'",'')+'2');i+=2;}else{r.push(m);i++;}}return r;};
+      const faceHex={'U':'#FFFFFF','D':'#FFE000','R':'#FF2A2A','L':'#FF8000','F':'#00CC55','B':'#1A8FFF'};
+      const dot=fc=>fc?`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${faceHex[fc]??'#888'};margin-right:3px;vertical-align:middle"></span>`:'';
+      const fmt=ms=>(ms/1000).toFixed(2)+'s';
+      const pairs=ct?.f2lPairs||[];
+      const addSeg=(label,col,from,to,time_ms,dots)=>{
+        if(to>from) segments.push({label,col,moves:compress(moves.slice(from,to)),time_ms,dots:dots||''});
+      };
+      const preSolved = pairs.filter(p=>p.start===null&&p.t!=null&&p.t===(ct?.cross??-1));
+      const xLabel = preSolved.length===1?'XCross':preSolved.length>=2?'XXCross':'Cross';
+      const xDots = dot(ct?.crossFc)+preSolved.map(p=>(p.colors||[]).map(fc=>dot(fc)).join('')).join('');
+      addSeg(xLabel,'#FFFFFF',0,crossEnd, ct?.cross??0, xDots);
+      if(pairMIs.length===4){
+        let prev=crossEnd, prevT=ct?.cross??0;
+        pairMIs.forEach((mi,i)=>{
+          const pair=pairs[i];
+          if(pair?.start===null&&pair?.t!=null&&pair.t===(ct?.cross??-1)){prev=mi;prevT=pair.t;return;}
+          const pairDots=(pair?.colors||[]).map(fc=>dot(fc)).join('');
+          addSeg(`F2L ${i+1}`,pairColors[i],prev,mi, pair?.t!=null?pair.t-prevT:null, pairDots);
+          prev=mi; prevT=pair?.t??prevT;
+        });
+      } else {
+        addSeg('F2L','#3B9EFF',crossEnd,f2lEnd, ct?.f2l!=null&&ct?.cross!=null?ct.f2l-ct.cross:null, '');
+      }
+      const ollLbl='OLL'+(ct?.ollCase!=null?` ${ct.ollCase}`:'');
+      const pllLbl='PLL'+(ct?.pllCase?` ${ct.pllCase}`:'');
+      addSeg(ollLbl,'#FFD700',f2lEnd,ollEnd, ct?.oll!=null&&ct?.f2l!=null?ct.oll-ct.f2l:null, '');
+      addSeg(pllLbl,'#FF8000',ollEnd,moves.length, ct?.pll!=null&&ct?.oll!=null?ct.pll-ct.oll:null, '');
+      reconEl.innerHTML=segments.map(seg=>
+        `<div style="margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:${seg.col};text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px">${seg.dots}${seg.label}${seg.time_ms!=null?` <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,.45);margin-left:2px">(${fmt(seg.time_ms)})</span>`:''} :</span>
+          <span style="font-size:15px;font-weight:600">${seg.moves.map(mv=>`<span style="color:#fff;margin-right:5px">${mv}</span>`).join('')}</span>
+        </div>`
+      ).join('');
+    } else { reconWrap.style.display='none'; }
+  }
   document.getElementById('solveModal').classList.remove('h');
 }
 
@@ -217,8 +311,13 @@ document.getElementById('solveModal').addEventListener('click', e=>{
   if (e.target===document.getElementById('solveModal')) document.getElementById('solveModal').classList.add('h');
 });
 document.getElementById('solveModalClose').addEventListener('click', ()=>document.getElementById('solveModal').classList.add('h'));
-document.getElementById('mo-prev').addEventListener('click', e=>{ e.stopPropagation(); if(state.modalSolveIdx < modalSes().times.length-1) openSolveModal(state.modalSolveIdx+1, state.modalSesIdx); });
-document.getElementById('mo-next').addEventListener('click', e=>{ e.stopPropagation(); if(state.modalSolveIdx > 0) openSolveModal(state.modalSolveIdx-1, state.modalSesIdx); });
+document.getElementById('mo-prev').addEventListener('click', e=>{ e.stopPropagation(); if(state.modalSolveIdx > 0) openSolveModal(state.modalSolveIdx-1, state.modalSesIdx); });
+document.getElementById('mo-next').addEventListener('click', e=>{ e.stopPropagation(); if(state.modalSolveIdx < modalSes().times.length-1) openSolveModal(state.modalSolveIdx+1, state.modalSesIdx); });
+document.addEventListener('keydown', e=>{
+  if (document.getElementById('solveModal').classList.contains('h')) return;
+  if (e.key==='ArrowRight') { e.preventDefault(); if(state.modalSolveIdx < modalSes().times.length-1) openSolveModal(state.modalSolveIdx+1, state.modalSesIdx); }
+  else if (e.key==='ArrowLeft') { e.preventDefault(); if(state.modalSolveIdx > 0) openSolveModal(state.modalSolveIdx-1, state.modalSesIdx); }
+});
 
 // Add time manually
 function parseManualTime(s) {
