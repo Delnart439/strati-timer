@@ -473,25 +473,28 @@ function scDetectCubeRotation(oc,nc){
 function scDetectGyroRotation(){
   if(!scCubeGroup) return null;
   const T=window.THREE; if(!T) return null;
-  const baseQ=scLastMoveQ||(new T.Quaternion()); // identity = standard orientation baseline
+  const baseQ=scLastMoveQ||(new T.Quaternion()); // identity = white-top/green-front baseline
   // delta = inv(base) * currentQ = rotation since last face move (or since solve start)
   const inv=new T.Quaternion().copy(baseQ).invert();
-  const rel=inv.multiply(scCubeGroup.quaternion);
-  // Skip small rotations: |w| > 0.75 means total rotation angle < ~83° (peeking, hand tremor)
-  // Center color only changes visibly when a different face comes forward = full ~90° rotation
-  if(Math.abs(rel.w)>0.75) return null;
+  const rel=new T.Quaternion().copy(inv).multiply(scCubeGroup.quaternion);
+  // Skip unless cube is nearly fully turned: |w|>0.71 means angle < ~89.5° (not a full quarter-turn yet)
+  if(Math.abs(rel.w)>0.71) return null;
   const s=Math.SQRT2/2;
   const ROTS=[
     ['y',  0,s,0,s],["y'",0,-s,0,s],['y2',0,1,0,0],
     ['x',  s,0,0,s],["x'",-s,0,0,s],['x2',1,0,0,0],
     ['z',  0,0,s,s],["z'",0,0,-s,s],['z2',0,0,1,0],
   ];
-  let best=null,bestDot=0.9; // cos(26°) — must match a standard rotation closely
+  let best=null,bestDot=0.9,bestR=null;
   for(const[mv,rx,ry,rz,rw] of ROTS){
     const dot=Math.abs(rel.x*rx+rel.y*ry+rel.z*rz+rel.w*rw);
-    if(dot>bestDot){bestDot=dot;best=mv;}
+    if(dot>bestDot){bestDot=dot;best=mv;bestR=[rx,ry,rz,rw];}
   }
-  return best;
+  if(!best) return null;
+  // Snap idealQ = baseQ * ideal-rel-Q so the next detection starts from a perfect 90° baseline
+  const [rx,ry,rz,rw]=bestR;
+  const idealQ=new T.Quaternion(rx,ry,rz,rw).premultiply(baseQ);
+  return {rot:best,idealQ};
 }
 
 // Update the WCA orientation tracker when a whole-cube rotation is injected
@@ -689,15 +692,15 @@ function scEnqueue(mv){
       scAutoTimerStart();
       if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
       else {
-        const rot=scDetectGyroRotation();
-        if(rot){ scMoveLog.push(rot); scApplyWCARotation(rot); }
-        if(scCubeGroup) scLastMoveQ=scCubeGroup.quaternion.clone();
+        const gr=scDetectGyroRotation();
+        if(gr){scMoveLog.push(gr.rot);scApplyWCARotation(gr.rot);scLastMoveQ=gr.idealQ;}
+        else if(scCubeGroup) scLastMoveQ=scCubeGroup.quaternion.clone();
         scSolveMoves++; scMoveLog.push(scBodyToWCA(mv)); scCfopTick(scCurrentFacelets, true);
       }
     } else if(scPhase==='solving'){
-      const rot=scDetectGyroRotation();
-      if(rot){ scMoveLog.push(rot); scApplyWCARotation(rot); }
-      if(scCubeGroup) scLastMoveQ=scCubeGroup.quaternion.clone();
+      const gr=scDetectGyroRotation();
+      if(gr){scMoveLog.push(gr.rot);scApplyWCARotation(gr.rot);scLastMoveQ=gr.idealQ;}
+      else if(scCubeGroup) scLastMoveQ=scCubeGroup.quaternion.clone();
       scSolveMoves++;
       scMoveLog.push(scBodyToWCA(mv));
       scCfopTick(scCurrentFacelets, true);

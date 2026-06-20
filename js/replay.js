@@ -5,6 +5,7 @@
 let rpScene=null,rpCamera=null,rpRenderer=null,rpGroup=null;
 let rpCubies={},rpRafId=null,rpRendering=false;
 let rpFacelets='',rpMoves=[],rpStates=[],rpIdx=0;
+let rpBodyMoves=[],rpGroupQ=null;
 let rpPlaying=false,rpSpeed=1,rpAnimating=false,rpGyroEnabled=false;
 
 // ── Facelets permutation tables for whole-cube rotations ─────────────────────
@@ -42,6 +43,22 @@ function rpGetPerms(){
     return p;
   }
 
+  // Face move permutation (PUSH: p[src]=dest). Only stickers in the given axis/layer move.
+  function makeFace(fn,axisIdx,layerVal){
+    const p=new Array(54);for(let i=0;i<54;i++) p[i]=i;
+    for(let i=0;i<54;i++){
+      const s=SC_S2F[i];if(!s) continue;
+      const coords=s.key.split(',').map(Number);
+      if(coords[axisIdx]!==layerVal) continue;
+      const [x,y,z]=coords;
+      const [nx,ny,nz]=fn(x,y,z);
+      const newFi=transformFi(fn,s.fi);
+      const dest=posToIdx[`${Math.round(nx)},${Math.round(ny)},${Math.round(nz)}_${newFi}`];
+      if(dest!==undefined) p[i]=dest;
+    }
+    return p;
+  }
+
   // y CW from top: (x,y,z)→(z,y,-x)
   // x CW from right: (x,y,z)→(x,-z,y)
   // z CW from front: (x,y,z)→(-y,x,z)
@@ -55,6 +72,26 @@ function rpGetPerms(){
     'z' :make((x,y,z)=>[-y, x, z]),
     "z'":make((x,y,z)=>[ y,-x, z]),
     'z2':make((x,y,z)=>[-x,-y, z]),
+    // Face move perms (Raxis(angle) on affected layer; angles from SC_FACE_MOVES)
+    // U/D axis=y(idx 1), R/L axis=x(idx 0), F/B axis=z(idx 2)
+    'face_U'  :makeFace((x,y,z)=>[-z,y, x],1, 1),  // Ry(-π/2)
+    "face_U'" :makeFace((x,y,z)=>[ z,y,-x],1, 1),  // Ry(+π/2)
+    'face_U2' :makeFace((x,y,z)=>[-x,y,-z],1, 1),  // Ry(π)
+    'face_R'  :makeFace((x,y,z)=>[ x,z,-y],0, 1),  // Rx(-π/2)
+    "face_R'" :makeFace((x,y,z)=>[ x,-z,y],0, 1),  // Rx(+π/2)
+    'face_R2' :makeFace((x,y,z)=>[ x,-y,-z],0,1),  // Rx(π)
+    'face_F'  :makeFace((x,y,z)=>[ y,-x,z],2, 1),  // Rz(-π/2)
+    "face_F'" :makeFace((x,y,z)=>[-y, x,z],2, 1),  // Rz(+π/2)
+    'face_F2' :makeFace((x,y,z)=>[-x,-y,z],2, 1),  // Rz(π)
+    'face_D'  :makeFace((x,y,z)=>[ z,y,-x],1,-1),  // Ry(+π/2)
+    "face_D'" :makeFace((x,y,z)=>[-z,y, x],1,-1),  // Ry(-π/2)
+    'face_D2' :makeFace((x,y,z)=>[-x,y,-z],1,-1),  // Ry(π)
+    'face_L'  :makeFace((x,y,z)=>[ x,-z,y],0,-1),  // Rx(+π/2)
+    "face_L'" :makeFace((x,y,z)=>[ x,z,-y],0,-1),  // Rx(-π/2)
+    'face_L2' :makeFace((x,y,z)=>[ x,-y,-z],0,-1), // Rx(π)
+    'face_B'  :makeFace((x,y,z)=>[-y, x,z],2,-1),  // Rz(+π/2)
+    "face_B'" :makeFace((x,y,z)=>[ y,-x,z],2,-1),  // Rz(-π/2)
+    'face_B2' :makeFace((x,y,z)=>[-x,-y,z],2,-1),  // Rz(π)
   };
   return RP_ROT_PERMS;
 }
@@ -64,6 +101,11 @@ function rpGetPerms(){
 // subsequent face moves into the original reference frame, then drop rotations.
 // orient[physicalFace] = which original face is currently at that position.
 const RP_CUBE_ROTS=new Set(['x',"x'",'x2','y',"y'",'y2','z',"z'",'z2']);
+const RP_ROT_QUATS=(()=>{const s=Math.SQRT2/2;return{
+  'y':[0,s,0,s],"y'":[0,-s,0,s],'y2':[0,1,0,0],
+  'x':[s,0,0,s],"x'":[-s,0,0,s],'x2':[1,0,0,0],
+  'z':[0,0,s,s],"z'":[0,0,-s,s],'z2':[0,0,1,0]
+};})();
 
 function rpApplyRot(o,r){
   switch(r){
@@ -78,6 +120,16 @@ function rpApplyRot(o,r){
     case'z2': return{U:o.D,R:o.L,F:o.F,D:o.U,L:o.R,B:o.B};
     default:  return o;
   }
+}
+
+function rpGetBodyMoves(moves){
+  const out=[];
+  let o={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
+  for(const mv of moves){
+    if(RP_CUBE_ROTS.has(mv)){out.push(mv);o=rpApplyRot(o,mv);}
+    else{const face=mv[0].toUpperCase();out.push((o[face]??face)+mv.slice(1));}
+  }
+  return out;
 }
 
 function rpNormalizeMoves(moves){
@@ -130,6 +182,7 @@ function rpBuildCubies(){
     rpGroup.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose?.();});
   }
   rpGroup=new T.Group(); rpScene.add(rpGroup);
+  rpGroupQ=new T.Quaternion();
   rpCubies={};
   const OFF=0.473;
   const sGeo=scMakeRoundedSticker(0.82,0.09);
@@ -141,10 +194,10 @@ function rpBuildCubies(){
   for(let x=-1;x<=1;x++) for(let y=-1;y<=1;y++) for(let z=-1;z<=1;z++){
     if(!x&&!y&&!z) continue;
     const body=new T.Mesh(new T.BoxGeometry(0.94,0.94,0.94),
-      new T.MeshPhongMaterial({color:0x1c1c1c,shininess:12}));
+      new T.MeshPhongMaterial({color:0x000000,shininess:0}));
     body.position.set(x,y,z); rpGroup.add(body);
     const stickers=FACE.map(({p,r})=>{
-      const mat=new T.MeshBasicMaterial({color:SC_INNER});
+      const mat=new T.MeshBasicMaterial({color:0x000000});
       const s=new T.Mesh(sGeo,mat);
       s.position.set(...p); s.rotation.set(...r); body.add(s);
       return mat;
@@ -154,21 +207,12 @@ function rpBuildCubies(){
   }
 }
 
-function rpGetLocalFi(mesh,gi){
-  const T=window.THREE;
-  const gv=SC_FI_DIRS[gi].clone().applyQuaternion(mesh.quaternion.clone().invert());
-  let best=0,bestD=-Infinity;
-  for(let j=0;j<6;j++){const d=SC_FI_DIRS[j].dot(gv);if(d>bestD){bestD=d;best=j;}}
-  return best;
-}
-
 function rpUpdateColors(facelets){
   if(!rpScene) return;
   for(let i=0;i<54;i++){
     const sf=SC_S2F[i]; if(!sf) continue;
     const c=rpCubies[sf.key]; if(!c) continue;
-    const fi=rpGetLocalFi(c,sf.fi);
-    c.userData.stickers[fi].color.setHex(SC_COLORS[facelets[i]]??SC_INNER);
+    c.userData.stickers[sf.fi].color.setHex(SC_COLORS[facelets[i]]??SC_INNER);
   }
 }
 
@@ -191,6 +235,7 @@ function rpDetach(pivot,pd){
   });
   ups.forEach(({oldKey})=>delete rpCubies[oldKey]);
   ups.forEach(({mesh,newKey})=>rpCubies[newKey]=mesh);
+  ups.forEach(({mesh})=>mesh.quaternion.identity());
   rpGroup.remove(pivot);
 }
 
@@ -201,18 +246,18 @@ const RP_CR={'y':{a:'y',m:1},"y'":{a:'y',m:-1},'y2':{a:'y',m:2},
 
 function rpPerformMove(mv,instant,done){
   const T=window.THREE; if(!T){done();return;}
-  const cr=RP_CR[mv];
-  if(cr){
-    const{a,m}=cr,angle=(Math.PI/2)*m;
-    const pd=Object.entries(rpCubies).map(([k,mesh])=>({mesh,key:k}));
-    if(!pd.length){done();return;}
-    const pivot=new T.Group(); rpGroup.add(pivot);
-    pd.forEach(({mesh})=>{rpGroup.remove(mesh);pivot.add(mesh);});
-    const setR=ang=>{if(a==='x')pivot.rotation.x=ang;else if(a==='y')pivot.rotation.y=ang;else pivot.rotation.z=ang;};
-    const finish=()=>{setR(angle);pivot.updateMatrixWorld(true);rpDetach(pivot,pd);done();};
+  if(RP_CUBE_ROTS.has(mv)){
+    const qd=RP_ROT_QUATS[mv]; if(!qd){done();return;}
+    const deltaQ=new T.Quaternion(qd[0],qd[1],qd[2],qd[3]);
+    const targetQ=(rpGroupQ||new T.Quaternion()).clone().multiply(deltaQ);
+    const finish=()=>{rpGroupQ=targetQ.clone();rpGroup.quaternion.copy(targetQ);done();};
     if(instant){finish();return;}
-    const dur=(Math.abs(m)===2?200:150)/rpSpeed,t0=performance.now();
-    (function fr(now){const t=Math.min(1,(now-t0)/dur),e=t<.5?2*t*t:-1+(4-2*t)*t;setR(angle*e);if(t<1)requestAnimationFrame(fr);else finish();})(performance.now());
+    const startQ=(rpGroupQ||new T.Quaternion()).clone();
+    const m=mv.endsWith('2')?2:1,dur=(m===2?200:150)/rpSpeed,t0=performance.now();
+    (function fr(now){const t=Math.min(1,(now-t0)/dur),e=t<.5?2*t*t:-1+(4-2*t)*t;
+      rpGroup.quaternion.slerpQuaternions(startQ,targetQ,e);
+      if(t<1)requestAnimationFrame(fr);else finish();
+    })(performance.now());
     return;
   }
   const face=mv[0].toUpperCase(),mod=mv.slice(1).trim();
@@ -264,7 +309,7 @@ function rpGoTo(idx,cb){
       rpIdx=idx; rpAnimating=false; rpUpdateUI();
       if(cb)cb(); return;
     }
-    rpPerformMove(rpMoves[i++],true,next);
+    rpPerformMove(rpBodyMoves[i++],true,next);
   }
   next();
 }
@@ -279,7 +324,7 @@ function rpStepAnim(delta,cb){
   let i=rpIdx;
   function fwd(){
     if(i>=target){rpIdx=i;rpAnimating=false;rpUpdateUI();if(cb)cb();return;}
-    rpPerformMove(rpMoves[i],false,()=>{
+    rpPerformMove(rpBodyMoves[i],false,()=>{
       i++;
       if(rpStates[i]) rpUpdateColors(rpStates[i]);
       rpUpdateUI(); fwd();
@@ -364,9 +409,19 @@ function rpOpen(solve){
   rpInit();
   const startFl=solve.startFl||SC_SOLVED;
   rpMoves=solve.moves||[];
+  rpBodyMoves=rpGetBodyMoves(rpMoves);
+  const perms=rpGetPerms();
   rpStates=[startFl];
-  let fl=startFl;
-  for(const mv of rpMoves){fl=rpApplyMove(fl,mv);rpStates.push(fl);}
+  let stateArr=[...startFl];
+  for(const mv of rpBodyMoves){
+    if(RP_CUBE_ROTS.has(mv)){
+      rpStates.push(stateArr.join(''));
+    } else {
+      const p=perms['face_'+mv];
+      if(p){const next=[...stateArr];for(let s=0;s<54;s++) next[p[s]]=stateArr[s];stateArr=next;}
+      rpStates.push(stateArr.join(''));
+    }
+  }
   rpPause();
   rpGoTo(0);
   rpStartRender();
