@@ -307,6 +307,24 @@ function rpUpdateUI(){
   if(count) count.textContent=`${rpIdx} / ${n}`;
   if(playBtn) playBtn.textContent=rpPlaying?'⏸':'▶';
   if(prog){prog.max=n;prog.value=rpIdx;}
+  // Highlight the current move in the reconstruction text
+  const recon=document.getElementById('mo-recon');
+  if(recon){
+    recon.querySelectorAll('.rp-mv').forEach(el=>{el.style.background='';el.style.borderRadius='';el.style.padding='';});
+    if(rpIdx>0){
+      const cur=rpIdx-1;
+      const active=[...recon.querySelectorAll('.rp-mv')].find(el=>{
+        const f=+el.dataset.from,t=+el.dataset.to;
+        return f<=cur&&cur<t;
+      });
+      if(active){
+        active.style.background='rgba(255,255,255,0.15)';
+        active.style.borderRadius='3px';
+        active.style.padding='0 2px';
+        active.scrollIntoView({block:'nearest',behavior:'smooth'});
+      }
+    }
+  }
 }
 
 

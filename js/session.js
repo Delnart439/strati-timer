@@ -308,13 +308,14 @@ function openSolveModal(idx, sesIdx) {
       const ollEnd=ct?.ollMI??moves.length;
       const pairMIs=(ct?.f2lPairs||[]).map(p=>p.mi??moves.length);
       const segments=[];
-      const compress=mvs=>{const r=[];let i=0;while(i<mvs.length){const m=mvs[i];if(i+1<mvs.length&&mvs[i+1]===m&&!m.endsWith('2')){r.push(m.replace("'",'')+'2');i+=2;}else{r.push(m);i++;}}return r;};
+      // Returns [{mv, from, to}] merging consecutive duplicate moves (X X → X2) while tracking original indices
+      const compressWithMap=(mvs,base)=>{const r=[];let i=0;while(i<mvs.length){const m=mvs[i];if(i+1<mvs.length&&mvs[i+1]===m&&!m.endsWith('2')){r.push({mv:m.replace("'",'')+'2',from:base+i,to:base+i+2});i+=2;}else{r.push({mv:m,from:base+i,to:base+i+1});i++;}}return r;};
       const faceHex={'U':'#FFFFFF','D':'#FFE000','R':'#FF2A2A','L':'#FF8000','F':'#00CC55','B':'#1A8FFF'};
       const dot=fc=>fc?`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${faceHex[fc]??'#888'};margin-right:3px;vertical-align:middle"></span>`:'';
       const fmt=ms=>(ms/1000).toFixed(2)+'s';
       const pairs=ct?.f2lPairs||[];
       const addSeg=(label,col,from,to,time_ms,dots)=>{
-        if(to>from) segments.push({label,col,moves:compress(normMoves.slice(from,to)),time_ms,dots:dots||''});
+        if(to>from) segments.push({label,col,from,to,time_ms,dots:dots||''});
       };
       // Prepend setup rotation segment if cube needs to be reoriented
       if(setupRot.length>0) segments.push({label:'Setup',col:'#888888',moves:setupRot,time_ms:null,dots:'',isSetup:true});
@@ -338,12 +339,22 @@ function openSolveModal(idx, sesIdx) {
       const pllLbl='PLL'+(ct?.pllCase?` ${ct.pllCase}`:'');
       addSeg(ollLbl,'#FFD700',f2lEnd,ollEnd, ct?.oll!=null&&ct?.f2l!=null?ct.oll-ct.f2l:null, '');
       addSeg(pllLbl,'#FF8000',ollEnd,moves.length, ct?.pll!=null&&ct?.oll!=null?ct.pll-ct.oll:null, '');
-      reconEl.innerHTML=segments.map(seg=>
-        `<div style="margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      reconEl.innerHTML=segments.map(seg=>{
+        const items=seg.isSetup
+          ?seg.moves.map(mv=>({mv,from:-1,to:-1}))
+          :compressWithMap(normMoves.slice(seg.from,seg.to),seg.from);
+        const movesHtml=items.map(({mv,from,to})=>{
+          const isRot=CUBE_ROTS.has(mv)||seg.isSetup;
+          const col=isRot?'#aaaaaa':'#fff';
+          const st=isRot?'font-style:italic;':'';
+          const link=from>=0?`class="rp-mv" data-from="${from}" data-to="${to}" onclick="rpPause?.();rpGoTo?.(${to})" `:'';
+          return `<span ${link}style="${st}color:${col};margin-right:5px;${from>=0?'cursor:pointer':''}">${mv}</span>`;
+        }).join('');
+        return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:11px;font-weight:700;color:${seg.col};text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px">${seg.dots}${seg.label}${seg.time_ms!=null?` <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,.45);margin-left:2px">(${fmt(seg.time_ms)})</span>`:''} :</span>
-          <span style="font-size:15px;font-weight:600">${seg.moves.map(mv=>CUBE_ROTS.has(mv)||seg.isSetup?`<span style="color:#aaaaaa;font-style:italic;margin-right:5px">${mv}</span>`:`<span style="color:#fff;margin-right:5px">${mv}</span>`).join('')}</span>
-        </div>`
-      ).join('');
+          <span style="font-size:15px;font-weight:600">${movesHtml}</span>
+        </div>`;
+      }).join('');
     } else { reconWrap.style.display='none'; }
   }
   if(typeof rpOpen==='function') rpOpen(t);
