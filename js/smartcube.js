@@ -108,7 +108,7 @@ let scQueueRunning=false, scCurrentFacelets=SC_SOLVED;
 
 // ─── BLE STATE ───────────────────────────────────────────────────────────────
 let scConn=null, scSub=null;
-let scLastGyroQ=null, scGyroOffset=null, scGyroAppliedQ=null;
+let scLastGyroQ=null, scGyroOffset=null, scGyroAppliedQ=null, scLastMoveQ=null, scWCAOrientation=null;
 
 // ─── SCENE INIT ──────────────────────────────────────────────────────────────
 function scInitScene(container) {
@@ -470,6 +470,57 @@ function scDetectCubeRotation(oc,nc){
   return null;
 }
 
+function scDetectGyroRotation(){
+  if(!scCubeGroup) return null;
+  const T=window.THREE; if(!T) return null;
+  const baseQ=scLastMoveQ||(new T.Quaternion()); // identity = standard orientation baseline
+  // delta = inv(base) * currentQ = rotation since last face move (or since solve start)
+  const inv=new T.Quaternion().copy(baseQ).invert();
+  const rel=inv.multiply(scCubeGroup.quaternion);
+  // Skip small rotations: |w| > 0.75 means total rotation angle < ~83° (peeking, hand tremor)
+  // Center color only changes visibly when a different face comes forward = full ~90° rotation
+  if(Math.abs(rel.w)>0.75) return null;
+  const s=Math.SQRT2/2;
+  const ROTS=[
+    ['y',  0,s,0,s],["y'",0,-s,0,s],['y2',0,1,0,0],
+    ['x',  s,0,0,s],["x'",-s,0,0,s],['x2',1,0,0,0],
+    ['z',  0,0,s,s],["z'",0,0,-s,s],['z2',0,0,1,0],
+  ];
+  let best=null,bestDot=0.9; // cos(26°) — must match a standard rotation closely
+  for(const[mv,rx,ry,rz,rw] of ROTS){
+    const dot=Math.abs(rel.x*rx+rel.y*ry+rel.z*rz+rel.w*rw);
+    if(dot>bestDot){bestDot=dot;best=mv;}
+  }
+  return best;
+}
+
+// Update the WCA orientation tracker when a whole-cube rotation is injected
+function scApplyWCARotation(rot){
+  const o=scWCAOrientation;
+  switch(rot){
+    case'y':  scWCAOrientation={U:o.U,R:o.F,F:o.L,D:o.D,L:o.B,B:o.R};break;
+    case"y'": scWCAOrientation={U:o.U,R:o.B,F:o.R,D:o.D,L:o.F,B:o.L};break;
+    case'y2': scWCAOrientation={U:o.U,R:o.L,F:o.B,D:o.D,L:o.R,B:o.F};break;
+    case'x':  scWCAOrientation={U:o.B,R:o.R,F:o.U,D:o.F,L:o.L,B:o.D};break;
+    case"x'": scWCAOrientation={U:o.F,R:o.R,F:o.D,D:o.B,L:o.L,B:o.U};break;
+    case'x2': scWCAOrientation={U:o.D,R:o.R,F:o.B,D:o.U,L:o.L,B:o.F};break;
+    case'z':  scWCAOrientation={U:o.R,R:o.D,F:o.F,D:o.L,L:o.U,B:o.B};break;
+    case"z'": scWCAOrientation={U:o.L,R:o.U,F:o.F,D:o.R,L:o.D,B:o.B};break;
+    case'z2': scWCAOrientation={U:o.D,R:o.L,F:o.F,D:o.U,L:o.R,B:o.B};break;
+  }
+}
+
+// Convert a cube-body-frame face move to WCA world frame using accumulated orientation.
+// After a y CW rotation the cube body's 'F' layer is at WCA 'R', so 'F' → 'R'.
+function scBodyToWCA(mv){
+  if(!scWCAOrientation) return mv;
+  const face=mv[0].toUpperCase(), suffix=mv.slice(1);
+  for(const[wcaFace,bodyFace] of Object.entries(scWCAOrientation)){
+    if(bodyFace===face) return wcaFace+suffix;
+  }
+  return mv;
+}
+
 function scCfopTick(fl, fromMove=false){
   if(scPhase!=='solving') return;
   const e=scAutoStart>0?Math.round(performance.now()-scAutoStart):0;
@@ -630,16 +681,25 @@ function scEnqueue(mv){
       }
     } else if(scPhase==='ready'){
       scPhase='solving'; scSolveMoves=0; scMoveLog=[];
-      scStartFl=prevFl; scLastCenters=null;
+      scStartFl=prevFl; scLastCenters=null; scLastMoveQ=null;
+      scWCAOrientation={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
       scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
       scSolvedPairMask=0; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
       if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
-      else { scSolveMoves++; scMoveLog.push(mv); scCfopTick(scCurrentFacelets, true); }
+      else {
+        const rot=scDetectGyroRotation();
+        if(rot){ scMoveLog.push(rot); scApplyWCARotation(rot); }
+        if(scCubeGroup) scLastMoveQ=scCubeGroup.quaternion.clone();
+        scSolveMoves++; scMoveLog.push(scBodyToWCA(mv)); scCfopTick(scCurrentFacelets, true);
+      }
     } else if(scPhase==='solving'){
+      const rot=scDetectGyroRotation();
+      if(rot){ scMoveLog.push(rot); scApplyWCARotation(rot); }
+      if(scCubeGroup) scLastMoveQ=scCubeGroup.quaternion.clone();
       scSolveMoves++;
-      scMoveLog.push(mv);
+      scMoveLog.push(scBodyToWCA(mv));
       scCfopTick(scCurrentFacelets, true);
     }
   }
