@@ -344,13 +344,11 @@ function rpOpen(solve){
   rpShowingNet=false;
   rpSetView(false);
   rpInit();
-  // Remove rotation events and rewrite subsequent face moves into the original
-  // reference frame (bld-ninja approach). This ensures facelets end at solved.
   const startFl=solve.startFl||SC_SOLVED;
-  rpMoves=rpNormalizeMoves(solve.moves||[]);
+  rpMoves=solve.moves||[];
   rpStates=[startFl];
   let fl=startFl;
-  for(const mv of rpMoves){fl=scApplyMove(fl,mv);rpStates.push(fl);}
+  for(const mv of rpMoves){fl=rpApplyMove(fl,mv);rpStates.push(fl);}
   rpPause();
   rpGoTo(0);
   rpStartRender();

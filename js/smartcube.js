@@ -566,6 +566,7 @@ function scAutoTimerStop(){
 
 // ─── MOVE ANIMATION ──────────────────────────────────────────────────────────
 function scEnqueue(mv){
+  const prevFl=scCurrentFacelets;
   scCurrentFacelets=scApplyMove(scCurrentFacelets,mv);
 
   if(scInCubeMode()){
@@ -629,12 +630,13 @@ function scEnqueue(mv){
       }
     } else if(scPhase==='ready'){
       scPhase='solving'; scSolveMoves=0; scMoveLog=[];
-      scStartFl=scCurrentFacelets; scLastCenters=null;
+      scStartFl=prevFl; scLastCenters=null;
       scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
       scSolvedPairMask=0; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
       if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
+      else { scSolveMoves++; scMoveLog.push(mv); scCfopTick(scCurrentFacelets, true); }
     } else if(scPhase==='solving'){
       scSolveMoves++;
       scMoveLog.push(mv);
