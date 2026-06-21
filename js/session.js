@@ -240,11 +240,13 @@ function openSolveModal(idx, sesIdx) {
       barHtml+=mkSeg(p-ps,'#FF8000','');
       const preCount=pairs.filter(p=>p.start===null&&p.t===c).length;
       const crossName=preCount===1?'XCross':preCount>=2?'XXCross':'Cross';
+      const ollName='OLL'+(ct?.ollCase!=null?` (${ct.ollCase})`:'');
+      const pllName='PLL'+(ct?.pllCase?` (${ct.pllCase})`:'');
       const lblItems=[
         {name:crossName,col:'#FFFFFF',total:c},
         {name:'F2L',    col:'#3B9EFF',total:f2lEnd-c},
-        {name:'OLL',    col:'#FFD700',total:o-f2lEnd},
-        {name:'PLL',    col:'#FF8000',total:p-o},
+        {name:ollName,  col:'#FFD700',total:o-f2lEnd},
+        {name:pllName,  col:'#FF8000',total:p-o},
       ];
       cfopEl.style.display='';
       cfopEl.innerHTML=`
@@ -346,8 +348,8 @@ function openSolveModal(idx, sesIdx) {
       } else {
         addSeg('F2L','#3B9EFF',crossEnd,f2lEnd, ct?.f2l!=null&&ct?.cross!=null?ct.f2l-ct.cross:null, '');
       }
-      const ollLbl='OLL'+(ct?.ollCase!=null?` ${ct.ollCase}`:'');
-      const pllLbl='PLL'+(ct?.pllCase?` ${ct.pllCase}`:'');
+      const ollLbl='OLL'+(ct?.ollCase!=null?` (${ct.ollCase})`:'');
+      const pllLbl='PLL'+(ct?.pllCase?` (${ct.pllCase})`:'');
       addSeg(ollLbl,'#FFD700',f2lEnd,ollEnd, ct?.oll!=null&&ct?.f2l!=null?ct.oll-ct.f2l:null, '');
       addSeg(pllLbl,'#FF8000',ollEnd,moves.length, ct?.pll!=null&&ct?.oll!=null?ct.pll-ct.oll:null, '');
       reconEl.innerHTML=segments.map(seg=>{
