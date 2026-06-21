@@ -252,7 +252,18 @@ function openSolveModal(idx, sesIdx) {
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;text-align:center">
           ${lblItems.map(s=>`<div style="font-size:10px;font-weight:700;color:${s.col}">${s.name}<br><span style="color:#fff;font-size:13px;font-weight:800">${fmt(s.total)}</span></div>`).join('')}
         </div>`;
-    } else { cfopEl.style.display='none'; cfopEl.innerHTML=''; }
+    } else {
+      cfopEl.style.display='';
+      cfopEl.innerHTML=`
+        <div style="display:flex;height:10px;border-radius:5px;background:rgba(255,255,255,.08);margin-bottom:7px"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;text-align:center">
+          ${['Cross','F2L','OLL','PLL'].map(n=>`<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.18)">${n}<br><span style="color:rgba(255,255,255,.18);font-size:13px;font-weight:800">—</span></div>`).join('')}
+        </div>
+        <div style="text-align:center;margin-top:10px;font-size:11px;color:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L8.5 5.5 15 12l-6.5 6.5L12 22l7-7-6-3 6-3-7-7z"/><line x1="2" y1="2" x2="22" y2="22" stroke-opacity=".5"/></svg>
+          Use an electronic Bluetooth cube to see data
+        </div>`;
+    }
   }
   // Reconstruction
   const reconWrap=document.getElementById('mo-recon-wrap');
@@ -355,7 +366,10 @@ function openSolveModal(idx, sesIdx) {
           <span style="font-size:15px;font-weight:600">${movesHtml}</span>
         </div>`;
       }).join('');
-    } else { reconWrap.style.display='none'; }
+    } else {
+      reconWrap.style.display='';
+      reconEl.innerHTML='<div style="color:rgba(255,255,255,.2);font-size:13px;font-style:italic">—</div>';
+    }
   }
   if(typeof rpOpen==='function') rpOpen(t);
   document.getElementById('solveModal').classList.remove('h');

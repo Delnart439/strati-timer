@@ -1,17 +1,15 @@
 
-// ── BLUETOOTH MODAL ──
-const btModal = document.getElementById('btModal');
-document.getElementById('btBtn').addEventListener('click', ()=>{
-  btModal.classList.remove('h');
-  if (!ganConnected) {
-    document.getElementById('btStatus').textContent = 'Press scan to search for nearby GAN timers.';
-    document.getElementById('btScanBtn').style.display = '';
-    document.getElementById('btDisconnBtn').style.display = 'none';
-  }
-  lucide.createIcons();
+// ── BLUETOOTH DROPDOWN ──
+const btDropdown = document.getElementById('btDropdown');
+document.getElementById('btBtn').addEventListener('click', e=>{
+  e.stopPropagation();
+  const open = btDropdown.style.display !== 'none';
+  btDropdown.style.display = open ? 'none' : '';
+  if (!open) lucide.createIcons();
 });
-document.getElementById('btModalClose').addEventListener('click', ()=>btModal.classList.add('h'));
-btModal.addEventListener('click', e=>{ if(e.target===btModal) btModal.classList.add('h'); });
+document.addEventListener('click', e=>{
+  if (!document.getElementById('btBtnWrap').contains(e.target)) btDropdown.style.display = 'none';
+});
 const helpModal = document.getElementById('helpModal');
 document.getElementById('helpBtn').addEventListener('click', ()=>{ helpModal.classList.remove('h'); lucide.createIcons(); });
 document.getElementById('helpModalClose').addEventListener('click', ()=>helpModal.classList.add('h'));
@@ -54,7 +52,7 @@ function setGanUI(connected, name) {
     if (scanBtn) scanBtn.style.display = 'none';
     if (disconnBtn) { disconnBtn.style.display = 'flex'; }
   } else {
-    if (statusEl) statusEl.textContent = 'Press scan to search for nearby GAN timers.';
+    if (statusEl) statusEl.textContent = 'Press scan to search for nearby Bluetooth timers.';
     if (scanBtn) scanBtn.style.display = '';
     if (disconnBtn) disconnBtn.style.display = 'none';
   }
@@ -83,6 +81,10 @@ function onGanEvent(event) {
     case GAN_ST.HANDS_OFF:
     case GAN_ST.IDLE:
       if (state.timerState === 'holding' || state.timerState === 'ready') setTimerState('idle');
+      else if (state.timerState === 'stopped') {
+        setTimerState('idle');
+        document.getElementById('timerDisp').textContent = '0.000';
+      }
       break;
   }
 }
@@ -97,7 +99,7 @@ document.getElementById('btScanBtn').addEventListener('click', async () => {
   scanBtn.disabled = true;
   scanBtn.innerHTML = '<i data-lucide="loader" style="width:16px;height:16px"></i> Searching…';
   lucide.createIcons();
-  statusEl.innerHTML = '<span style="color:var(--purple)">Scanning…</span> Select your GAN timer from the browser dialog.';
+  statusEl.innerHTML = '<span style="color:var(--purple)">Scanning…</span> Select your Bluetooth timer from the browser dialog.';
   try {
     const device = await navigator.bluetooth.requestDevice({
       filters: [{ services: [GAN_SVC] }, { namePrefix: 'GAN' }],
