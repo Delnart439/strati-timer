@@ -95,6 +95,8 @@ const SC_FACE_MOVES = {
 const SC_COLORS = {U:0xFFFFFF,R:0xCC1111,F:0x00A040,D:0xFFE000,L:0xFF8000,B:0x0044BB};
 const SC_INNER  = 0x111111;
 const SC_SOLVED = 'UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB';
+// Check solved in any orientation: every face's 9 stickers match its center
+function scIsSolved(fl){for(let f=0;f<6;f++){const c=fl[f*9+4];for(let i=f*9;i<f*9+9;i++)if(fl[i]!==c)return false;}return true;}
 
 // ─── SCENE STATE ─────────────────────────────────────────────────────────────
 let scScene, scCamera, scRenderer, scRafId, scRenderActive=false;
@@ -256,6 +258,8 @@ let scStartFl=null; // facelets at the very start of the solve (before first mov
 let scLastCenters=null; // center stickers after last fromMove=true tick (for rotation detection)
 let scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
 let scPairFirst=[null,null,null,null]; // first-detection timestamp per slot (immutable once set)
+let scPairInSlot=[false,false,false,false]; // whether pair was in slot on the previous tick
+let scSolvedCountPrev=0; // solvedNow from previous F2L tick (for 2-tick stability check)
 let scCfopFace=null; // SC_CFOP_DATA entry for the detected cross face
 
 // CFOP detection — cross is detected on whichever of the 6 faces it was solved on.
@@ -553,10 +557,11 @@ function scCfopTick(fl, fromMove=false){
   if(scCfopTimes.cross===null){
     const fd=scCheckCross(fl);
     if(fd){
-      scCfopTimes.cross=e;scCfopTimes.crossMI=scMoveLog.length;scCfopTimes.crossFc=fd.fc;scCfopFace=fd;scPairFirst=[null,null,null,null];
+      scCfopTimes.cross=e;scCfopTimes.crossMI=scMoveLog.length;scCfopTimes.crossFc=fd.fc;scCfopFace=fd;scPairFirst=[null,null,null,null];scPairInSlot=[false,false,false,false];scSolvedCountPrev=0;
       for(let pi=0;pi<4;pi++){
         if(fd.pairs[pi].every(([si,c])=>fl[si]===c)){
           scPairFirst[pi]={t:e,start:null,mi:scMoveLog.length,colors:[fd.pairs[pi][1][1],fd.pairs[pi][2][1]]};
+          scPairInSlot[pi]=true;
         }
       }
       // Handle xcross (all 4 pre-solved at cross detection)
@@ -579,21 +584,27 @@ function scCfopTick(fl, fromMove=false){
           scCfopTimes.f2lNextStart=null;
         }
         solvedNow++;
+      } else {
+        // Pair left its slot — if it was only there for 1 tick it was a coincidence, reset so it gets re-detected properly
+        if(scPairFirst[pi]!==null&&scPairInSlot[pi]&&scMoveLog.length-scPairFirst[pi].mi<=1){
+          scPairFirst[pi]=null;
+        }
       }
-      // scPairFirst[pi] is NOT cleared when a piece temporarily leaves its slot
+      scPairInSlot[pi]=ok;
     }
-    if(solvedNow===4){
+    if(solvedNow===4&&scSolvedCountPrev===4){
       scCfopTimes.f2lPairs=scPairFirst.slice().sort((a,b)=>a.t-b.t);
       scCfopTimes.f2l=e;scCfopTimes.f2lMI=scMoveLog.length;
       scCfopTimes.ollCase=scDetectOLL(fl);
     }
+    scSolvedCountPrev=solvedNow;
   }
   // Retry OLL/PLL case detection on each tick until matched (handles BLE state desync at detection time)
   if(scCfopFace&&scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&scCfopTimes.ollCase===null) scCfopTimes.ollCase=scDetectOLL(fl);
   if(scCfopFace&&scCfopTimes.oll!==null&&scCfopTimes.pll===null&&scCfopTimes.pllCase===null&&scCfopTimes.pllStart===null) scCfopTimes.pllCase=scDetectPLL(fl);
   // OLL
-  if(scCfopFace&&scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&fl!==SC_SOLVED&&scCheckOLL(fl,scCfopFace)){scCfopTimes.oll=e;scCfopTimes.ollMI=scMoveLog.length;if(!scCfopTimes.pllCase)scCfopTimes.pllCase=scDetectPLL(fl);}
-  if(fl===SC_SOLVED){
+  if(scCfopFace&&scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&scCheckOLL(fl,scCfopFace)){scCfopTimes.oll=e;scCfopTimes.ollMI=scMoveLog.length;if(!scCfopTimes.pllCase)scCfopTimes.pllCase=scDetectPLL(fl);}
+  if(scIsSolved(fl)){
     if(scCfopTimes.cross===null){scCfopTimes.cross=e;scCfopTimes.crossMI=scMoveLog.length;}
     while(scCfopTimes.f2lPairs.length<4)
       scCfopTimes.f2lPairs.push({t:e,start:scCfopTimes.f2lNextStart,mi:scMoveLog.length,colors:null});
@@ -702,19 +713,19 @@ function scEnqueue(mv){
       scStartFl=prevFl; scLastCenters=null; scLastMoveQ=null;
       scWCAOrientation={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
       scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
-      scPairFirst=[null,null,null,null]; scCfopFace=null;
+      scPairFirst=[null,null,null,null]; scPairInSlot=[false,false,false,false]; scSolvedCountPrev=0; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
-      if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
+      if(scIsSolved(scCurrentFacelets)){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
       else {
         const gr=scDetectGyroRotation();
-        if(gr){scMoveLog.push(gr.rot);scApplyWCARotation(gr.rot);scLastMoveQ=gr.idealQ;}
+        if(gr){scMoveLog.push(gr.rot);scApplyWCARotation(gr.rot);scLastMoveQ=gr.idealQ;const CP=[4,13,22,31,40,49];scLastCenters=CP.map(i=>scCurrentFacelets[i]);}
         else if(scCubeGroup) scLastMoveQ=scCubeGroup.quaternion.clone();
         scSolveMoves++; scMoveLog.push(scBodyToWCA(mv)); scCfopTick(scCurrentFacelets, true);
       }
     } else if(scPhase==='solving'){
       const gr=scDetectGyroRotation();
-      if(gr){scMoveLog.push(gr.rot);scApplyWCARotation(gr.rot);scLastMoveQ=gr.idealQ;}
+      if(gr){scMoveLog.push(gr.rot);scApplyWCARotation(gr.rot);scLastMoveQ=gr.idealQ;const CP=[4,13,22,31,40,49];scLastCenters=CP.map(i=>scCurrentFacelets[i]);}
       else if(scCubeGroup) scLastMoveQ=scCubeGroup.quaternion.clone();
       scSolveMoves++;
       scMoveLog.push(scBodyToWCA(mv));
@@ -856,10 +867,10 @@ async function scConnect(){
       next(ev){
         switch(ev.type){
           case 'MOVE':    scEnqueue(ev.move); break;
-          case 'FACELETS': scCurrentFacelets=ev.facelets; if(!scQueueRunning)scUpdateColors(scCurrentFacelets); break;
+          case 'FACELETS': scCurrentFacelets=ev.facelets; if(!scQueueRunning)scUpdateColors(scCurrentFacelets); if(scPhase==='solving'&&scCfopTimes.pll===null){if(scIsSolved(ev.facelets))scCfopTick(ev.facelets,false);else if(scCfopTimes.f2l!==null&&scCfopTimes.oll===null&&scCfopFace&&scCheckOLL(ev.facelets,scCfopFace))scCfopTick(ev.facelets,false);} break;
           case 'BATTERY':  scSetBattery(ev.batteryLevel+'%'); break;
           case 'HARDWARE': if(ev.hardwareName)scSetStatus('Connected — '+ev.hardwareName); break;
-          case 'GYRO': if(scCubeGroup){ const T=window.THREE; if(!scLastGyroQ) scLastGyroQ=new T.Quaternion(); const q=ev.quaternion; scLastGyroQ.set(q.x,q.y,q.z,q.w); if(!scGyroOffset){ scGyroOffset=new T.Quaternion().copy(scLastGyroQ).invert(); if(!scGyroAppliedQ) scGyroAppliedQ=new T.Quaternion(); scCubeGroup.quaternion.identity(); scGyroAppliedQ.identity(); } else { const tQ=new T.Quaternion().copy(scGyroOffset).multiply(scLastGyroQ); if(!scGyroAppliedQ) scGyroAppliedQ=new T.Quaternion(); const ang=2*Math.acos(Math.min(1,Math.abs(scGyroAppliedQ.dot(tQ)))); if(ang>0.15){ scCubeGroup.quaternion.copy(tQ); scGyroAppliedQ.copy(tQ); } } } break;
+          case 'GYRO': if(scCubeGroup){ const T=window.THREE; if(!scLastGyroQ) scLastGyroQ=new T.Quaternion(); const q=ev.quaternion; scLastGyroQ.set(q.x,q.z,-q.y,q.w); if(!scGyroOffset){ scGyroOffset=new T.Quaternion().copy(scLastGyroQ).invert(); if(!scGyroAppliedQ) scGyroAppliedQ=new T.Quaternion(); scCubeGroup.quaternion.identity(); scGyroAppliedQ.identity(); } else { const tQ=new T.Quaternion().copy(scGyroOffset).multiply(scLastGyroQ); if(!scGyroAppliedQ) scGyroAppliedQ=new T.Quaternion(); scCubeGroup.quaternion.copy(tQ); scGyroAppliedQ.copy(tQ); } } break;
           case 'DISCONNECT': scHandleDisconn(); break;
         }
       },

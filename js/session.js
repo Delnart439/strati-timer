@@ -217,7 +217,7 @@ function openSolveModal(idx, sesIdx) {
     if(ct&&ct.pll!=null){
       const c=ct.cross??0, o=ct.oll??ct.pll, p=ct.pll;
       const pairs=ct.f2lPairs||[];
-      const f2lEnd=pairs.length===4?pairs[3].t:(ct.f2l??o);
+      const f2lEnd=(ct?.f2l!=null)?ct.f2l:(pairs.length===4?pairs[3].t:o);
       const os=ct.ollStart??f2lEnd, ps=ct.pllStart??o;
       const fmt=ms=>(ms/1000).toFixed(2)+'s';
       const ollRecog=os-f2lEnd, pllRecog=ps-o;
@@ -231,6 +231,7 @@ function openSolveModal(idx, sesIdx) {
           barHtml+=mkSeg(pair.t-(pair.start??prev),'#3B9EFF','');
           prev=pair.t;
         });
+        if(ct?.f2l!=null&&ct.f2l>prev) barHtml+=mkSeg(ct.f2l-prev,'#3B9EFF','');
       } else {
         barHtml+=mkSeg(f2lEnd-c,'#3B9EFF','');
       }
@@ -276,50 +277,12 @@ function openSolveModal(idx, sesIdx) {
       reconWrap.style.display='';
       // ── Orientation helpers ──────────────────────────────────────────────────
       const CUBE_ROTS=new Set(['x',"x'",'x2','y',"y'",'y2','z',"z'",'z2']);
-      const applyRot=(o,r)=>{switch(r){
-        case'y':  return{U:o.U,R:o.F,F:o.L,D:o.D,L:o.B,B:o.R};
-        case"y'": return{U:o.U,R:o.B,F:o.R,D:o.D,L:o.F,B:o.L};
-        case'y2': return{U:o.U,R:o.L,F:o.B,D:o.D,L:o.R,B:o.F};
-        case'x':  return{U:o.B,R:o.R,F:o.U,D:o.F,L:o.L,B:o.D};
-        case"x'": return{U:o.F,R:o.R,F:o.D,D:o.B,L:o.L,B:o.U};
-        case'x2': return{U:o.D,R:o.R,F:o.B,D:o.U,L:o.L,B:o.F};
-        case'z':  return{U:o.R,R:o.D,F:o.F,D:o.L,L:o.U,B:o.B};
-        case"z'": return{U:o.L,R:o.U,F:o.F,D:o.R,L:o.D,B:o.B};
-        case'z2': return{U:o.D,R:o.L,F:o.F,D:o.U,L:o.R,B:o.B};
-        default:  return o;
-      }};
-      // Initial orientation from solve-start facelets (center positions 4,13,22,31,40,49)
-      const orient=startFl
-        ?{U:startFl[4],R:startFl[13],F:startFl[22],D:startFl[31],L:startFl[40],B:startFl[49]}
-        :{U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
-      // Compute setup rotations: green-front/white-top → user's starting orientation.
-      // Step 1: fix U — find rotation that brings user's U sticker to the U position.
-      // Step 2: fix F — y-rotate to bring user's F sticker to the F position.
-      // After setupRot the viewer is in the exact same orientation the solver had,
-      // so the recorded moves apply directly (no transformation needed).
-      const setupRot=(()=>{
-        const res=[]; let o={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
-        const uSt=orient['U'];
-        if(uSt!=='U'){
-          const r={D:'x2',F:"x'",B:'x',R:'z',L:"z'"}[uSt]||null;
-          if(r){res.push(r);o=applyRot(o,r);}
-        }
-        const fSt=orient['F'];
-        const fPos=Object.keys(o).find(k=>o[k]===fSt);
-        if(fPos&&fPos!=='F'){
-          const r={R:"y'",L:'y',B:'y2'}[fPos]||null;
-          if(r)res.push(r);
-        }
-        return res;
-      })();
-      // No move transformation needed: after setupRot the viewer is at the solver's start.
       const normMoves=moves;
       // ── Build segments ───────────────────────────────────────────────────────
       const pairColors=['#3B9EFF','#3B9EFF','#3B9EFF','#3B9EFF'];
       const crossEnd=ct?.crossMI??moves.length;
-      const f2lEnd=ct?.f2lMI??moves.length;
-      const ollEnd=ct?.ollMI??moves.length;
-      const pairMIs=(ct?.f2lPairs||[]).map(p=>p.mi??moves.length);
+      const f2lEnd=Math.max(crossEnd, ct?.f2lMI??moves.length);
+      const ollEnd=Math.max(f2lEnd, ct?.ollMI??moves.length);
       const segments=[];
       // Returns [{mv, from, to}] merging consecutive duplicate moves (X X → X2) while tracking original indices
       const compressWithMap=(mvs,base)=>{const r=[];let i=0;while(i<mvs.length){const m=mvs[i];if(i+1<mvs.length&&mvs[i+1]===m&&!m.endsWith('2')){r.push({mv:m.replace("'",'')+'2',from:base+i,to:base+i+2});i+=2;}else{r.push({mv:m,from:base+i,to:base+i+1});i++;}}return r;};
@@ -327,25 +290,27 @@ function openSolveModal(idx, sesIdx) {
       const dot=fc=>fc?`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${faceHex[fc]??'#888'};margin-right:3px;vertical-align:middle"></span>`:'';
       const fmt=ms=>(ms/1000).toFixed(2)+'s';
       const pairs=ct?.f2lPairs||[];
-      const addSeg=(label,col,from,to,time_ms,dots)=>{
-        if(to>from) segments.push({label,col,from,to,time_ms,dots:dots||''});
+      const addSeg=(label,col,from,to,time_ms,dots,prefix)=>{
+        if(to>from||(prefix&&prefix.length)) segments.push({label,col,from,to,time_ms,dots:dots||'',prefix:prefix||[]});
       };
-      // Prepend setup rotation segment if cube needs to be reoriented
-      if(setupRot.length>0) segments.push({label:'Setup',col:'#888888',moves:setupRot,time_ms:null,dots:'',isSetup:true});
       const preSolved = pairs.filter(p=>p.start===null&&p.t!=null&&p.t===(ct?.cross??-1));
       const xLabel = preSolved.length===1?'XCross':preSolved.length>=2?'XXCross':'Cross';
       const xDots = dot(ct?.crossFc)+preSolved.map(p=>(p.colors||[]).map(fc=>dot(fc)).join('')).join('');
       addSeg(xLabel,'#FFFFFF',0,crossEnd, ct?.cross??0, xDots);
-      if(pairMIs.length===4){
+      // f2lPairs is already sorted by t (slot completion time) by smartcube.js
+      // Filter out pairs solved during cross (XCross), then number remaining from 1
+      const f2lOnlyPairs=pairs.filter(p=>!(p.mi!=null&&p.mi<=crossEnd));
+      if(f2lOnlyPairs.length>0){
         let prev=crossEnd, prevT=ct?.cross??0;
-        pairMIs.forEach((mi,i)=>{
-          const pair=pairs[i];
-          if(pair?.start===null&&pair?.t!=null&&pair.t===(ct?.cross??-1)){prev=mi;prevT=pair.t;return;}
+        f2lOnlyPairs.forEach((pair,idx)=>{
           const pairDots=(pair?.colors||[]).map(fc=>dot(fc)).join('');
-          addSeg(`F2L ${i+1}`,pairColors[i],prev,mi, pair?.t!=null?pair.t-prevT:null, pairDots);
-          prev=mi; prevT=pair?.t??prevT;
+          const isLast=idx===f2lOnlyPairs.length-1;
+          const segEnd=isLast?f2lEnd:(pair.mi??moves.length);
+          const segTime=isLast?(ct?.f2l!=null?ct.f2l-prevT:null):(pair?.t!=null?pair.t-prevT:null);
+          addSeg(`F2L ${idx+1}`,pairColors[idx],prev,segEnd,segTime,pairDots);
+          prev=segEnd; prevT=isLast?(ct?.f2l??prevT):(pair?.t??prevT);
         });
-      } else {
+      } else if(crossEnd<f2lEnd){
         addSeg('F2L','#3B9EFF',crossEnd,f2lEnd, ct?.f2l!=null&&ct?.cross!=null?ct.f2l-ct.cross:null, '');
       }
       const ollLbl='OLL'+(ct?.ollCase!=null?` (${ct.ollCase})`:'');
@@ -353,11 +318,11 @@ function openSolveModal(idx, sesIdx) {
       addSeg(ollLbl,'#FFD700',f2lEnd,ollEnd, ct?.oll!=null&&ct?.f2l!=null?ct.oll-ct.f2l:null, '');
       addSeg(pllLbl,'#FF8000',ollEnd,moves.length, ct?.pll!=null&&ct?.oll!=null?ct.pll-ct.oll:null, '');
       reconEl.innerHTML=segments.map(seg=>{
-        const items=seg.isSetup
-          ?seg.moves.map(mv=>({mv,from:-1,to:-1}))
-          :compressWithMap(normMoves.slice(seg.from,seg.to),seg.from);
+        const prefixItems=(seg.prefix||[]).map(mv=>({mv,from:-1,to:-1}));
+        const bodyItems=compressWithMap(normMoves.slice(seg.from,seg.to),seg.from);
+        const items=[...prefixItems,...bodyItems];
         const movesHtml=items.map(({mv,from,to})=>{
-          const isRot=CUBE_ROTS.has(mv)||seg.isSetup;
+          const isRot=CUBE_ROTS.has(mv);
           const col=isRot?'#aaaaaa':'#fff';
           const st=isRot?'font-style:italic;':'';
           const link=from>=0?`class="rp-mv" data-from="${from}" data-to="${to}" onclick="rpPause?.();rpGoTo?.(${to})" `:'';
