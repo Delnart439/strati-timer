@@ -261,7 +261,7 @@ function openSolveModal(idx, sesIdx) {
         </div>
         <div style="text-align:center;margin-top:10px;font-size:11px;color:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;gap:5px">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L8.5 5.5 15 12l-6.5 6.5L12 22l7-7-6-3 6-3-7-7z"/><line x1="2" y1="2" x2="22" y2="22" stroke-opacity=".5"/></svg>
-          Use an electronic Bluetooth cube to see data
+          Use an electronic Bluetooth cube to see more analysis data
         </div>`;
     }
   }
