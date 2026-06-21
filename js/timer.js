@@ -265,6 +265,7 @@ document.addEventListener('keydown', e => {
   }
   // Shortcuts — only on timer page (not battle mode), not while typing, not while running
   if (state.page!=='timer' || document.getElementById('mode-battle').classList.contains('active') || isTyping() || state.timerState==='running' || state.timerState==='holding' || state.timerState==='ready') return;
+  if (e.key.toLowerCase()==='a') { document.getElementById('addTimeBtn').click(); return; }
   const times = curSes().times;
   if (!times.length) return;
   const last = times[0];
