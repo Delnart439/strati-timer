@@ -463,10 +463,10 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 /* ── MODALS ── */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
 .ov.h{display:none}
-.mo{background:#231450;border-radius:18px;padding:32px;width:720px;max-width:95vw;position:relative;max-height:90vh;overflow-y:auto}
+.mo{background:#231450;border-radius:18px;padding:52px 32px 32px;width:720px;max-width:95vw;position:relative;max-height:90vh;overflow-y:auto}
 .mo-header{display:flex;align-items:center;gap:10px;margin-bottom:18px}
 .mo-num{font-size:20px;font-weight:900;flex:1;text-align:center}
-.mo-x{width:32px;height:32px;background:rgba(255,255,255,.1);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:15px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.mo-x{position:absolute;top:14px;right:14px;width:32px;height:32px;background:rgba(255,255,255,.1);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;z-index:1}
 .mo-side-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
 .mo-side-btn:hover:not(:disabled){background:rgba(255,255,255,.25)}
 .mo-side-btn:disabled{opacity:.3;cursor:default}
