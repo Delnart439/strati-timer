@@ -256,6 +256,7 @@ let scStartFl=null; // facelets at the very start of the solve (before first mov
 let scLastCenters=null; // center stickers after last fromMove=true tick (for rotation detection)
 let scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
 let scPairFirst=[null,null,null,null]; // first-detection timestamp per slot (immutable once set)
+let scF2lMIPending=false; // true when f2l was detected on a FACELETS tick before the completing MOVE arrived
 let scCfopFace=null; // SC_CFOP_DATA entry for the detected cross face
 
 // CFOP detection — cross is detected on whichever of the 6 faces it was solved on.
@@ -528,6 +529,8 @@ function scCfopTick(fl, fromMove=false){
   if(scPhase!=='solving') return;
   const e=scAutoStart>0?Math.round(performance.now()-scAutoStart):0;
   if(fromMove){
+    // Finalize f2lMI deferred from a FACELETS tick (FACELETS arrives before MOVE for GAN cubes)
+    if(scF2lMIPending){ scCfopTimes.f2lMI=scMoveLog.length; scF2lMIPending=false; }
     // Cube rotation detection: face moves don't change centers; center change = whole-cube rotation
     const CP=[4,13,22,31,40,49],curC=CP.map(i=>fl[i]);
     if(scLastCenters){
@@ -562,7 +565,9 @@ function scCfopTick(fl, fromMove=false){
       // Handle xcross (all 4 pre-solved at cross detection)
       if(scPairFirst.every(p=>p!==null)){
         scCfopTimes.f2lPairs=scPairFirst.slice().sort((a,b)=>a.t-b.t);
-        scCfopTimes.f2l=e;scCfopTimes.f2lMI=scMoveLog.length;scCfopTimes.ollCase=scDetectOLL(fl);
+        scCfopTimes.f2l=e;
+        if(fromMove){scCfopTimes.f2lMI=scMoveLog.length;}else{scF2lMIPending=true;}
+        scCfopTimes.ollCase=scDetectOLL(fl);
       }
     }
   }
@@ -583,7 +588,9 @@ function scCfopTick(fl, fromMove=false){
     }
     if(solvedNow===4){
       scCfopTimes.f2lPairs=scPairFirst.slice().sort((a,b)=>a.t-b.t);
-      scCfopTimes.f2l=e;scCfopTimes.f2lMI=scMoveLog.length;scCfopTimes.ollCase=scDetectOLL(fl);
+      scCfopTimes.f2l=e;
+      if(fromMove){scCfopTimes.f2lMI=scMoveLog.length;}else{scF2lMIPending=true;}
+      scCfopTimes.ollCase=scDetectOLL(fl);
     }
   }
   // Retry OLL/PLL case detection on each tick until matched (handles BLE state desync at detection time)
@@ -700,7 +707,7 @@ function scEnqueue(mv){
       scStartFl=prevFl; scLastCenters=null; scLastMoveQ=null;
       scWCAOrientation={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
       scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
-      scPairFirst=[null,null,null,null]; scCfopFace=null;
+      scPairFirst=[null,null,null,null]; scF2lMIPending=false; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
       scAutoTimerStart();
       if(scCurrentFacelets===SC_SOLVED){ scAutoTimerStop(); scPhase='idle'; scInitScramble(); }
