@@ -277,51 +277,7 @@ function openSolveModal(idx, sesIdx) {
       reconWrap.style.display='';
       // ── Orientation helpers ──────────────────────────────────────────────────
       const CUBE_ROTS=new Set(['x',"x'",'x2','y',"y'",'y2','z',"z'",'z2']);
-      // Convert body-frame moves to user's holding frame using gyro orientation captured at solve start.
-      // This makes the reconstruction match how the user physically held the cube (e.g. white on bottom).
-      const normMoves=(()=>{
-        const so=t.startOrient; if(!so) return moves;
-        // Apply body rotation to orientation map: updates which body face is at each WCA world slot.
-        function applyBR(o,rot){
-          const r={};for(const[k,v] of Object.entries(o))r[v]=k; // reverse: bodyFace→wcaSlot
-          const n={...o};
-          switch(rot){
-            case 'y':  n[r.R]='F';n[r.B]='R';n[r.L]='B';n[r.F]='L';break;
-            case "y'": n[r.L]='F';n[r.B]='L';n[r.R]='B';n[r.F]='R';break;
-            case 'y2': n[r.B]='F';n[r.F]='B';n[r.L]='R';n[r.R]='L';break;
-            case 'x':  n[r.U]='B';n[r.F]='U';n[r.D]='F';n[r.B]='D';break;
-            case "x'": n[r.U]='F';n[r.F]='D';n[r.D]='B';n[r.B]='U';break;
-            case 'x2': n[r.U]='D';n[r.D]='U';n[r.F]='B';n[r.B]='F';break;
-            case 'z':  n[r.U]='R';n[r.R]='D';n[r.D]='L';n[r.L]='U';break;
-            case "z'": n[r.U]='L';n[r.R]='U';n[r.D]='R';n[r.L]='D';break;
-            case 'z2': n[r.U]='D';n[r.D]='U';n[r.R]='L';n[r.L]='R';break;
-          }
-          return n;
-        }
-        // Find world rotation label that matches a body rotation given current orient map
-        function bodyRotToUser(o,rot){
-          const target=applyBR(o,rot);
-          const ts=JSON.stringify;
-          for(const wr of['y',"y'",'y2','x',"x'",'x2','z',"z'",'z2']){
-            if(typeof rpApplyRot==='function'){
-              const c=rpApplyRot(o,wr);
-              if(ts(c)===ts(target))return wr;
-            }
-          }
-          return rot; // fallback
-        }
-        let o={...so};
-        return moves.map(mv=>{
-          if(CUBE_ROTS.has(mv)){
-            const label=bodyRotToUser(o,mv);
-            o=applyBR(o,mv);
-            return label;
-          }
-          const face=mv[0].toUpperCase();
-          const wcaFace=Object.entries(o).find(([,v])=>v===face)?.[0]??face;
-          return wcaFace+mv.slice(1);
-        });
-      })();
+      const normMoves=moves;
       // ── Build segments ───────────────────────────────────────────────────────
       const pairColors=['#3B9EFF','#3B9EFF','#3B9EFF','#3B9EFF'];
       const crossEnd=ct?.crossMI??moves.length;
