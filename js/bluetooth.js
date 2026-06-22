@@ -605,6 +605,22 @@ function bcPlayerReady(i) {
   if (bState[0].state === 'ready' && bState[1].state === 'ready') bcCountdown();
 }
 
+let bcAudioCtx = null;
+function bcBeep(freq, dur, vol = 0.35) {
+  try {
+    if (!bcAudioCtx || bcAudioCtx.state === 'closed') bcAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (bcAudioCtx.state === 'suspended') bcAudioCtx.resume();
+    const osc = bcAudioCtx.createOscillator();
+    const gain = bcAudioCtx.createGain();
+    osc.connect(gain); gain.connect(bcAudioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, bcAudioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, bcAudioCtx.currentTime + dur);
+    osc.start(); osc.stop(bcAudioCtx.currentTime + dur);
+  } catch(e) {}
+}
+
 function bcCountdown() {
   if (bcCountingDown) return;
   bcCountingDown = true;
@@ -612,13 +628,16 @@ function bcCountdown() {
   resultEl.style.fontSize = '3em';
   let n = 3;
   resultEl.textContent = n;
+  bcBeep(440, 0.12);
   const tick = () => {
     n--;
     if (n > 0) {
       resultEl.textContent = n;
+      bcBeep(440, 0.12);
       setTimeout(tick, 800);
     } else {
       resultEl.textContent = 'GO!';
+      bcBeep(880, 0.3);
       if (bState[0].state === 'ready' && bState[1].state === 'ready') {
         const now = Date.now();
         for (let j = 0; j < 2; j++) {
