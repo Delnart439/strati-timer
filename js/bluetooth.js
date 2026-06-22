@@ -285,13 +285,14 @@ let bcScrMoves = [[], []];
 let bcScrIdx = [0, 0];
 let bcScrCount = [0, 0];
 let bcScrDone = [false, false];
+let bcUCount = [0, 0];
 
 function bcInitAllScrambles() {
   const scr = (typeof state !== 'undefined' && state.scrHistory) ? (state.scrHistory[state.scrIdx] || '') : '';
   const moves = scr.trim().split(/\s+/).filter(Boolean);
   for (let i = 0; i < 2; i++) {
     bcScrMoves[i] = moves;
-    bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrDone[i] = false;
+    bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrDone[i] = false; bcUCount[i] = 0;
     bcUpdateScrHighlight(i);
     bcUpdateCard(i);
   }
@@ -315,6 +316,12 @@ function bcUpdateScrHighlight(i) {
 }
 
 function bcOnMove(i, mv) {
+  // U×4 triggers ready
+  if (bState[i].state === 'idle' && bcScrDone[i]) {
+    if (mv[0] === 'U') { bcUCount[i]++; if (bcUCount[i] >= 4) { bcUCount[i] = 0; bcPlayerReady(i); return; } }
+    else bcUCount[i] = 0;
+  } else { bcUCount[i] = 0; }
+
   if (bcScrDone[i] || bcScrIdx[i] >= bcScrMoves[i].length || bState[i].state !== 'idle') return;
   const expected = bcScrMoves[i][bcScrIdx[i]];
   if (mv[0] === expected[0]) {
@@ -332,6 +339,18 @@ function bcOnMove(i, mv) {
     bcScrCount[i] = 0;
   }
   bcUpdateScrHighlight(i);
+}
+
+function bcResetGyro(i) { bcViews[i]?.resetGyro(); }
+
+async function bcResetCube(i) {
+  const conn = bcConns[i]; if (!conn) return;
+  try { if (conn.capabilities?.reset) await conn.sendCommand({type:'REQUEST_RESET'}); } catch(e) {}
+  bcFacelets[i] = SC_SOLVED; bcWasSolved[i] = true;
+  bcViews[i]?.updateColors(SC_SOLVED);
+  bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrDone[i] = false; bcUCount[i] = 0;
+  bcUpdateScrHighlight(i);
+  bcUpdateCard(i);
 }
 
 function createBattleCubeView(container) {
@@ -450,6 +469,12 @@ function createBattleCubeView(container) {
   return {
     updateColors,
     updateGyro,
+    resetGyro() {
+      if (!cubeGroup) return;
+      if (lastGyroQ) gyroOffset = new T.Quaternion().copy(lastGyroQ).invert();
+      else gyroOffset = new T.Quaternion();
+      cubeGroup.quaternion.identity();
+    },
     destroy() {
       active = false;
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
@@ -465,6 +490,7 @@ function bcUpdateCard(i) {
   const connBtn = document.getElementById(pid + '-conn-btn');
   const connInfo = document.getElementById(pid + '-conn-info');
   const cubeNameEl = document.getElementById(pid + '-cube-name');
+  const actionsEl = document.getElementById(pid + '-cube-actions');
   const readyBtn = document.getElementById(pid + '-ready-btn');
   if (!connBtn) return;
   if (!conn) {
@@ -472,10 +498,12 @@ function bcUpdateCard(i) {
     connBtn.disabled = false;
     connBtn.textContent = 'Connect Cube';
     if (connInfo) connInfo.style.display = 'none';
+    if (actionsEl) actionsEl.style.display = 'none';
     if (readyBtn) readyBtn.style.display = 'none';
   } else {
     connBtn.style.display = 'none';
     if (connInfo) connInfo.style.display = '';
+    if (actionsEl) actionsEl.style.display = '';
     if (cubeNameEl) cubeNameEl.textContent = conn.deviceName || ('Cube ' + (i + 1));
     if (readyBtn) {
       readyBtn.style.display = '';

@@ -152,6 +152,9 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 .b-cube-name{font-size:11px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .b-disconn-btn{background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;font-size:13px;padding:0;flex-shrink:0;line-height:1}
 .b-disconn-btn:hover{color:#fff}
+.b-cube-actions{display:flex;gap:6px;width:100%}
+.b-action-btn{flex:1;padding:7px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);font-size:11px;font-weight:600;cursor:pointer;transition:background .15s;font-family:inherit}
+.b-action-btn:hover{background:rgba(255,255,255,.13);color:#fff}
 .b-ready-btn{padding:10px 14px;border-radius:10px;border:none;background:#00c853;color:#000;font-size:13px;font-weight:800;cursor:pointer;width:100%;transition:opacity .15s,background .15s;letter-spacing:.3px}
 .b-ready-btn:disabled{opacity:.3;cursor:default}
 .b-ready-btn.checked{background:rgba(0,200,83,.3);color:#00c853;cursor:default}

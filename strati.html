@@ -156,7 +156,11 @@
             <span id="b1-cube-name" class="b-cube-name"></span>
             <button class="b-disconn-btn" onclick="bcDisconnect(0)" title="Disconnect">&#x2715;</button>
           </div>
-          <button class="b-ready-btn" id="b1-ready-btn" style="display:none" onclick="bcPlayerReady(0)">Ready</button>
+          <div class="b-cube-actions" id="b1-cube-actions" style="display:none">
+            <button class="b-action-btn" onclick="bcResetGyro(0)">Reset Gyro</button>
+            <button class="b-action-btn" onclick="bcResetCube(0)">Reset Cube</button>
+          </div>
+          <button class="b-ready-btn" id="b1-ready-btn" style="display:none" onclick="bcPlayerReady(0)">Ready <span style="opacity:.55;font-size:.8em;font-weight:600">or U×4</span></button>
         </div>
       </div>
       <div class="battle-player" id="b2-card">
@@ -173,7 +177,11 @@
             <span id="b2-cube-name" class="b-cube-name"></span>
             <button class="b-disconn-btn" onclick="bcDisconnect(1)" title="Disconnect">&#x2715;</button>
           </div>
-          <button class="b-ready-btn" id="b2-ready-btn" style="display:none" onclick="bcPlayerReady(1)">Ready</button>
+          <div class="b-cube-actions" id="b2-cube-actions" style="display:none">
+            <button class="b-action-btn" onclick="bcResetGyro(1)">Reset Gyro</button>
+            <button class="b-action-btn" onclick="bcResetCube(1)">Reset Cube</button>
+          </div>
+          <button class="b-ready-btn" id="b2-ready-btn" style="display:none" onclick="bcPlayerReady(1)">Ready <span style="opacity:.55;font-size:.8em;font-weight:600">or U×4</span></button>
         </div>
       </div>
     </div>
