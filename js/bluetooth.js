@@ -549,12 +549,6 @@ async function bcConnect(i) {
       complete: () => bcHandleDisconn(i)
     });
     if (conn.capabilities?.facelets) conn.sendCommand({ type: 'REQUEST_FACELETS' }).catch(() => {});
-    // Create 3D view
-    const wrap = document.getElementById('b' + (i + 1) + '-3d-wrap');
-    if (wrap && !bcViews[i]) {
-      wrap.style.display = '';
-      bcViews[i] = createBattleCubeView(wrap);
-    }
     // Init scramble tracking for this player
     bcScrMoves[i] = bcScrMoves[i].length ? bcScrMoves[i] : (()=>{
       const scr = (typeof state !== 'undefined' && state.scrHistory) ? (state.scrHistory[state.scrIdx] || '') : '';
@@ -577,9 +571,7 @@ async function bcDisconnect(i) {
 function bcHandleDisconn(i) {
   try { bcSubs[i]?.unsubscribe?.(); } catch (e) {}
   bcConns[i] = null; bcSubs[i] = null; bcFacelets[i] = null; bcWasSolved[i] = true;
-  bcViews[i]?.destroy(); bcViews[i] = null;
-  const wrap = document.getElementById('b' + (i + 1) + '-3d-wrap');
-  if (wrap) wrap.style.display = 'none';
+  bcViews[i]?.updateColors(SC_SOLVED); // reset to solved but keep view visible
   if (bState[i].state !== 'idle') bSetState(i, 'idle');
   else bcUpdateCard(i);
 }
@@ -671,8 +663,14 @@ function bcSetMode(mode) {
     const scrTxt = document.getElementById('b' + (i + 1) + '-scr-txt');
     if (keyEl) keyEl.style.display = inCubes ? 'none' : '';
     if (cubeUi) cubeUi.style.display = inCubes ? '' : 'none';
-    if (!inCubes && wrap3d) wrap3d.style.display = 'none';
     if (scrTxt) scrTxt.style.display = inCubes ? '' : 'none';
+    if (inCubes && wrap3d) {
+      wrap3d.style.display = '';
+      if (!bcViews[i]) bcViews[i] = createBattleCubeView(wrap3d);
+    } else if (!inCubes && wrap3d) {
+      bcViews[i]?.destroy(); bcViews[i] = null;
+      wrap3d.style.display = 'none';
+    }
     bSetState(i, 'idle');
   }
   bScores = [0, 0];
