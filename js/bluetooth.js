@@ -232,6 +232,7 @@ function bCheckRoundEnd(){
   document.getElementById('b2-score').textContent=bScores[1];
   // New scramble immediately
   pushScramble(); renderScramble();
+  if (bcMode === 'cubes') bcInitAllScrambles();
   // Reset both to idle (keep times visible)
   bSetState(0,'idle'); bSetState(1,'idle');
   bRoundActive=false;
@@ -280,6 +281,58 @@ let bcFacelets = [null, null];
 let bcWasSolved = [true, true];
 let bcCountingDown = false;
 let bcViews = [null, null];
+let bcScrMoves = [[], []];
+let bcScrIdx = [0, 0];
+let bcScrCount = [0, 0];
+let bcScrDone = [false, false];
+
+function bcInitAllScrambles() {
+  const scr = (typeof state !== 'undefined' && state.scrHistory) ? (state.scrHistory[state.scrIdx] || '') : '';
+  const moves = scr.trim().split(/\s+/).filter(Boolean);
+  for (let i = 0; i < 2; i++) {
+    bcScrMoves[i] = moves;
+    bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrDone[i] = false;
+    bcUpdateScrHighlight(i);
+    bcUpdateCard(i);
+  }
+}
+
+function bcUpdateScrHighlight(i) {
+  const el = document.getElementById('b' + (i + 1) + '-scr-txt');
+  if (!el || el.style.display === 'none') return;
+  const moves = bcScrMoves[i];
+  const idx = bcScrIdx[i];
+  if (!moves.length) { el.innerHTML = ''; return; }
+  if (bcScrDone[i]) {
+    el.innerHTML = '<span style="color:var(--green);font-weight:800;letter-spacing:.02em">Scramble done!</span>';
+    return;
+  }
+  el.innerHTML = moves.map((m, j) => {
+    if (j < idx) return `<span style="color:rgba(255,255,255,.2)">${m}</span>`;
+    if (j === idx) return `<span style="background:var(--purple);color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`;
+    return `<span style="color:#fff">${m}</span>`;
+  }).join(' ');
+}
+
+function bcOnMove(i, mv) {
+  if (bcScrDone[i] || bcScrIdx[i] >= bcScrMoves[i].length || bState[i].state !== 'idle') return;
+  const expected = bcScrMoves[i][bcScrIdx[i]];
+  if (mv[0] === expected[0]) {
+    const isDouble = expected.endsWith('2');
+    bcScrCount[i]++;
+    if (bcScrCount[i] >= (isDouble ? 2 : 1)) {
+      bcScrCount[i] = 0;
+      bcScrIdx[i]++;
+      if (bcScrIdx[i] >= bcScrMoves[i].length) {
+        bcScrDone[i] = true;
+        bcUpdateCard(i);
+      }
+    }
+  } else {
+    bcScrCount[i] = 0;
+  }
+  bcUpdateScrHighlight(i);
+}
 
 function createBattleCubeView(container) {
   const T = window.THREE;
@@ -428,10 +481,9 @@ function bcUpdateCard(i) {
       readyBtn.style.display = '';
       const st = bState[i].state;
       if (st === 'idle') {
-        const isSolved = bcFacelets[i] ? scIsSolved(bcFacelets[i]) : true;
-        readyBtn.disabled = isSolved;
+        readyBtn.disabled = !bcScrDone[i];
         readyBtn.className = 'b-ready-btn';
-        readyBtn.textContent = isSolved ? 'Scramble first…' : 'Ready';
+        readyBtn.textContent = bcScrDone[i] ? 'Ready' : 'Scramble first…';
       } else if (st === 'ready') {
         readyBtn.disabled = true;
         readyBtn.className = 'b-ready-btn checked';
@@ -460,7 +512,8 @@ async function bcConnect(i) {
     bcWasSolved[i] = true;
     bcSubs[i] = conn.events$.subscribe({
       next: ev => {
-        if (ev.type === 'FACELETS') { bcOnFacelets(i, ev.facelets); bcViews[i]?.updateColors(ev.facelets); }
+        if (ev.type === 'MOVE') bcOnMove(i, ev.move);
+        else if (ev.type === 'FACELETS') { bcOnFacelets(i, ev.facelets); bcViews[i]?.updateColors(ev.facelets); }
         else if (ev.type === 'SOLVED') bcOnSolved(i);
         else if (ev.type === 'GYRO') bcViews[i]?.updateGyro(ev.quaternion);
       },
@@ -474,6 +527,13 @@ async function bcConnect(i) {
       wrap.style.display = '';
       bcViews[i] = createBattleCubeView(wrap);
     }
+    // Init scramble tracking for this player
+    bcScrMoves[i] = bcScrMoves[i].length ? bcScrMoves[i] : (()=>{
+      const scr = (typeof state !== 'undefined' && state.scrHistory) ? (state.scrHistory[state.scrIdx] || '') : '';
+      return scr.trim().split(/\s+/).filter(Boolean);
+    })();
+    bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrDone[i] = false;
+    bcUpdateScrHighlight(i);
     bcUpdateCard(i);
     bSetState(i, 'idle');
   } catch (e) {
@@ -501,13 +561,6 @@ function bcOnFacelets(i, facelets) {
   const isSolved = scIsSolved(facelets);
   if (isSolved && !bcWasSolved[i] && bState[i].state === 'running') bcOnSolved(i);
   bcWasSolved[i] = isSolved;
-  if (bState[i].state === 'idle') {
-    const readyBtn = document.getElementById('b' + (i + 1) + '-ready-btn');
-    if (readyBtn && readyBtn.style.display !== 'none') {
-      readyBtn.disabled = isSolved;
-      readyBtn.textContent = isSolved ? 'Scramble first…' : 'Ready';
-    }
-  }
 }
 
 function bcOnSolved(i) {
@@ -519,9 +572,7 @@ function bcOnSolved(i) {
 }
 
 function bcPlayerReady(i) {
-  if (bcMode !== 'cubes' || !bcConns[i] || bState[i].state !== 'idle') return;
-  const isSolved = bcFacelets[i] ? scIsSolved(bcFacelets[i]) : true;
-  if (isSolved) return;
+  if (bcMode !== 'cubes' || !bcConns[i] || bState[i].state !== 'idle' || !bcScrDone[i]) return;
   bSetState(i, 'ready');
   if (bState[0].state === 'ready' && bState[1].state === 'ready') bcCountdown();
 }
@@ -565,6 +616,7 @@ function bcSetMode(mode) {
   const bNet = document.getElementById('battleCubeNet');
   if (bScrTxt) bScrTxt.style.display = inCubes ? 'none' : '';
   if (bNet) bNet.style.display = inCubes ? 'none' : 'block';
+  if (inCubes) bcInitAllScrambles();
   for (let i = 0; i < 2; i++) {
     const keyEl = document.getElementById('b' + (i + 1) + '-key');
     const cubeUi = document.getElementById('b' + (i + 1) + '-cube-ui');
