@@ -284,15 +284,23 @@ let bcViews = [null, null];
 let bcScrMoves = [[], []];
 let bcScrIdx = [0, 0];
 let bcScrCount = [0, 0];
+let bcScrR2Dir = [null, null];
+let bcErrSeq = [[], []];
+let bcErrDir = [null, null];
 let bcScrDone = [false, false];
 let bcUCount = [0, 0];
+
+function bcInverse(mv) { if (!mv) return ''; if (mv.endsWith("'")) return mv.slice(0,-1); if (mv.endsWith('2')) return mv; return mv+"'"; }
+function bcFaceBase(m) { return m.replace(/[2']/g,''); }
 
 function bcInitAllScrambles() {
   const scr = (typeof state !== 'undefined' && state.scrHistory) ? (state.scrHistory[state.scrIdx] || '') : '';
   const moves = scr.trim().split(/\s+/).filter(Boolean);
   for (let i = 0; i < 2; i++) {
     bcScrMoves[i] = moves;
-    bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrDone[i] = false; bcUCount[i] = 0;
+    bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrR2Dir[i] = null;
+    bcErrSeq[i] = []; bcErrDir[i] = null;
+    bcScrDone[i] = false; bcUCount[i] = 0;
     bcUpdateScrHighlight(i);
     bcUpdateCard(i);
   }
@@ -306,6 +314,21 @@ function bcUpdateScrHighlight(i) {
   if (!moves.length) { el.innerHTML = ''; return; }
   if (bcScrDone[i]) {
     el.innerHTML = '<span style="color:var(--green);font-weight:800;letter-spacing:.02em">Scramble done!</span>';
+    return;
+  }
+  if (bcErrSeq[i].length > 0) {
+    // Compress consecutive identical moves into X2
+    const raw = bcErrSeq[i].slice().reverse();
+    const todo = []; let j = 0;
+    while (j < raw.length) {
+      if (j+1 < raw.length && raw[j] === raw[j+1] && !raw[j].endsWith('2')) { todo.push(raw[j].replace("'",'')+'2'); j+=2; }
+      else { todo.push(raw[j]); j++; }
+    }
+    el.innerHTML = todo.map((m,k) =>
+      k === 0
+        ? `<span style="background:var(--red,#cc2222);color:#fff;border-radius:6px;padding:2px 8px;font-weight:900">${m}</span>`
+        : `<span style="color:rgba(255,255,255,.4)">${m}</span>`
+    ).join(' ');
     return;
   }
   el.innerHTML = moves.map((m, j) => {
@@ -323,20 +346,50 @@ function bcOnMove(i, mv) {
   } else { bcUCount[i] = 0; }
 
   if (bcScrDone[i] || bcScrIdx[i] >= bcScrMoves[i].length || bState[i].state !== 'idle') return;
-  const expected = bcScrMoves[i][bcScrIdx[i]];
-  if (mv[0] === expected[0]) {
-    const isDouble = expected.endsWith('2');
-    bcScrCount[i]++;
-    if (bcScrCount[i] >= (isDouble ? 2 : 1)) {
-      bcScrCount[i] = 0;
-      bcScrIdx[i]++;
-      if (bcScrIdx[i] >= bcScrMoves[i].length) {
-        bcScrDone[i] = true;
-        bcUpdateCard(i);
+
+  if (bcErrSeq[i].length > 0) {
+    const need = bcErrSeq[i][bcErrSeq[i].length - 1];
+    const needBase = bcFaceBase(need), mvBase = bcFaceBase(mv);
+    const isPair = bcErrSeq[i].length >= 2 && bcErrSeq[i][bcErrSeq[i].length - 2] === need && !need.endsWith('2');
+    if (bcErrDir[i]) {
+      if (mv === bcErrDir[i]) {
+        bcErrSeq[i].pop(); bcErrDir[i] = null;
+        if (bcErrSeq[i].length === 0) { bcScrCount[i] = 0; bcScrR2Dir[i] = null; }
+      } else {
+        bcErrSeq[i].push(bcInverse(bcErrDir[i])); bcErrDir[i] = null;
+        bcErrSeq[i].push(bcInverse(mv));
       }
+    } else if (mv === need) {
+      bcErrSeq[i].pop();
+      if (bcErrSeq[i].length === 0) { bcScrCount[i] = 0; bcScrR2Dir[i] = null; }
+    } else if (isPair && mvBase === needBase) {
+      bcErrSeq[i].pop(); bcErrDir[i] = mv;
+    } else {
+      bcErrSeq[i].push(bcInverse(mv));
     }
   } else {
-    bcScrCount[i] = 0;
+    const cur = bcScrMoves[i][bcScrIdx[i]];
+    const isDouble = cur?.endsWith('2');
+    const base = bcFaceBase(cur || '');
+    const mvBase = bcFaceBase(mv);
+    let correct = false;
+    if (isDouble) {
+      if (bcScrCount[i] === 0) { correct = (mvBase === base); if (correct) bcScrR2Dir[i] = mv; }
+      else { correct = (mv === bcScrR2Dir[i]); }
+    } else {
+      correct = (mv === cur);
+    }
+    if (correct) {
+      bcScrCount[i]++;
+      if (bcScrCount[i] >= (isDouble ? 2 : 1)) {
+        bcScrCount[i] = 0; bcScrR2Dir[i] = null; bcScrIdx[i]++;
+        if (bcScrIdx[i] >= bcScrMoves[i].length) { bcScrDone[i] = true; bcUpdateCard(i); }
+      }
+    } else {
+      if (bcScrCount[i] > 0 && bcScrR2Dir[i]) bcErrSeq[i].push(bcInverse(bcScrR2Dir[i]));
+      bcScrCount[i] = 0; bcScrR2Dir[i] = null;
+      bcErrSeq[i].push(bcInverse(mv));
+    }
   }
   bcUpdateScrHighlight(i);
 }
