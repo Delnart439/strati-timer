@@ -289,6 +289,7 @@ let bcErrSeq = [[], []];
 let bcErrDir = [null, null];
 let bcScrDone = [false, false];
 let bcUCount = [0, 0];
+let bcULastFace = [null, null];
 
 function bcInverse(mv) { if (!mv) return ''; if (mv.endsWith("'")) return mv.slice(0,-1); if (mv.endsWith('2')) return mv; return mv+"'"; }
 function bcFaceBase(m) { return m.replace(/[2']/g,''); }
@@ -300,7 +301,7 @@ function bcInitAllScrambles() {
     bcScrMoves[i] = moves;
     bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrR2Dir[i] = null;
     bcErrSeq[i] = []; bcErrDir[i] = null;
-    bcScrDone[i] = false; bcUCount[i] = 0;
+    bcScrDone[i] = false; bcUCount[i] = 0; bcULastFace[i] = null;
     bcUpdateScrHighlight(i);
     bcUpdateCard(i);
   }
@@ -339,11 +340,12 @@ function bcUpdateScrHighlight(i) {
 }
 
 function bcOnMove(i, mv) {
-  // U×4 triggers ready
+  // ×4 on any face triggers ready
   if (bState[i].state === 'idle' && bcScrDone[i]) {
-    if (mv[0] === 'U') { bcUCount[i]++; if (bcUCount[i] >= 4) { bcUCount[i] = 0; bcPlayerReady(i); return; } }
-    else bcUCount[i] = 0;
-  } else { bcUCount[i] = 0; }
+    const face = bcFaceBase(mv);
+    if (bcULastFace[i] === face) { bcUCount[i]++; } else { bcUCount[i] = 1; bcULastFace[i] = face; }
+    if (bcUCount[i] >= 4) { bcUCount[i] = 0; bcULastFace[i] = null; bcPlayerReady(i); return; }
+  } else { bcUCount[i] = 0; bcULastFace[i] = null; }
 
   if (bcScrDone[i] || bcScrIdx[i] >= bcScrMoves[i].length || bState[i].state !== 'idle') return;
 
