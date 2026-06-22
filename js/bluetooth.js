@@ -137,19 +137,36 @@ document.getElementById('btDisconnBtn').addEventListener('click', () => {
 });
 
 // ── LEFT ACTION BUTTONS (timer mode switcher) ──
+function bActivateMode(mode) {
+  document.querySelectorAll('.ac[data-mode]').forEach(b=>b.classList.toggle('on', b.dataset.mode===mode));
+  document.getElementById('battleCubeBtn').classList.remove('on');
+  const isBattle = mode === 'battle';
+  const isCube   = mode === 'cube';
+  document.querySelector('.t-center').style.display = isBattle ? 'none' : '';
+  document.querySelector('.t-rp').style.display     = isBattle ? 'none' : '';
+  document.getElementById('cubeArea').style.display    = isCube ? 'none' : '';
+  document.getElementById('cubeScArea').style.display  = isCube ? '' : 'none';
+  document.getElementById('mode-battle').classList.toggle('active', isBattle);
+  document.getElementById('pg-timer').classList.toggle('cube-mode', isCube);
+}
+
 document.querySelectorAll('.ac[data-mode]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    const mode = btn.dataset.mode;
-    document.querySelectorAll('.ac[data-mode]').forEach(b=>b.classList.toggle('on', b===btn));
-    const isBattle = mode === 'battle';
-    const isCube   = mode === 'cube';
-    document.querySelector('.t-center').style.display = isBattle ? 'none' : '';
-    document.querySelector('.t-rp').style.display     = isBattle ? 'none' : '';
-    document.getElementById('cubeArea').style.display    = isCube ? 'none' : '';
-    document.getElementById('cubeScArea').style.display  = isCube ? '' : 'none';
-    document.getElementById('mode-battle').classList.toggle('active', isBattle);
-    document.getElementById('pg-timer').classList.toggle('cube-mode', isCube);
+    if(btn.dataset.mode==='battle' && typeof bcSetMode==='function') bcSetMode('keys');
+    bActivateMode(btn.dataset.mode);
   });
+});
+
+document.getElementById('battleCubeBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('.ac[data-mode]').forEach(b=>b.classList.remove('on'));
+  document.getElementById('battleCubeBtn').classList.add('on');
+  document.querySelector('.t-center').style.display = 'none';
+  document.querySelector('.t-rp').style.display     = 'none';
+  document.getElementById('cubeArea').style.display    = '';
+  document.getElementById('cubeScArea').style.display  = 'none';
+  document.getElementById('mode-battle').classList.add('active');
+  document.getElementById('pg-timer').classList.remove('cube-mode');
+  if(typeof bcSetMode==='function') bcSetMode('cubes');
 });
 
 // ── BATTLE MODE TIMERS ──
