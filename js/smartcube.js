@@ -668,7 +668,7 @@ function scAutoTimerStop(){
   const tEl=document.getElementById('s-turns'), pEl=document.getElementById('s-tps');
   if(tEl) tEl.textContent=scSolveMoves;
   if(pEl) pEl.textContent=ms>0?(scSolveMoves/(ms/1000)).toFixed(2):'–';
-  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog],startFl:scStartFl,startOrient:scSolveStartOrient,startQ:scSolveStartQ};
+  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog],startFl:scStartFl,startOrient:scSolveStartOrient,startQ:scSolveStartQ,cubeName:scConn?.deviceName||null};
   stopTimer(ms);
   scPendingSolveData=null;
 }
