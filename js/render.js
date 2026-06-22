@@ -101,7 +101,12 @@ function renderScramble() {
   const areaEl = netEl.closest('.cube-area');
   if (areaEl) { areaEl.style.display = ''; if (state.settings.hideCubeNet) areaEl.classList.add('cube-hidden'); }
   drawPuzzleImage(netEl, state.puzzle, scr);
-  // Battle mode scramble (per player)
+  // Battle mode: shared scramble + net (keyboard mode)
+  const bScrEl = document.getElementById('battleScrTxt');
+  const bNetEl = document.getElementById('battleCubeNet');
+  if (bScrEl) bScrEl.innerHTML = scrToHtml(scr);
+  if (bNetEl) drawPuzzleImage(bNetEl, state.puzzle, scr);
+  // Battle cube mode: per-player scramble texts
   const b1ScrEl = document.getElementById('b1-scr-txt');
   const b2ScrEl = document.getElementById('b2-scr-txt');
   if (b1ScrEl) b1ScrEl.innerHTML = scrToHtml(scr);

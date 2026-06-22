@@ -561,13 +561,17 @@ function bcCountdown() {
 function bcSetMode(mode) {
   bcMode = mode;
   const inCubes = mode === 'cubes';
+  const sharedArea = document.getElementById('battleScrArea');
+  if (sharedArea) sharedArea.style.display = inCubes ? 'none' : '';
   for (let i = 0; i < 2; i++) {
     const keyEl = document.getElementById('b' + (i + 1) + '-key');
     const cubeUi = document.getElementById('b' + (i + 1) + '-cube-ui');
     const wrap3d = document.getElementById('b' + (i + 1) + '-3d-wrap');
+    const scrTxt = document.getElementById('b' + (i + 1) + '-scr-txt');
     if (keyEl) keyEl.style.display = inCubes ? 'none' : '';
     if (cubeUi) cubeUi.style.display = inCubes ? '' : 'none';
     if (!inCubes && wrap3d) wrap3d.style.display = 'none';
+    if (scrTxt) scrTxt.style.display = inCubes ? '' : 'none';
     bSetState(i, 'idle');
   }
   bScores = [0, 0];
