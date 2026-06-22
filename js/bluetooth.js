@@ -277,6 +277,132 @@ let bcSubs = [null, null];
 let bcFacelets = [null, null];
 let bcWasSolved = [true, true];
 let bcCountingDown = false;
+let bcViews = [null, null];
+
+function createBattleCubeView(container) {
+  const T = window.THREE;
+  const SIZE = 180;
+  let camTheta = 0, camPhi = 1.3;
+  const CAM_DIST = 6.5;
+  let scene, camera, renderer, cubeGroup, cubies = {};
+  let rafId = null, active = false;
+  let lastGyroQ = null, gyroOffset = null;
+  let dn = false, px = 0, py = 0;
+
+  function posCamera() {
+    camera.position.set(
+      CAM_DIST * Math.sin(camPhi) * Math.sin(camTheta),
+      CAM_DIST * Math.cos(camPhi),
+      CAM_DIST * Math.sin(camPhi) * Math.cos(camTheta)
+    );
+    camera.lookAt(0, 0, 0);
+  }
+
+  function makeRoundedSticker(size, r) {
+    const s = size / 2;
+    const shape = new T.Shape();
+    shape.moveTo(-s+r,-s); shape.lineTo(s-r,-s); shape.quadraticCurveTo(s,-s,s,-s+r);
+    shape.lineTo(s,s-r);   shape.quadraticCurveTo(s,s,s-r,s);
+    shape.lineTo(-s+r,s);  shape.quadraticCurveTo(-s,s,-s,s-r);
+    shape.lineTo(-s,-s+r); shape.quadraticCurveTo(-s,-s,-s+r,-s);
+    shape.closePath();
+    return new T.ShapeGeometry(shape);
+  }
+
+  function buildCubies() {
+    cubeGroup = new T.Group(); scene.add(cubeGroup);
+    const OFF = 0.473;
+    const sGeo = makeRoundedSticker(0.82, 0.09);
+    const FACE = [
+      {p:[OFF,0,0],  r:[0,Math.PI/2,0]},  {p:[-OFF,0,0], r:[0,-Math.PI/2,0]},
+      {p:[0,OFF,0],  r:[-Math.PI/2,0,0]}, {p:[0,-OFF,0], r:[Math.PI/2,0,0]},
+      {p:[0,0,OFF],  r:[0,0,0]},           {p:[0,0,-OFF], r:[0,Math.PI,0]},
+    ];
+    for (let x=-1;x<=1;x++) for (let y=-1;y<=1;y++) for (let z=-1;z<=1;z++) {
+      if (x===0&&y===0&&z===0) continue;
+      const body = new T.Mesh(
+        new T.BoxGeometry(0.94,0.94,0.94),
+        new T.MeshPhongMaterial({color:0x1c1c1c,shininess:12})
+      );
+      body.position.set(x,y,z); cubeGroup.add(body);
+      const stickers = FACE.map(({p,r}) => {
+        const mat = new T.MeshBasicMaterial({color:SC_INNER});
+        const s = new T.Mesh(sGeo,mat);
+        s.position.set(...p); s.rotation.set(...r); body.add(s);
+        return mat;
+      });
+      body.userData.stickers = stickers;
+      cubies[`${x},${y},${z}`] = body;
+    }
+    updateColors(SC_SOLVED);
+  }
+
+  function getLocalFi(mesh, globalFi) {
+    const gv = SC_FI_DIRS[globalFi].clone().applyQuaternion(mesh.quaternion.clone().invert());
+    let best = 0, bestD = -Infinity;
+    for (let j=0;j<6;j++) { const d=SC_FI_DIRS[j].dot(gv); if(d>bestD){bestD=d;best=j;} }
+    return best;
+  }
+
+  function updateColors(facelets) {
+    if (!scene) return;
+    for (let i=0;i<54;i++) {
+      const sf = SC_S2F[i]; if (!sf) continue;
+      const c = cubies[sf.key]; if (!c) continue;
+      const fi = getLocalFi(c, sf.fi);
+      (c.userData.stickers||c.material)[fi].color.setHex(SC_COLORS[facelets[i]]??SC_INNER);
+    }
+  }
+
+  function updateGyro(q) {
+    if (!cubeGroup) return;
+    if (!lastGyroQ) lastGyroQ = new T.Quaternion();
+    lastGyroQ.set(q.x, q.z, -q.y, q.w);
+    if (!gyroOffset) {
+      gyroOffset = new T.Quaternion().copy(lastGyroQ).invert();
+    } else {
+      cubeGroup.quaternion.copy(new T.Quaternion().copy(gyroOffset).multiply(lastGyroQ));
+    }
+  }
+
+  // Init
+  renderer = new T.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(SIZE, SIZE);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+  scene = new T.Scene();
+  camera = new T.PerspectiveCamera(50, 1, 0.1, 100);
+  posCamera();
+  scene.add(new T.AmbientLight(0xffffff, 0.75));
+  const dl=new T.DirectionalLight(0xffffff,1.0); dl.position.set(4,8,6); scene.add(dl);
+  const dl2=new T.DirectionalLight(0xffffff,0.35); dl2.position.set(-3,-4,-3); scene.add(dl2);
+  const dl3=new T.DirectionalLight(0xffffff,0.2); dl3.position.set(0,-5,4); scene.add(dl3);
+  buildCubies();
+
+  // Orbit
+  const cv = renderer.domElement;
+  cv.addEventListener('mousedown', e=>{dn=true;px=e.clientX;py=e.clientY;});
+  cv.addEventListener('mousemove', e=>{
+    if(!dn) return;
+    camTheta -= (e.clientX-px)*0.011; camPhi = Math.max(0.1,Math.min(Math.PI-0.1,camPhi+(e.clientY-py)*0.011));
+    px=e.clientX;py=e.clientY;posCamera();
+  });
+  window.addEventListener('mouseup', ()=>dn=false);
+
+  active = true;
+  (function loop(){ if(!active) return; rafId=requestAnimationFrame(loop); renderer.render(scene,camera); })();
+
+  return {
+    updateColors,
+    updateGyro,
+    destroy() {
+      active = false;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      try { renderer.dispose(); } catch(e) {}
+      if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+    }
+  };
+}
 
 function bcUpdateCard(i) {
   const pid = 'b' + (i + 1);
@@ -332,13 +458,20 @@ async function bcConnect(i) {
     bcWasSolved[i] = true;
     bcSubs[i] = conn.events$.subscribe({
       next: ev => {
-        if (ev.type === 'FACELETS') bcOnFacelets(i, ev.facelets);
+        if (ev.type === 'FACELETS') { bcOnFacelets(i, ev.facelets); bcViews[i]?.updateColors(ev.facelets); }
         else if (ev.type === 'SOLVED') bcOnSolved(i);
+        else if (ev.type === 'GYRO') bcViews[i]?.updateGyro(ev.quaternion);
       },
       error: () => bcHandleDisconn(i),
       complete: () => bcHandleDisconn(i)
     });
     if (conn.capabilities?.facelets) conn.sendCommand({ type: 'REQUEST_FACELETS' }).catch(() => {});
+    // Create 3D view
+    const wrap = document.getElementById('b' + (i + 1) + '-3d-wrap');
+    if (wrap && !bcViews[i]) {
+      wrap.style.display = '';
+      bcViews[i] = createBattleCubeView(wrap);
+    }
     bcUpdateCard(i);
     bSetState(i, 'idle');
   } catch (e) {
@@ -354,6 +487,9 @@ async function bcDisconnect(i) {
 function bcHandleDisconn(i) {
   try { bcSubs[i]?.unsubscribe?.(); } catch (e) {}
   bcConns[i] = null; bcSubs[i] = null; bcFacelets[i] = null; bcWasSolved[i] = true;
+  bcViews[i]?.destroy(); bcViews[i] = null;
+  const wrap = document.getElementById('b' + (i + 1) + '-3d-wrap');
+  if (wrap) wrap.style.display = 'none';
   if (bState[i].state !== 'idle') bSetState(i, 'idle');
   else bcUpdateCard(i);
 }
@@ -428,8 +564,10 @@ function bcSetMode(mode) {
   for (let i = 0; i < 2; i++) {
     const keyEl = document.getElementById('b' + (i + 1) + '-key');
     const cubeUi = document.getElementById('b' + (i + 1) + '-cube-ui');
+    const wrap3d = document.getElementById('b' + (i + 1) + '-3d-wrap');
     if (keyEl) keyEl.style.display = inCubes ? 'none' : '';
     if (cubeUi) cubeUi.style.display = inCubes ? '' : 'none';
+    if (!inCubes && wrap3d) wrap3d.style.display = 'none';
     bSetState(i, 'idle');
   }
   bScores = [0, 0];
