@@ -255,6 +255,7 @@ let scErrDir=null; // direction locked in for the first event of a '2' correctio
 let scSolveMoves=0; // move count for the current solve
 let scMoveLog=[]; // all moves recorded during the current solve
 let scStartFl=null; // facelets at the very start of the solve (before first move)
+let scSolveStartOrient=null; // gyro-based face mapping at solve start (for display conversion)
 let scLastCenters=null; // center stickers after last fromMove=true tick (for rotation detection)
 let scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
 let scPairFirst=[null,null,null,null]; // first-detection timestamp per slot (immutable once set)
@@ -500,6 +501,34 @@ function scDetectGyroRotation(){
   return {rot:best,idealQ};
 }
 
+// Detect the cube's initial holding orientation from the gyro quaternion.
+// Returns a map {wcaSlot: bodyFace} — which body face is at each world-frame WCA slot.
+// Used so reconstruction text can be expressed in the user's actual holding frame.
+function scGetInitialOrient(){
+  if(!window.THREE||!scCubeGroup) return null;
+  const T=window.THREE;
+  const q=scCubeGroup.quaternion.clone();
+  // Body face directions: R=+X, L=-X, U=+Y, D=-Y, F=+Z, B=-Z
+  const bodyFaces=['R','L','U','D','F','B'];
+  const bodyAxes=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+  // Transform each body face direction to world space
+  const worldDirs=bodyAxes.map(([x,y,z])=>new T.Vector3(x,y,z).applyQuaternion(q));
+  // World reference directions for each WCA slot (U=+Y, D=-Y, R=+X, L=-X, F=+Z, B=-Z)
+  const wcaAxes={U:[0,1,0],D:[0,-1,0],R:[1,0,0],L:[-1,0,0],F:[0,0,1],B:[0,0,-1]};
+  const orient={};
+  for(const[wca,[wx,wy,wz]] of Object.entries(wcaAxes)){
+    let best='U',bestDot=-Infinity;
+    for(let i=0;i<6;i++){
+      const dot=worldDirs[i].x*wx+worldDirs[i].y*wy+worldDirs[i].z*wz;
+      if(dot>bestDot){bestDot=dot;best=bodyFaces[i];}
+    }
+    orient[wca]=best;
+  }
+  // Return null if orientation is identity (no conversion needed)
+  const isIdentity=orient.U==='U'&&orient.D==='D'&&orient.R==='R'&&orient.L==='L'&&orient.F==='F'&&orient.B==='B';
+  return isIdentity?null:orient;
+}
+
 // Update the WCA orientation tracker when a whole-cube rotation is injected
 function scApplyWCARotation(rot){
   const o=scWCAOrientation;
@@ -638,7 +667,7 @@ function scAutoTimerStop(){
   const tEl=document.getElementById('s-turns'), pEl=document.getElementById('s-tps');
   if(tEl) tEl.textContent=scSolveMoves;
   if(pEl) pEl.textContent=ms>0?(scSolveMoves/(ms/1000)).toFixed(2):'–';
-  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog],startFl:scStartFl};
+  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog],startFl:scStartFl,startOrient:scSolveStartOrient};
   stopTimer(ms);
   scPendingSolveData=null;
 }
@@ -711,6 +740,7 @@ function scEnqueue(mv){
       scPhase='solving'; scSolveMoves=0; scMoveLog=[];
       scStartFl=prevFl; scLastCenters=null; scLastMoveQ=null;
       scWCAOrientation={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
+      scSolveStartOrient=scGetInitialOrient();
       scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
       scPairFirst=[null,null,null,null]; scPairInSlot=[false,false,false,false]; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');
