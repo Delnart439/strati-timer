@@ -201,8 +201,11 @@ function openSolveModal(idx, sesIdx) {
   const d = new Date(t.date);
   document.getElementById('mo-date').textContent  = d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   document.getElementById('mo-clock').textContent = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  const cubeRow=document.getElementById('mo-cube-row'), cubeEl=document.getElementById('mo-cube');
-  if(cubeRow&&cubeEl){if(t.cubeName){cubeRow.style.display='';cubeEl.textContent=t.cubeName;}else{cubeRow.style.display='none';}}
+  const cubeEl=document.getElementById('mo-cube');
+  if(cubeEl){
+    if(t.cubeName){cubeEl.style.color='';cubeEl.textContent=t.cubeName;}
+    else{cubeEl.style.color='var(--dim)';cubeEl.textContent='Use a Bluetooth cube';}
+  }
   drawPuzzleImage(document.getElementById('mo-net'), ses.puzzle || state.puzzle, t.scramble||'', 0.85);
   document.getElementById('mo-dnf').style.opacity = t.dnf?'.5':'1';
   document.getElementById('mo-p2').style.opacity  = t.plus2?'.5':'1';
