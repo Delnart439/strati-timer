@@ -139,7 +139,9 @@ document.getElementById('btDisconnBtn').addEventListener('click', () => {
 // ── LEFT ACTION BUTTONS (timer mode switcher) ──
 function bActivateMode(mode) {
   document.querySelectorAll('.ac[data-mode]').forEach(b=>b.classList.toggle('on', b.dataset.mode===mode));
-  document.getElementById('battleCubeBtn').classList.remove('on');
+  const miniBtn = document.getElementById('battleCubeBtn');
+  miniBtn.classList.remove('on');
+  miniBtn.style.display = mode === 'battle' ? '' : 'none';
   const isBattle = mode === 'battle';
   const isCube   = mode === 'cube';
   document.querySelector('.t-center').style.display = isBattle ? 'none' : '';
@@ -558,8 +560,6 @@ function bcCountdown() {
 
 function bcSetMode(mode) {
   bcMode = mode;
-  document.getElementById('b-mode-keys').classList.toggle('on', mode === 'keys');
-  document.getElementById('b-mode-cubes').classList.toggle('on', mode === 'cubes');
   const inCubes = mode === 'cubes';
   for (let i = 0; i < 2; i++) {
     const keyEl = document.getElementById('b' + (i + 1) + '-key');
@@ -575,8 +575,5 @@ function bcSetMode(mode) {
   document.getElementById('b2-score').textContent = '0';
   document.getElementById('battleResult').textContent = '';
 }
-
-document.getElementById('b-mode-keys').addEventListener('click', () => bcSetMode('keys'));
-document.getElementById('b-mode-cubes').addEventListener('click', () => bcSetMode('cubes'));
 
 lucide.createIcons();

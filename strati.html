@@ -95,7 +95,7 @@
     <button class="ac on" data-mode="timer" title="Timer"><i data-lucide="timer"></i></button>
     <button class="ac" data-mode="cube" title="Bluetooth Cube"><i data-lucide="bot"></i></button>
     <button class="ac" data-mode="battle" title="Battle Mode"><i data-lucide="zap"></i></button>
-    <button class="ac-mini" id="battleCubeBtn" title="Bluetooth Cube Battle"><i data-lucide="bot"></i></button>
+    <button class="ac-mini" id="battleCubeBtn" title="Bluetooth Cube Battle" style="display:none"><i data-lucide="bot"></i></button>
   </div>
   <div class="t-center">
     <div class="scr-area">
@@ -135,13 +135,7 @@
 
   <!-- BATTLE MODE SUB-MODE -->
   <div class="t-submode" id="mode-battle">
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center">
-      <span style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Battle Mode</span>
-      <div class="b-mode-toggle">
-        <button class="b-mode-btn on" id="b-mode-keys">⌨ Keys</button>
-        <button class="b-mode-btn" id="b-mode-cubes">&#x25CF; Bluetooth Cubes</button>
-      </div>
-    </div>
+    <div style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Battle Mode</div>
     <div class="battle-result" id="battleResult"></div>
     <div class="battle-wrap">
       <div class="battle-player" id="b1-card">
