@@ -134,7 +134,13 @@
 
   <!-- BATTLE MODE SUB-MODE -->
   <div class="t-submode" id="mode-battle">
-    <div style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Battle Mode — hold your key to start</div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center">
+      <span style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Battle Mode</span>
+      <div class="b-mode-toggle">
+        <button class="b-mode-btn on" id="b-mode-keys">⌨ Keys</button>
+        <button class="b-mode-btn" id="b-mode-cubes">&#x25CF; Bluetooth Cubes</button>
+      </div>
+    </div>
     <div style="font-size:clamp(16px,2vw,24px);font-weight:600;color:#fff;text-align:center;line-height:1.7;max-width:860px;padding:0 8px" id="battleScrTxt"></div>
     <svg id="battleCubeNet" viewBox="0 0 204 153" width="260" height="195" style="display:block"></svg>
     <div class="battle-result" id="battleResult"></div>
@@ -144,14 +150,30 @@
         <div class="battle-score" id="b1-score">0</div>
         <div class="battle-time idle" id="b1-time">0.000</div>
         <div class="battle-hint" id="b1-hint">Hold <strong>Space</strong> to ready</div>
-        <div class="battle-key">Key: Space</div>
+        <div class="battle-key" id="b1-key">Key: Space</div>
+        <div class="b-cube-ui" id="b1-cube-ui" style="display:none">
+          <button class="b-conn-btn" id="b1-conn-btn" onclick="bcConnect(0)">Connect Cube</button>
+          <div class="b-conn-info" id="b1-conn-info" style="display:none">
+            <span id="b1-cube-name" class="b-cube-name"></span>
+            <button class="b-disconn-btn" onclick="bcDisconnect(0)" title="Disconnect">&#x2715;</button>
+          </div>
+          <button class="b-ready-btn" id="b1-ready-btn" style="display:none" onclick="bcPlayerReady(0)">Ready</button>
+        </div>
       </div>
       <div class="battle-player" id="b2-card">
         <div class="battle-name">Player 2</div>
         <div class="battle-score" id="b2-score">0</div>
         <div class="battle-time idle" id="b2-time">0.000</div>
         <div class="battle-hint" id="b2-hint">Hold <strong>Enter</strong> to ready</div>
-        <div class="battle-key">Key: Enter</div>
+        <div class="battle-key" id="b2-key">Key: Enter</div>
+        <div class="b-cube-ui" id="b2-cube-ui" style="display:none">
+          <button class="b-conn-btn" id="b2-conn-btn" onclick="bcConnect(1)">Connect Cube</button>
+          <div class="b-conn-info" id="b2-conn-info" style="display:none">
+            <span id="b2-cube-name" class="b-cube-name"></span>
+            <button class="b-disconn-btn" onclick="bcDisconnect(1)" title="Disconnect">&#x2715;</button>
+          </div>
+          <button class="b-ready-btn" id="b2-ready-btn" style="display:none" onclick="bcPlayerReady(1)">Ready</button>
+        </div>
       </div>
     </div>
   </div>

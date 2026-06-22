@@ -179,11 +179,19 @@ function bSetState(i,s){
   const hintEl=document.getElementById(bIds[i]+'-hint');
   const key=bKeys[i];
   timeEl.className='battle-time '+s;
-  if(s==='idle'){hintEl.innerHTML=`Hold <strong>${key}</strong> to ready`;}
-  else if(s==='holding'){hintEl.innerHTML=`Keep holding <strong>${key}</strong>…`;}
-  else if(s==='ready'){hintEl.innerHTML=`Release <strong>${key}</strong> to start!`;}
-  else if(s==='running'){hintEl.innerHTML=`Press <strong>${key}</strong> to stop`;}
-  else if(s==='stopped'){hintEl.innerHTML=`Waiting for opponent…`;}
+  if(bcMode==='cubes'){
+    if(s==='idle')hintEl.textContent=bcConns[i]?'Scramble your cube, then tap Ready':'Connect your cube to play';
+    else if(s==='ready'){hintEl.textContent='Waiting for opponent…';}
+    else if(s==='running')hintEl.textContent='Solve!';
+    else if(s==='stopped')hintEl.textContent='Waiting for opponent…';
+    bcUpdateCard(i);
+  } else {
+    if(s==='idle'){hintEl.innerHTML=`Hold <strong>${key}</strong> to ready`;}
+    else if(s==='holding'){hintEl.innerHTML=`Keep holding <strong>${key}</strong>…`;}
+    else if(s==='ready'){hintEl.innerHTML=`Release <strong>${key}</strong> to start!`;}
+    else if(s==='running'){hintEl.innerHTML=`Press <strong>${key}</strong> to stop`;}
+    else if(s==='stopped'){hintEl.innerHTML=`Waiting for opponent…`;}
+  }
 }
 
 function bCheckRoundEnd(){
@@ -212,6 +220,7 @@ function bCheckRoundEnd(){
 
 document.addEventListener('keydown', e=>{
   if(!document.getElementById('mode-battle').classList.contains('active')) return;
+  if(bcMode==='cubes') return;
   const i=bKeys.indexOf(e.code);
   if(i<0||e.repeat) return;
   if(bState[i].state==='idle'){
@@ -227,6 +236,7 @@ document.addEventListener('keydown', e=>{
 
 document.addEventListener('keyup', e=>{
   if(!document.getElementById('mode-battle').classList.contains('active')) return;
+  if(bcMode==='cubes') return;
   const i=bKeys.indexOf(e.code);
   if(i<0) return;
   if(bState[i].state==='holding'){
@@ -242,5 +252,176 @@ document.addEventListener('keyup', e=>{
     if(!bRaf) bRaf=requestAnimationFrame(bTick);
   }
 });
+
+// ── BATTLE CUBE MODE ──
+let bcMode = 'keys';
+let bcConns = [null, null];
+let bcSubs = [null, null];
+let bcFacelets = [null, null];
+let bcWasSolved = [true, true];
+let bcCountingDown = false;
+
+function bcUpdateCard(i) {
+  const pid = 'b' + (i + 1);
+  const conn = bcConns[i];
+  const connBtn = document.getElementById(pid + '-conn-btn');
+  const connInfo = document.getElementById(pid + '-conn-info');
+  const cubeNameEl = document.getElementById(pid + '-cube-name');
+  const readyBtn = document.getElementById(pid + '-ready-btn');
+  if (!connBtn) return;
+  if (!conn) {
+    connBtn.style.display = '';
+    connBtn.disabled = false;
+    connBtn.textContent = 'Connect Cube';
+    if (connInfo) connInfo.style.display = 'none';
+    if (readyBtn) readyBtn.style.display = 'none';
+  } else {
+    connBtn.style.display = 'none';
+    if (connInfo) connInfo.style.display = '';
+    if (cubeNameEl) cubeNameEl.textContent = conn.deviceName || ('Cube ' + (i + 1));
+    if (readyBtn) {
+      readyBtn.style.display = '';
+      const st = bState[i].state;
+      if (st === 'idle') {
+        const isSolved = bcFacelets[i] ? scIsSolved(bcFacelets[i]) : true;
+        readyBtn.disabled = isSolved;
+        readyBtn.className = 'b-ready-btn';
+        readyBtn.textContent = isSolved ? 'Scramble first…' : 'Ready';
+      } else if (st === 'ready') {
+        readyBtn.disabled = true;
+        readyBtn.className = 'b-ready-btn checked';
+        readyBtn.textContent = '✓ Ready';
+      } else {
+        readyBtn.disabled = true;
+        readyBtn.className = 'b-ready-btn';
+        readyBtn.textContent = st === 'running' ? 'Solving…' : 'Done';
+      }
+    }
+  }
+}
+
+async function bcConnect(i) {
+  const pid = 'b' + (i + 1);
+  const connBtn = document.getElementById(pid + '-conn-btn');
+  if (!window.SmartCubeLib?.connectSmartCube) {
+    alert('Smart cube library not available.');
+    return;
+  }
+  if (connBtn) { connBtn.disabled = true; connBtn.textContent = 'Connecting…'; }
+  try {
+    const conn = await window.SmartCubeLib.connectSmartCube({ deviceSelection: 'filtered', deviceType: 'auto' });
+    bcConns[i] = conn;
+    bcFacelets[i] = null;
+    bcWasSolved[i] = true;
+    bcSubs[i] = conn.events$.subscribe({
+      next: ev => {
+        if (ev.type === 'FACELETS') bcOnFacelets(i, ev.facelets);
+        else if (ev.type === 'SOLVED') bcOnSolved(i);
+      },
+      error: () => bcHandleDisconn(i),
+      complete: () => bcHandleDisconn(i)
+    });
+    if (conn.capabilities?.facelets) conn.sendCommand({ type: 'REQUEST_FACELETS' }).catch(() => {});
+    bcUpdateCard(i);
+    bSetState(i, 'idle');
+  } catch (e) {
+    if (connBtn) { connBtn.disabled = false; connBtn.textContent = 'Connect Cube'; }
+  }
+}
+
+async function bcDisconnect(i) {
+  try { await bcConns[i]?.disconnect?.(); } catch (e) {}
+  bcHandleDisconn(i);
+}
+
+function bcHandleDisconn(i) {
+  try { bcSubs[i]?.unsubscribe?.(); } catch (e) {}
+  bcConns[i] = null; bcSubs[i] = null; bcFacelets[i] = null; bcWasSolved[i] = true;
+  if (bState[i].state !== 'idle') bSetState(i, 'idle');
+  else bcUpdateCard(i);
+}
+
+function bcOnFacelets(i, facelets) {
+  bcFacelets[i] = facelets;
+  const isSolved = scIsSolved(facelets);
+  if (isSolved && !bcWasSolved[i] && bState[i].state === 'running') bcOnSolved(i);
+  bcWasSolved[i] = isSolved;
+  if (bState[i].state === 'idle') {
+    const readyBtn = document.getElementById('b' + (i + 1) + '-ready-btn');
+    if (readyBtn && readyBtn.style.display !== 'none') {
+      readyBtn.disabled = isSolved;
+      readyBtn.textContent = isSolved ? 'Scramble first…' : 'Ready';
+    }
+  }
+}
+
+function bcOnSolved(i) {
+  if (bState[i].state !== 'running') return;
+  bState[i].t = Date.now() - bState[i].st;
+  document.getElementById(bIds[i] + '-time').textContent = bFmt(bState[i].t);
+  bSetState(i, 'stopped');
+  bCheckRoundEnd();
+}
+
+function bcPlayerReady(i) {
+  if (bcMode !== 'cubes' || !bcConns[i] || bState[i].state !== 'idle') return;
+  const isSolved = bcFacelets[i] ? scIsSolved(bcFacelets[i]) : true;
+  if (isSolved) return;
+  bSetState(i, 'ready');
+  if (bState[0].state === 'ready' && bState[1].state === 'ready') bcCountdown();
+}
+
+function bcCountdown() {
+  if (bcCountingDown) return;
+  bcCountingDown = true;
+  const resultEl = document.getElementById('battleResult');
+  resultEl.style.fontSize = '3em';
+  let n = 3;
+  resultEl.textContent = n;
+  const tick = () => {
+    n--;
+    if (n > 0) {
+      resultEl.textContent = n;
+      setTimeout(tick, 800);
+    } else {
+      resultEl.textContent = 'GO!';
+      if (bState[0].state === 'ready' && bState[1].state === 'ready') {
+        const now = Date.now();
+        for (let j = 0; j < 2; j++) {
+          bState[j].st = now; bState[j].t = 0;
+          document.getElementById(bIds[j] + '-time').textContent = '0.000';
+          document.getElementById('b' + (j + 1) + '-card').classList.remove('winner');
+          bSetState(j, 'running');
+        }
+        if (!bRaf) bRaf = requestAnimationFrame(bTick);
+      }
+      bcCountingDown = false;
+      resultEl.style.fontSize = '';
+      setTimeout(() => { if (resultEl.textContent === 'GO!') resultEl.textContent = ''; }, 700);
+    }
+  };
+  setTimeout(tick, 800);
+}
+
+function bcSetMode(mode) {
+  bcMode = mode;
+  document.getElementById('b-mode-keys').classList.toggle('on', mode === 'keys');
+  document.getElementById('b-mode-cubes').classList.toggle('on', mode === 'cubes');
+  const inCubes = mode === 'cubes';
+  for (let i = 0; i < 2; i++) {
+    const keyEl = document.getElementById('b' + (i + 1) + '-key');
+    const cubeUi = document.getElementById('b' + (i + 1) + '-cube-ui');
+    if (keyEl) keyEl.style.display = inCubes ? 'none' : '';
+    if (cubeUi) cubeUi.style.display = inCubes ? '' : 'none';
+    bSetState(i, 'idle');
+  }
+  bScores = [0, 0];
+  document.getElementById('b1-score').textContent = '0';
+  document.getElementById('b2-score').textContent = '0';
+  document.getElementById('battleResult').textContent = '';
+}
+
+document.getElementById('b-mode-keys').addEventListener('click', () => bcSetMode('keys'));
+document.getElementById('b-mode-cubes').addEventListener('click', () => bcSetMode('cubes'));
 
 lucide.createIcons();
