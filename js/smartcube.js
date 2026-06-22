@@ -256,6 +256,7 @@ let scSolveMoves=0; // move count for the current solve
 let scMoveLog=[]; // all moves recorded during the current solve
 let scStartFl=null; // facelets at the very start of the solve (before first move)
 let scSolveStartOrient=null; // gyro-based face mapping at solve start (for display conversion)
+let scSolveStartQ=null; // gyro quaternion [x,y,z,w] at solve start (for 3D replay orientation)
 let scLastCenters=null; // center stickers after last fromMove=true tick (for rotation detection)
 let scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
 let scPairFirst=[null,null,null,null]; // first-detection timestamp per slot (immutable once set)
@@ -667,7 +668,7 @@ function scAutoTimerStop(){
   const tEl=document.getElementById('s-turns'), pEl=document.getElementById('s-tps');
   if(tEl) tEl.textContent=scSolveMoves;
   if(pEl) pEl.textContent=ms>0?(scSolveMoves/(ms/1000)).toFixed(2):'–';
-  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog],startFl:scStartFl,startOrient:scSolveStartOrient};
+  scPendingSolveData={cfop:{...scCfopTimes},moves:[...scMoveLog],startFl:scStartFl,startOrient:scSolveStartOrient,startQ:scSolveStartQ};
   stopTimer(ms);
   scPendingSolveData=null;
 }
@@ -741,6 +742,7 @@ function scEnqueue(mv){
       scStartFl=prevFl; scLastCenters=null; scLastMoveQ=null;
       scWCAOrientation={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
       scSolveStartOrient=scGetInitialOrient();
+      if(scCubeGroup){const q=scCubeGroup.quaternion;scSolveStartQ=[q.x,q.y,q.z,q.w];}else{scSolveStartQ=null;}
       scCfopTimes={cross:null,crossMI:null,crossFc:null,f2lPairs:[],f2lNextStart:null,f2l:null,f2lMI:null,oll:null,ollStart:null,ollMI:null,pll:null,pllStart:null,ollCase:null,pllCase:null};
       scPairFirst=[null,null,null,null]; scPairInSlot=[false,false,false,false]; scCfopFace=null;
       const el=document.getElementById('scrTxt'); if(el) el.textContent=scScrambleMoves.join(' ');

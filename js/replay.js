@@ -7,6 +7,7 @@ let rpCubies={},rpRafId=null,rpRendering=false;
 let rpFacelets='',rpMoves=[],rpStates=[],rpIdx=0;
 let rpBodyMoves=[],rpGroupQ=null;
 let rpPlaying=false,rpSpeed=1,rpAnimating=false,rpGyroEnabled=false;
+let rpStartQ=null; // initial holding orientation quaternion for the replay
 
 // ── Facelets permutation tables for whole-cube rotations ─────────────────────
 let RP_ROT_PERMS=null;
@@ -302,6 +303,11 @@ function rpGoTo(idx,cb){
   idx=Math.max(0,Math.min(idx,rpMoves.length));
   rpAnimating=true;
   rpBuildCubies();
+  if(rpStartQ&&rpGroup){
+    const T=window.THREE;
+    const q=new T.Quaternion(rpStartQ[0],rpStartQ[1],rpStartQ[2],rpStartQ[3]);
+    rpGroup.quaternion.copy(q); rpGroupQ=q.clone();
+  }
   let i=0;
   function next(){
     if(i>=idx){
@@ -408,6 +414,7 @@ function rpOpen(solve){
   rpSetView(false);
   rpInit();
   const startFl=solve.startFl||SC_SOLVED;
+  rpStartQ=solve.startQ||null;
   rpMoves=solve.moves||[];
   rpBodyMoves=rpMoves.slice();
   const perms=rpGetPerms();
@@ -436,6 +443,7 @@ function rpClose(){
   rpPause();
   rpStopRender();
   rpGyroEnabled=false;
+  rpStartQ=null;
   const btn=document.getElementById('mo-rp-gyro');
   if(btn) btn.style.opacity='.4';
   if(rpGroup) rpGroup.quaternion.identity();
