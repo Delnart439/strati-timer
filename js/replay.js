@@ -409,15 +409,20 @@ function rpOpen(solve){
   rpInit();
   const startFl=solve.startFl||SC_SOLVED;
   rpMoves=solve.moves||[];
-  rpBodyMoves=rpGetBodyMoves(rpMoves);
+  rpBodyMoves=rpMoves.slice();
   const perms=rpGetPerms();
   rpStates=[startFl];
   let stateArr=[...startFl];
+  let orient={U:'U',R:'R',F:'F',D:'D',L:'L',B:'B'};
   for(const mv of rpBodyMoves){
     if(RP_CUBE_ROTS.has(mv)){
+      orient=rpApplyRot(orient,mv);
       rpStates.push(stateArr.join(''));
     } else {
-      const p=perms['face_'+mv];
+      const face=mv[0].toUpperCase();
+      const origFace=orient[face]??face;
+      const normMv=origFace+mv.slice(1);
+      const p=perms['face_'+normMv];
       if(p){const next=[...stateArr];for(let s=0;s<54;s++) next[p[s]]=stateArr[s];stateArr=next;}
       rpStates.push(stateArr.join(''));
     }
