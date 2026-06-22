@@ -561,8 +561,10 @@ function bcCountdown() {
 function bcSetMode(mode) {
   bcMode = mode;
   const inCubes = mode === 'cubes';
-  const sharedArea = document.getElementById('battleScrArea');
-  if (sharedArea) sharedArea.style.display = inCubes ? 'none' : '';
+  const bScrTxt = document.getElementById('battleScrTxt');
+  const bNet = document.getElementById('battleCubeNet');
+  if (bScrTxt) bScrTxt.style.display = inCubes ? 'none' : '';
+  if (bNet) bNet.style.display = inCubes ? 'none' : 'block';
   for (let i = 0; i < 2; i++) {
     const keyEl = document.getElementById('b' + (i + 1) + '-key');
     const cubeUi = document.getElementById('b' + (i + 1) + '-cube-ui');
