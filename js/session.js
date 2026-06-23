@@ -533,7 +533,7 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
   }
 
   ctx.font = 'bold 15px Inter,system-ui,sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
   ctx.fillText(label, cx, y + size * 0.4);
 
   const str = String(value);
