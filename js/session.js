@@ -572,14 +572,15 @@ function _niceYLabel(ms, step) {
   const s = ms / 1000;
   return step < 1 ? s.toFixed(1) : String(Math.round(s));
 }
-function _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py) {
+function _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py, labelX) {
+  const lx = labelX !== undefined ? labelX : gx;
   const { ticks, step } = _niceYTicks(minV, maxV);
   ctx.font = '9px Inter,system-ui,sans-serif'; ctx.textAlign = 'right';
   ticks.forEach(ms => {
     const y = py(ms);
     if (y < gy - 4 || y > gy + gh + 4) return;
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.fillText(_niceYLabel(ms, step), gx - 6, y + 3);
+    ctx.fillText(_niceYLabel(ms, step), lx - 6, y + 3);
     ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
     ctx.setLineDash([3, 4]);
     ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + gw, y); ctx.stroke();
@@ -598,7 +599,7 @@ function _drawGraph(ctx, solves, total, gx, gy, gw, gh) {
   const plotIdx = plotData.map(t => solves.indexOf(t));
   const px = i => gx + (i / Math.max(total - 1, 1)) * gw;
   const py = v => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
-  _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py);
+  _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py, gx + 44);
   // Fill
   const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
   fill.addColorStop(0, 'rgba(168,85,247,0.25)'); fill.addColorStop(1, 'rgba(168,85,247,0.02)');
@@ -701,12 +702,12 @@ function generateShareImg(type, param) {
 
   // Middle row — graph
   const graphRowY = PAD + CELL + GAP;
-  const YLABELW = 44, HPAD = 14;
+  const HPAD = 14;
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
   ctx.save();
   ctx.beginPath(); roundRect(ctx, PAD + 1, graphRowY + 1, W - PAD * 2 - 2, CELL - 2, 13); ctx.clip();
-  _drawGraph(ctx, [...ts].reverse(), ts.length, PAD + HPAD + YLABELW, graphRowY + 8, W - 2 * (PAD + HPAD) - YLABELW, CELL - 16);
+  _drawGraph(ctx, [...ts].reverse(), ts.length, PAD + HPAD, graphRowY + 8, W - 2 * (PAD + HPAD), CELL - 16);
   ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
@@ -768,12 +769,12 @@ function _generateShareAo(n) {
 
   // Middle row — graph (chunk solves)
   const graphRowY = PAD + CELL + GAP;
-  const YLABELW = 44, HPAD = 14;
+  const HPAD = 14;
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
   ctx.save();
   ctx.beginPath(); roundRect(ctx, PAD + 1, graphRowY + 1, W - PAD * 2 - 2, CELL - 2, 13); ctx.clip();
-  _drawGraph(ctx, [...chunk].reverse(), chunk.length, PAD + HPAD + YLABELW, graphRowY + 8, W - 2 * (PAD + HPAD) - YLABELW, CELL - 16);
+  _drawGraph(ctx, [...chunk].reverse(), chunk.length, PAD + HPAD, graphRowY + 8, W - 2 * (PAD + HPAD), CELL - 16);
   ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
