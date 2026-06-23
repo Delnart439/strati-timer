@@ -827,15 +827,15 @@ function _drawCubeNetCanvas(ctx, scr, cx, cy, maxW, maxH) {
   const vw = 4*3*STEP + 3*FG, vh = 3*3*STEP + 2*FG;
   const ox = cx - vw / 2, oy = cy - vh / 2;
   const st = cubeState(scr || '');
-  const R = Math.max(1, Math.round(S / 5));
+  const rx = Math.max(1, Math.round(S / 5));
   for (const {fi, fj, face} of faces) {
     const base = face * 9;
     const fox = ox + fi * (3*STEP + FG), foy = oy + fj * (3*STEP + FG);
     for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
       ctx.fillStyle = CLRS[st[base + r*3 + c]];
-      beginRoundRect(ctx, fox + c*STEP, foy + r*STEP, S, S, R); ctx.fill();
+      beginRoundRect(ctx, fox + c*STEP, foy + r*STEP, S, S, rx); ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 0.5;
-      beginRoundRect(ctx, fox + c*STEP, foy + r*STEP, S, S, R); ctx.stroke();
+      beginRoundRect(ctx, fox + c*STEP, foy + r*STEP, S, S, rx); ctx.stroke();
     }
   }
 }
