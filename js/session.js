@@ -814,50 +814,89 @@ function _generateShareAo(n) {
 }
 
 // ── Single solve card ──
+function _drawCubeNetCanvas(ctx, scr, cx, cy, maxW, maxH) {
+  const faces = [{fi:1,fj:0,face:U},{fi:0,fj:1,face:L},{fi:1,fj:1,face:F},{fi:2,fj:1,face:R},{fi:3,fj:1,face:B},{fi:1,fj:2,face:D}];
+  const FG = 4;
+  let S = 6, G = 1;
+  for (let s = 22; s >= 6; s--) {
+    const g = Math.max(1, Math.round(s / 8));
+    const step = s + g;
+    if (4*3*step + 3*FG <= maxW && 3*3*step + 2*FG <= maxH) { S = s; G = g; break; }
+  }
+  const STEP = S + G;
+  const vw = 4*3*STEP + 3*FG, vh = 3*3*STEP + 2*FG;
+  const ox = cx - vw / 2, oy = cy - vh / 2;
+  const st = cubeState(scr || '');
+  const R = Math.max(1, Math.round(S / 5));
+  for (const {fi, fj, face} of faces) {
+    const base = face * 9;
+    const fox = ox + fi * (3*STEP + FG), foy = oy + fj * (3*STEP + FG);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      ctx.fillStyle = CLRS[st[base + r*3 + c]];
+      beginRoundRect(ctx, fox + c*STEP, foy + r*STEP, S, S, R); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 0.5;
+      beginRoundRect(ctx, fox + c*STEP, foy + r*STEP, S, S, R); ctx.stroke();
+    }
+  }
+}
+
 function _generateShareSingle(idx) {
   const ts = curSes().times;
   const t = ts[idx];
   if (!t) { toast('No solve found'); return; }
 
-  const W = 600, H = 300, PAD = 28, R = 20;
+  const W = 480, H = 480, PAD = 24, GAP = 12, R = 20;
+  const CELL = (W - PAD * 2 - GAP * 2) / 3;
   const ctx = _shareCtxSetup(W, H);
   _shareCardBg(ctx, W, H, R);
 
-  const ses = curSes();
-  const n = ts.length - idx;
-  const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '';
-  _shareHeader(ctx, W, PAD, null, ses.name, dateStr);
-  _shareDivider(ctx, W, PAD, PAD + 42);
+  // Row 1 — cube net
+  const netRowY = PAD;
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  beginRoundRect(ctx, PAD, netRowY, W - PAD*2, CELL, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+  beginRoundRect(ctx, PAD, netRowY, W - PAD*2, CELL, 14); ctx.stroke();
+  _drawCubeNetCanvas(ctx, t.scramble || '', W/2, netRowY + CELL/2, W - PAD*2 - 24, CELL - 16);
 
-  // Big time
-  const timeStr = t.dnf ? 'DNF' : fmtMs(t.ms, t);
-  ctx.textAlign = 'center';
-  ctx.font = `bold 64px Inter,system-ui,sans-serif`;
-  ctx.fillStyle = t.dnf ? '#e00000' : t.plus2 ? '#f59e0b' : '#fff';
-  ctx.fillText(timeStr, W / 2, PAD + 42 + 68);
+  // Row 2 — time | tps | strati
+  const midRowY = PAD + CELL + GAP;
+  const timeStr = t.dnf ? 'DNF' : _sMs(t.plus2 ? t.ms + 2000 : t.ms);
+  const tpsVal  = (t.moves && t.moves.length > 0 && !t.dnf && t.ms > 0)
+    ? (t.moves.length / (t.ms / 1000)).toFixed(1) : '–';
+  const midCells = [
+    { label: 'TIME',    value: timeStr, color: t.dnf ? '#e00000' : t.plus2 ? '#f59e0b' : '#fff' },
+    { label: 'TPS',     value: tpsVal },
+    { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
+  ];
+  midCells.forEach((cell, i) => {
+    _drawCubeCell(ctx, PAD + i*(CELL+GAP), midRowY, CELL, cell.label||'', cell.value||'', cell);
+  });
 
-  // Solve number label
-  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillText(`Solve #${n}`, W / 2, PAD + 42 + 88);
+  // Row 3 — scramble
+  const scrRowY = PAD + 2*(CELL + GAP);
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  beginRoundRect(ctx, PAD, scrRowY, W - PAD*2, CELL, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+  beginRoundRect(ctx, PAD, scrRowY, W - PAD*2, CELL, 14); ctx.stroke();
 
-  // Scramble (word-wrap)
   if (t.scramble) {
-    _shareDivider(ctx, W, PAD, PAD + 42 + 100);
     const words = t.scramble.split(/\s+/).filter(Boolean);
-    const lineH = 18, maxW = W - PAD * 2;
-    ctx.font = '12px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    const maxW = W - PAD*2 - 24;
+    ctx.font = '13px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.textAlign = 'center';
-    let line = '', lineY = PAD + 42 + 118;
-    words.forEach((w, wi) => {
+    const lineH = 18;
+    let lines = [], line = '';
+    words.forEach(w => {
       const test = line ? line + ' ' + w : w;
-      if (ctx.measureText(test).width > maxW && line) {
-        ctx.fillText(line, W / 2, lineY); line = w; lineY += lineH;
-      } else { line = test; }
-      if (wi === words.length - 1 && line) ctx.fillText(line, W / 2, lineY);
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+      else line = test;
     });
+    if (line) lines.push(line);
+    const totalH = lines.length * lineH;
+    let lineY = scrRowY + (CELL - totalH) / 2 + 13;
+    lines.forEach(l => { ctx.fillText(l, W/2, lineY); lineY += lineH; });
   }
 
-  _shareFooter(ctx, W, H);
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }
