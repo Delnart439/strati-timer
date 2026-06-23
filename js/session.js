@@ -448,45 +448,95 @@ document.getElementById('timeList').addEventListener('click', e=>{
 
 document.getElementById('statsGrid').addEventListener('click', e=>{
   const sc = e.target.closest('.sc');
-  if (sc) openSolveModal(+sc.dataset.idx);
+  if (sc && !e.target.closest('.sc-share')) openSolveModal(+sc.dataset.idx);
 });
 
-function generateShareImg() {
+// ── Share dropdown ──
+const _shareBtn  = document.getElementById('shareSelectBtn');
+const _shareOpts = document.getElementById('shareOpts');
+_shareBtn.addEventListener('click', e => {
+  e.stopPropagation();
   const ts = curSes().times;
-  if (!ts.length) { toast('No solves to share'); return; }
+  const open = _shareOpts.style.display !== 'none';
+  if (!open) {
+    document.getElementById('shOptAo5').disabled   = calcAo(5)   === null;
+    document.getElementById('shOptAo12').disabled  = calcAo(12)  === null;
+    document.getElementById('shOptAo50').disabled  = calcAo(50)  === null;
+    document.getElementById('shOptAo100').disabled = calcAo(100) === null;
+    document.getElementById('shOptSingle').disabled = !ts.length;
+    lucide.createIcons();
+  }
+  _shareOpts.style.display = open ? 'none' : '';
+  _shareBtn.classList.toggle('on', !open);
+});
+document.addEventListener('click', () => {
+  _shareOpts.style.display = 'none';
+  _shareBtn.classList.remove('on');
+});
 
-  const W = 680, H = 400, PAD = 28, R = 20;
+function shareOptClick(type, param) {
+  _shareOpts.style.display = 'none';
+  _shareBtn.classList.remove('on');
+  generateShareImg(type, param);
+}
+
+function _shareCtxSetup(W, H) {
   const canvas = document.getElementById('shareCanvas');
   canvas.width = W * 2; canvas.height = H * 2;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   const ctx = canvas.getContext('2d');
   ctx.scale(2, 2);
-
-  // ── Transparent canvas, dark card ──
   ctx.clearRect(0, 0, W, H);
+  return ctx;
+}
+
+function _shareCardBg(ctx, W, H, R) {
   ctx.fillStyle = '#160c2e';
   beginRoundRect(ctx, 0, 0, W, H, R); ctx.fill();
-
-  // Subtle purple radial glow top-left
   const glow = ctx.createRadialGradient(60, 0, 0, 60, 0, 220);
-  glow.addColorStop(0, 'rgba(113,16,192,0.38)');
-  glow.addColorStop(1, 'rgba(113,16,192,0)');
+  glow.addColorStop(0, 'rgba(113,16,192,0.38)'); glow.addColorStop(1, 'rgba(113,16,192,0)');
   ctx.save(); ctx.beginPath(); roundRect(ctx, 0, 0, W, H, R); ctx.clip();
-  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
-  ctx.restore();
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H); ctx.restore();
+}
 
-  // ── Header ──
-  ctx.font = 'bold 20px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#7110c0';
-  ctx.textAlign = 'left';
+function _shareHeader(ctx, W, PAD, subtitle, sesName, dateStr) {
+  ctx.font = 'bold 20px Inter,system-ui,sans-serif';
+  ctx.fillStyle = '#7110c0'; ctx.textAlign = 'left';
   ctx.fillText('STRATI', PAD, PAD + 20);
+  if (subtitle) {
+    ctx.font = 'bold 11px Inter,system-ui,sans-serif';
+    ctx.fillStyle = 'rgba(113,16,192,0.7)';
+    ctx.fillText(subtitle, PAD + ctx.measureText('STRATI').width + 8, PAD + 20);
+  }
+  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'right';
+  ctx.fillText(sesName, W - PAD, PAD + 15);
+  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText(dateStr, W - PAD, PAD + 31);
+}
+
+function _shareDivider(ctx, W, PAD, y) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+}
+
+function _shareFooter(ctx, W, H) {
+  ctx.font = '10px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.textAlign = 'center'; ctx.fillText('STRATI TIMER', W / 2, H - 9);
+}
+
+function generateShareImg(type, param) {
+  type = type || 'session';
+  const ts = curSes().times;
+  if (!ts.length) { toast('No solves to share'); return; }
+
+  if (type === 'ao') { _generateShareAo(param); return; }
+  if (type === 'single') { _generateShareSingle(param || 0); return; }
+
+  const W = 680, H = 400, PAD = 28, R = 20;
+  const ctx = _shareCtxSetup(W, H);
+  _shareCardBg(ctx, W, H, R);
 
   const ses = curSes();
-  ctx.font = 'bold 13px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#fff';
-  ctx.textAlign = 'right';
-  ctx.fillText(ses.name, W - PAD, PAD + 15);
-
   const dated = ts.filter(t => t.date);
   let dateStr = '';
   if (dated.length) {
@@ -497,15 +547,11 @@ function generateShareImg() {
       ? newest.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
       : `${fmt(oldest)} – ${fmt(newest)}`;
   }
-  ctx.font = '11px Inter, system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText(dateStr, W - PAD, PAD + 31);
+  _shareHeader(ctx, W, PAD, null, ses.name, dateStr);
 
   // ── Divider 1 ──
   const div1Y = PAD + 42;
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(PAD, div1Y); ctx.lineTo(W - PAD, div1Y); ctx.stroke();
+  _shareDivider(ctx, W, PAD, div1Y);
 
   // ── Stats ──
   const pb   = bestSingle();
@@ -644,12 +690,117 @@ function generateShareImg() {
     ctx.fillText('Not enough solves to graph', gx + gw / 2, gy + gh / 2);
   }
 
-  // ── Footer ──
-  ctx.font = '10px Inter, system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
-  ctx.textAlign = 'center';
-  ctx.fillText('STRATI TIMER', W / 2, H - 9);
+  _shareFooter(ctx, W, H);
+  document.getElementById('shareImgModal').classList.remove('h');
+  lucide.createIcons();
+}
 
+// ── Average card ──
+function _generateShareAo(n) {
+  const ts = curSes().times;
+  const win = getAoWindow(n, false);
+  if (!win) { toast(`Not enough solves for Ao${n}`); return; }
+  const { chunk } = win;
+  const avg = calcAoFromChunk(chunk);
+
+  const cols = n <= 5 ? 5 : n <= 12 ? 6 : n <= 50 ? 10 : 10;
+  const rows = Math.ceil(n / cols);
+  const CW = n <= 12 ? 86 : n <= 50 ? 58 : 58;
+  const CH = n <= 12 ? 40 : 36;
+  const PAD = 28, R = 20, GAP = 6;
+  const W = 680;
+  const gridW = cols * CW + (cols - 1) * GAP;
+  const gridX = (W - gridW) / 2;
+  const H = PAD + 46 + 16 + 80 + 16 + rows * (CH + GAP) - GAP + PAD + 18;
+  const ctx = _shareCtxSetup(W, H);
+  _shareCardBg(ctx, W, H, R);
+
+  const ses = curSes();
+  const dateStr = ts[0]?.date ? new Date(ts[0].date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '';
+  _shareHeader(ctx, W, PAD, null, ses.name, dateStr);
+  _shareDivider(ctx, W, PAD, PAD + 42);
+
+  // Big average
+  const avgY = PAD + 42 + 16;
+  ctx.textAlign = 'center';
+  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText(`AO${n}`, W / 2, avgY + 14);
+  ctx.font = `bold ${n <= 12 ? 42 : 36}px Inter,system-ui,sans-serif`;
+  ctx.fillStyle = avg !== null ? '#fff' : '#e00000';
+  ctx.fillText(avg !== null ? fmtMs(avg) : 'DNF', W / 2, avgY + 62);
+
+  _shareDivider(ctx, W, PAD, avgY + 80);
+
+  // Solve grid — identify trimmed (best and worst)
+  const vals = chunk.map((t,i) => ({ t, i, v: t.dnf ? Infinity : (t.plus2 ? t.ms+2000 : t.ms) }));
+  const sorted = [...vals].sort((a,b) => a.v - b.v);
+  const trimLow = sorted[0].i, trimHigh = sorted[sorted.length-1].i;
+
+  const gridY = avgY + 80 + 16;
+  chunk.forEach((t, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const cx = gridX + col * (CW + GAP) + CW / 2;
+    const cy = gridY + row * (CH + GAP);
+    const isTrim = i === trimLow || i === trimHigh;
+    ctx.fillStyle = isTrim ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)';
+    beginRoundRect(ctx, gridX + col * (CW + GAP), cy, CW, CH, 6); ctx.fill();
+    const timeStr = fmtMs2(t.ms, t);
+    ctx.font = `bold ${n <= 12 ? 14 : 11}px Inter,system-ui,sans-serif`;
+    ctx.fillStyle = isTrim ? 'rgba(255,255,255,0.25)' : (t.dnf ? '#e00000' : t.plus2 ? '#f59e0b' : '#fff');
+    ctx.textAlign = 'center';
+    ctx.fillText(timeStr, cx, cy + CH / 2 + (n <= 12 ? 5 : 4));
+  });
+
+  _shareFooter(ctx, W, H);
+  document.getElementById('shareImgModal').classList.remove('h');
+  lucide.createIcons();
+}
+
+// ── Single solve card ──
+function _generateShareSingle(idx) {
+  const ts = curSes().times;
+  const t = ts[idx];
+  if (!t) { toast('No solve found'); return; }
+
+  const W = 600, H = 300, PAD = 28, R = 20;
+  const ctx = _shareCtxSetup(W, H);
+  _shareCardBg(ctx, W, H, R);
+
+  const ses = curSes();
+  const n = ts.length - idx;
+  const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '';
+  _shareHeader(ctx, W, PAD, null, ses.name, dateStr);
+  _shareDivider(ctx, W, PAD, PAD + 42);
+
+  // Big time
+  const timeStr = t.dnf ? 'DNF' : fmtMs(t.ms, t);
+  ctx.textAlign = 'center';
+  ctx.font = `bold 64px Inter,system-ui,sans-serif`;
+  ctx.fillStyle = t.dnf ? '#e00000' : t.plus2 ? '#f59e0b' : '#fff';
+  ctx.fillText(timeStr, W / 2, PAD + 42 + 68);
+
+  // Solve number label
+  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText(`Solve #${n}`, W / 2, PAD + 42 + 88);
+
+  // Scramble (word-wrap)
+  if (t.scramble) {
+    _shareDivider(ctx, W, PAD, PAD + 42 + 100);
+    const words = t.scramble.split(/\s+/).filter(Boolean);
+    const lineH = 18, maxW = W - PAD * 2;
+    ctx.font = '12px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.textAlign = 'center';
+    let line = '', lineY = PAD + 42 + 118;
+    words.forEach((w, wi) => {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) {
+        ctx.fillText(line, W / 2, lineY); line = w; lineY += lineH;
+      } else { line = test; }
+      if (wi === words.length - 1 && line) ctx.fillText(line, W / 2, lineY);
+    });
+  }
+
+  _shareFooter(ctx, W, H);
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }

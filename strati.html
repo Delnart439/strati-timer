@@ -246,10 +246,18 @@
 <section id="pg-stats" class="page">
   <div class="stats-right">
     <div class="stats-top">
-      <div class="stats-fox">
+      <div class="stats-fox" style="position:relative">
         <div class="stats-fox-bub">Want to share your times with friends?</div>
         <img src="Mascotte/hi.png" alt="fox">
-        <button id="shareSelectBtn" class="stl-share-rect" title="Share session" onclick="generateShareImg()"><i data-lucide="share-2" style="width:15px;height:15px"></i>Share</button>
+        <button id="shareSelectBtn" class="stl-share-rect" title="Share session"><i data-lucide="share-2" style="width:15px;height:15px"></i>Share</button>
+        <div id="shareOpts" style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:#2a1050;border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden;z-index:30;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+          <button class="sh-opt-btn" onclick="shareOptClick('session')"><i data-lucide="layout-dashboard" style="width:13px;height:13px"></i> Session</button>
+          <button class="sh-opt-btn" id="shOptAo5"   onclick="shareOptClick('ao',5)">Ao5</button>
+          <button class="sh-opt-btn" id="shOptAo12"  onclick="shareOptClick('ao',12)">Ao12</button>
+          <button class="sh-opt-btn" id="shOptAo50"  onclick="shareOptClick('ao',50)">Ao50</button>
+          <button class="sh-opt-btn" id="shOptAo100" onclick="shareOptClick('ao',100)">Ao100</button>
+          <button class="sh-opt-btn" id="shOptSingle" onclick="shareOptClick('single',0)"><i data-lucide="clock" style="width:13px;height:13px"></i> Last Solve</button>
+        </div>
       </div>
       <div class="stc">
       <div class="st-main">

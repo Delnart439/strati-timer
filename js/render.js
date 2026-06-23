@@ -81,7 +81,7 @@ function renderTimeList() {
   const rev=[...ts].reverse();
   ts.forEach((t,i)=>{
     const n=ts.length-i;
-    g+=`<div class="sc" data-idx="${i}"><div class="sc-n">${n}.</div><span class="sc-t">${fmtMs2(t.ms,t)}</span></div>`;
+    g+=`<div class="sc" data-idx="${i}"><div class="sc-n">${n}.</div><span class="sc-t">${fmtMs2(t.ms,t)}</span><button class="sc-share" onclick="event.stopPropagation();shareOptClick('single',${i})" title="Share this solve"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button></div>`;
   });
   document.getElementById('statsGrid').innerHTML = g;
   renderStatsGraphs();
