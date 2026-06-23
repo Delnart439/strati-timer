@@ -508,6 +508,21 @@ function _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py) {
   });
 }
 
+function _drawGraphTip(ctx, vals, plotIndices, px, py, gy) {
+  const bestI = vals.indexOf(Math.min(...vals));
+  const tipX = px(plotIndices[bestI]);
+  const tipY = py(vals[bestI]);
+  const label = fmtMs(vals[bestI]);
+  ctx.font = 'bold 10px Inter,system-ui,sans-serif';
+  const lw = ctx.measureText(label).width;
+  const lx = Math.max(tipX - lw / 2, 0);
+  const ly = tipY - 8;
+  if (ly - 11 >= gy) {
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+    ctx.fillText(label, lx, ly);
+  }
+}
+
 function _shareCtxSetup(W, H) {
   const canvas = document.getElementById('shareCanvas');
   canvas.width = W * 2; canvas.height = H * 2;
@@ -699,6 +714,9 @@ function generateShareImg(type, param) {
       const s = 5;
       ctx.beginPath(); ctx.moveTo(x-s,y-s); ctx.lineTo(x+s,y+s); ctx.moveTo(x+s,y-s); ctx.lineTo(x-s,y+s); ctx.stroke();
     });
+
+    // Tip label
+    _drawGraphTip(ctx, vals, plotIndices, px, py, gy);
   } else {
     ctx.font = '12px Inter,system-ui,sans-serif';
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
@@ -790,6 +808,9 @@ function _generateShareAo(n) {
       ctx.arc(px(plotIndices[i]), py(vals[i]), n <= 20 ? 3.5 : 2.5, 0, Math.PI * 2);
       ctx.fillStyle = t.plus2 ? '#f59e0b' : '#a855f7'; ctx.fill();
     });
+
+    // Tip label
+    _drawGraphTip(ctx, vals, plotIndices, px, py, gy);
   } else {
     ctx.font = '12px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
     ctx.fillText('Not enough valid solves to graph', gx + gw / 2, gy + gh / 2);
