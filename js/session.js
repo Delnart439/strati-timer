@@ -491,7 +491,13 @@ let _lastShareType = 'session', _lastShareParam = null;
     const reader = new FileReader();
     reader.onload = e => {
       const img = new Image();
-      img.onload = () => { _logoImg = img; };
+      img.onload = () => {
+        _logoImg = img;
+        const modal = document.getElementById('shareImgModal');
+        if (modal && !modal.classList.contains('h') && _lastShareType) {
+          generateShareImg(_lastShareType, _lastShareParam);
+        }
+      };
       img.src = e.target.result;
     };
     reader.readAsDataURL(blob);
