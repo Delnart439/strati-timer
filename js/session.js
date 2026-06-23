@@ -701,7 +701,7 @@ function generateShareImg(type, param) {
 
   // Middle row — graph
   const graphRowY = PAD + CELL + GAP;
-  const HPAD = 14, YLABELW = 44;
+  const HPAD = 10, YLABELW = 28;
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
   ctx.save();
@@ -768,7 +768,7 @@ function _generateShareAo(n) {
 
   // Middle row — graph (chunk solves)
   const graphRowY = PAD + CELL + GAP;
-  const HPAD = 14, YLABELW = 44;
+  const HPAD = 10, YLABELW = 28;
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
   ctx.save();
