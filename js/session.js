@@ -746,7 +746,7 @@ function generateShareImg(type, param) {
   const botCells = [
     { label: 'N° SOLVES',     value: String(ts.length) },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
-    { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
+    { isLogo: true, bg: '#7110c0' },
   ];
   const botY = PAD + 2 * (CELL + GAP);
   botCells.forEach((cell, i) => {
@@ -809,7 +809,7 @@ function _generateShareAo(n) {
   const botCells = [
     { label: 'N° SOLVES',     value: String(n) },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
-    { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
+    { isLogo: true, bg: '#7110c0' },
   ];
   const botY = PAD + 2 * (CELL + GAP);
   botCells.forEach((cell, i) => {
@@ -869,7 +869,7 @@ function _generateCfopCard(t) {
   // Row 1 — TIME | MOVES | STRATI
   _drawCubeCell(ctx, PAD, PAD, CELL, 'TIME', timeStr, { color: t.dnf ? '#e00000' : '#fff' });
   _drawCubeCell(ctx, PAD + CELL + GAP, PAD, CELL, 'MOVES', moveCount, {});
-  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), PAD, CELL, '', '', { isLogo: true, bg: 'rgba(113,16,192,0.35)' });
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), PAD, CELL, '', '', { isLogo: true, bg: '#7110c0' });
 
   // Row 2 — CFOP bar visualization
   const barRowY = PAD + CELL + GAP;
@@ -1065,7 +1065,7 @@ function _generateShareSingle(idx) {
   const row3Y = PAD + 2 * (CELL + GAP);
   _drawCubeCell(ctx, PAD, row3Y, CELL, 'TPS', tpsVal, {});
   _drawCubeCell(ctx, PAD + CELL + GAP, row3Y, CELL, timeLabel, dateVal, {});
-  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true, bg: 'rgba(113,16,192,0.35)' });
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true, bg: '#7110c0' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
   document.getElementById('shareImgModal').classList.remove('h');
@@ -1090,8 +1090,16 @@ document.getElementById('shareImgDownload').addEventListener('click', ()=>{
   a.click();
 });
 document.getElementById('shareImgCopy').addEventListener('click', ()=>{
+  const btn = document.getElementById('shareImgCopy');
   _activeShareCanvas().toBlob(blob=>{
-    navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>showToast('Copied!')).catch(()=>showToast('Copy failed'));
+    navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{
+      toast('Image copied!');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied!';
+      btn.style.background = 'rgba(34,197,94,0.25)';
+      btn.style.color = '#22c55e';
+      setTimeout(()=>{ btn.textContent = orig; btn.style.background = ''; btn.style.color = ''; }, 2000);
+    }).catch(()=>toast('Copy failed'));
   });
 });
 
