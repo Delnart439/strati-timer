@@ -701,15 +701,7 @@ function _generateShareAo(n) {
   const { chunk } = win;
   const avg = calcAoFromChunk(chunk);
 
-  const cols = n <= 5 ? 5 : n <= 12 ? 6 : n <= 50 ? 10 : 10;
-  const rows = Math.ceil(n / cols);
-  const CW = n <= 12 ? 86 : n <= 50 ? 58 : 58;
-  const CH = n <= 12 ? 40 : 36;
-  const PAD = 28, R = 20, GAP = 6;
-  const W = 680;
-  const gridW = cols * CW + (cols - 1) * GAP;
-  const gridX = (W - gridW) / 2;
-  const H = PAD + 46 + 16 + 80 + 16 + rows * (CH + GAP) - GAP + PAD + 18;
+  const W = 680, H = 400, PAD = 28, R = 20;
   const ctx = _shareCtxSetup(W, H);
   _shareCardBg(ctx, W, H, R);
 
@@ -721,33 +713,79 @@ function _generateShareAo(n) {
   // Big average
   const avgY = PAD + 42 + 16;
   ctx.textAlign = 'center';
-  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.fillText(`AO${n}`, W / 2, avgY + 14);
-  ctx.font = `bold ${n <= 12 ? 42 : 36}px Inter,system-ui,sans-serif`;
+  ctx.font = 'bold 42px Inter,system-ui,sans-serif';
   ctx.fillStyle = avg !== null ? '#fff' : '#e00000';
   ctx.fillText(avg !== null ? fmtMs(avg) : 'DNF', W / 2, avgY + 62);
 
   _shareDivider(ctx, W, PAD, avgY + 80);
 
-  // Solve grid — identify trimmed (best and worst)
-  const vals = chunk.map((t,i) => ({ t, i, v: t.dnf ? Infinity : (t.plus2 ? t.ms+2000 : t.ms) }));
-  const sorted = [...vals].sort((a,b) => a.v - b.v);
-  const trimLow = sorted[0].i, trimHigh = sorted[sorted.length-1].i;
+  // Graph of the N chunk times (oldest → newest = chunk[n-1] → chunk[0])
+  const YLABELW = 52;
+  const gx = PAD + YLABELW, gy = avgY + 80 + 32;
+  const gw = W - gx - PAD;
+  const gh = H - gy - PAD - 14;
 
-  const gridY = avgY + 80 + 16;
-  chunk.forEach((t, i) => {
-    const col = i % cols, row = Math.floor(i / cols);
-    const cx = gridX + col * (CW + GAP) + CW / 2;
-    const cy = gridY + row * (CH + GAP);
-    const isTrim = i === trimLow || i === trimHigh;
-    ctx.fillStyle = isTrim ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)';
-    beginRoundRect(ctx, gridX + col * (CW + GAP), cy, CW, CH, 6); ctx.fill();
-    const timeStr = fmtMs2(t.ms, t);
-    ctx.font = `bold ${n <= 12 ? 14 : 11}px Inter,system-ui,sans-serif`;
-    ctx.fillStyle = isTrim ? 'rgba(255,255,255,0.25)' : (t.dnf ? '#e00000' : t.plus2 ? '#f59e0b' : '#fff');
-    ctx.textAlign = 'center';
-    ctx.fillText(timeStr, cx, cy + CH / 2 + (n <= 12 ? 5 : 4));
-  });
+  ctx.font = 'bold 14px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+  ctx.fillText(`${n} Solve${n !== 1 ? 's' : ''}`, gx, avgY + 80 + 22);
+
+  const plotData = [...chunk].reverse().filter(t => !t.dnf);
+  if (plotData.length >= 2) {
+    const vals  = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
+    const minV  = Math.min(...vals);
+    const maxV  = Math.max(...vals);
+    const range = (maxV - minV) || 1;
+    const reversedChunk = [...chunk].reverse();
+    const plotIndices = plotData.map(t => reversedChunk.indexOf(t));
+
+    const px = idx => gx + (idx / Math.max(chunk.length - 1, 1)) * gw;
+    const py = v   => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
+
+    // Y-axis ticks + grid lines
+    ctx.font = '9px Inter,system-ui,sans-serif'; ctx.textAlign = 'right';
+    for (let ti = 0; ti <= 4; ti++) {
+      const v = minV + (maxV - minV) * (ti / 4);
+      const y = py(v);
+      ctx.fillStyle = '#fff'; ctx.fillText(fmtMs(v), gx - 8, y + 3);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + gw, y); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Gradient fill
+    const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
+    fill.addColorStop(0, 'rgba(113,16,192,0.45)'); fill.addColorStop(1, 'rgba(113,16,192,0.02)');
+    ctx.beginPath();
+    ctx.moveTo(px(plotIndices[0]), gy + gh);
+    ctx.lineTo(px(plotIndices[0]), py(vals[0]));
+    for (let i = 1; i < plotData.length; i++) {
+      const cpx = (px(plotIndices[i-1]) + px(plotIndices[i])) / 2;
+      ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIndices[i]), py(vals[i]));
+    }
+    ctx.lineTo(px(plotIndices[plotData.length - 1]), gy + gh);
+    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(px(plotIndices[0]), py(vals[0]));
+    for (let i = 1; i < plotData.length; i++) {
+      const cpx = (px(plotIndices[i-1]) + px(plotIndices[i])) / 2;
+      ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIndices[i]), py(vals[i]));
+    }
+    ctx.strokeStyle = '#7110c0'; ctx.lineWidth = 2; ctx.stroke();
+
+    // Dots
+    plotData.forEach((t, i) => {
+      ctx.beginPath();
+      ctx.arc(px(plotIndices[i]), py(vals[i]), n <= 20 ? 3.5 : 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = t.plus2 ? '#f59e0b' : '#a855f7'; ctx.fill();
+    });
+  } else {
+    ctx.font = '12px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.fillText('Not enough valid solves to graph', gx + gw / 2, gy + gh / 2);
+  }
 
   _shareFooter(ctx, W, H);
   document.getElementById('shareImgModal').classList.remove('h');
