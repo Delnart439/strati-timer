@@ -505,12 +505,12 @@ function _shareHeader(ctx, W, PAD, subtitle, sesName, dateStr) {
   ctx.fillText('STRATI', PAD, PAD + 20);
   if (subtitle) {
     ctx.font = 'bold 11px Inter,system-ui,sans-serif';
-    ctx.fillStyle = 'rgba(113,16,192,0.7)';
+    ctx.fillStyle = '#a855f7';
     ctx.fillText(subtitle, PAD + ctx.measureText('STRATI').width + 8, PAD + 20);
   }
   ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'right';
   ctx.fillText(sesName, W - PAD, PAD + 15);
-  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.fillText(dateStr, W - PAD, PAD + 31);
 }
 
@@ -520,7 +520,7 @@ function _shareDivider(ctx, W, PAD, y) {
 }
 
 function _shareFooter(ctx, W, H) {
-  ctx.font = '10px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.font = '10px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.textAlign = 'center'; ctx.fillText('STRATI TIMER', W / 2, H - 9);
 }
 
@@ -590,7 +590,7 @@ function generateShareImg(type, param) {
       ctx.beginPath(); ctx.moveTo(PAD + i * statW, statsY + 4); ctx.lineTo(PAD + i * statW, statsY + statsH - 4); ctx.stroke();
     }
     ctx.font = '9px Inter, system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.textAlign = 'center';
     ctx.fillText(label, cx, statsY + 16);
     ctx.font = `bold 22px Inter, system-ui, sans-serif`;
@@ -600,29 +600,46 @@ function generateShareImg(type, param) {
 
   // ── Divider 2 ──
   const div2Y = statsY + statsH + 12;
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(PAD, div2Y); ctx.lineTo(W - PAD, div2Y); ctx.stroke();
+  _shareDivider(ctx, W, PAD, div2Y);
 
   // ── Graph ──
-  const gx = PAD, gy = div2Y + 14;
-  const gw = W - PAD * 2;
-  const gh = H - gy - PAD - 18;
+  const YLABELW = 52;
+  const gx = PAD + YLABELW, gy = div2Y + 32;
+  const gw = W - gx - PAD;
+  const gh = H - gy - PAD - 14;
+
+  // Solve count as graph title
+  ctx.font = 'bold 14px Inter,system-ui,sans-serif';
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+  ctx.fillText(`${ts.length} Solve${ts.length!==1?'s':''}`, gx, div2Y + 22);
 
   const plotData = [...ts].reverse().filter(t => !t.dnf);
-  const dnfData  = [...ts].reverse().map((t, i) => ({ t, i: i })).filter(({ t }) => t.dnf);
+  const dnfData  = [...ts].reverse().map((t, i) => ({ t, i })).filter(({ t }) => t.dnf);
 
   if (plotData.length >= 2) {
-    const vals   = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
-    const minV   = Math.min(...vals);
-    const maxV   = Math.max(...vals);
-    const range  = (maxV - minV) || 1;
-    const total  = ts.length;
+    const vals  = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
+    const minV  = Math.min(...vals);
+    const maxV  = Math.max(...vals);
+    const range = (maxV - minV) || 1;
+    const total = ts.length;
 
     const px = idx => gx + (idx / Math.max(total - 1, 1)) * gw;
-    const py = v    => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
+    const py = v   => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
 
-    // Build index map for plotData entries back to their position in reversed ts
+    // Y-axis ticks + grid lines
+    const TICKS = 4;
+    ctx.font = '9px Inter,system-ui,sans-serif'; ctx.textAlign = 'right';
+    for (let ti = 0; ti <= TICKS; ti++) {
+      const v = minV + (maxV - minV) * (ti / TICKS);
+      const y = py(v);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(fmtMs(v), gx - 8, y + 3);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + gw, y); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     const reversedTs = [...ts].reverse();
     const plotIndices = plotData.map(t => reversedTs.indexOf(t));
 
@@ -630,38 +647,31 @@ function generateShareImg(type, param) {
     const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
     fill.addColorStop(0, 'rgba(113,16,192,0.45)');
     fill.addColorStop(1, 'rgba(113,16,192,0.02)');
-
     ctx.beginPath();
     ctx.moveTo(px(plotIndices[0]), gy + gh);
     ctx.lineTo(px(plotIndices[0]), py(vals[0]));
     for (let i = 1; i < plotData.length; i++) {
-      const x0 = px(plotIndices[i-1]), y0 = py(vals[i-1]);
-      const x1 = px(plotIndices[i]),   y1 = py(vals[i]);
-      const cpx = (x0 + x1) / 2;
-      ctx.bezierCurveTo(cpx, y0, cpx, y1, x1, y1);
+      const cpx = (px(plotIndices[i-1]) + px(plotIndices[i])) / 2;
+      ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIndices[i]), py(vals[i]));
     }
     ctx.lineTo(px(plotIndices[plotData.length - 1]), gy + gh);
-    ctx.closePath();
-    ctx.fillStyle = fill; ctx.fill();
+    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
 
     // Line
     ctx.beginPath();
     ctx.moveTo(px(plotIndices[0]), py(vals[0]));
     for (let i = 1; i < plotData.length; i++) {
-      const x0 = px(plotIndices[i-1]), y0 = py(vals[i-1]);
-      const x1 = px(plotIndices[i]),   y1 = py(vals[i]);
-      const cpx = (x0 + x1) / 2;
-      ctx.bezierCurveTo(cpx, y0, cpx, y1, x1, y1);
+      const cpx = (px(plotIndices[i-1]) + px(plotIndices[i])) / 2;
+      ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIndices[i]), py(vals[i]));
     }
     ctx.strokeStyle = '#7110c0'; ctx.lineWidth = 2; ctx.stroke();
 
-    // Dots (small sets only)
+    // Dots (small sets)
     if (plotData.length <= 60) {
       plotData.forEach((t, i) => {
         ctx.beginPath();
         ctx.arc(px(plotIndices[i]), py(vals[i]), plotData.length <= 20 ? 3.5 : 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = t.plus2 ? '#f59e0b' : '#a855f7';
-        ctx.fill();
+        ctx.fillStyle = t.plus2 ? '#f59e0b' : '#a855f7'; ctx.fill();
       });
     }
 
@@ -672,21 +682,9 @@ function generateShareImg(type, param) {
       const s = 5;
       ctx.beginPath(); ctx.moveTo(x-s,y-s); ctx.lineTo(x+s,y+s); ctx.moveTo(x+s,y-s); ctx.lineTo(x-s,y+s); ctx.stroke();
     });
-
-    // Y-axis labels
-    ctx.font = '9px Inter, system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
-    ctx.textAlign = 'left';
-    ctx.fillText(fmtMs(maxV), gx, gy + 9);
-    ctx.fillText(fmtMs(minV), gx, gy + gh);
-
-    // Solve count
-    ctx.textAlign = 'right';
-    ctx.fillText(`${ts.length} solve${ts.length!==1?'s':''}`, W - PAD, gy + gh);
   } else {
-    ctx.font = '12px Inter, system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.textAlign = 'center';
+    ctx.font = '12px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
     ctx.fillText('Not enough solves to graph', gx + gw / 2, gy + gh / 2);
   }
 
