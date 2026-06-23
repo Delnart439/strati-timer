@@ -709,7 +709,7 @@ function generateShareImg(type, param) {
   const topCells = [
     { label: 'BEST SINGLE',   value: pb   !== null ? _sMs(pb)   : '–' },
     { label: 'SESSION AVG',   value: mean !== null ? _sMs(mean) : '–' },
-    { label: 'N° SOLVES',     value: String(ts.length), labelTop: true },
+    { label: 'TRAINING TIME', value: trainingStr },
   ];
   topCells.forEach((cell, i) => {
     _drawCubeCell(ctx, PAD + i * (CELL + GAP), PAD, CELL, cell.label, cell.value, cell);
@@ -729,7 +729,7 @@ function generateShareImg(type, param) {
 
   // Bottom row
   const botCells = [
-    { label: 'TRAINING TIME', value: trainingStr },
+    { label: 'N° SOLVES',     value: String(ts.length), labelTop: true },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
     { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
   ];
