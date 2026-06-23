@@ -596,7 +596,6 @@ function _drawGraph(ctx, solves, total, gx, gy, gw, gh) {
   // Solve count label — top right
   ctx.font = 'bold 9px Inter,system-ui,sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.textAlign = 'right';
-  ctx.fillText(`n° ${total}`, gx + gw, gy + 9);
 
   const vals = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
   const minV = Math.min(...vals), maxV = Math.max(...vals), range = (maxV - minV) || 1;
@@ -698,7 +697,7 @@ function generateShareImg(type, param) {
   const topCells = [
     { label: 'BEST SINGLE',   value: pb   !== null ? _sMs(pb)   : '–' },
     { label: 'SESSION AVG',   value: mean !== null ? _sMs(mean) : '–' },
-    { label: 'SOLVES',        value: String(ts.length) },
+    { label: 'N° SOLVES',     value: String(ts.length) },
   ];
   topCells.forEach((cell, i) => {
     _drawCubeCell(ctx, PAD + i * (CELL + GAP), PAD, CELL, cell.label, cell.value, cell);
@@ -785,7 +784,7 @@ function _generateShareAo(n) {
 
   // Bottom row
   const botCells = [
-    { label: 'SOLVES',        value: String(n) },
+    { label: 'N° SOLVES',     value: String(n) },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
     { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
   ];
