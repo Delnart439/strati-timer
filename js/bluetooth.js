@@ -171,6 +171,111 @@ document.getElementById('battleCubeBtn').addEventListener('click', ()=>{
   if(typeof bcSetMode==='function') bcSetMode('cubes');
 });
 
+// ── BATTLE STACKMAT BLE (keys mode, one per player) ──
+let bgDevices = [null, null];
+
+function bgSetUI(i, connected, name) {
+  const btn  = document.getElementById('b' + (i+1) + '-st-btn');
+  const disc = document.getElementById('b' + (i+1) + '-st-disc');
+  const keyEl = document.getElementById('b' + (i+1) + '-key');
+  if (!btn) return;
+  if (connected) {
+    btn.classList.add('connected');
+    btn.title = name || 'Timer connected';
+    if (disc) disc.style.display = '';
+    if (keyEl) keyEl.textContent = name || 'BT Timer';
+  } else {
+    btn.classList.remove('connected');
+    btn.title = 'Connect Bluetooth Timer';
+    if (disc) disc.style.display = 'none';
+    if (keyEl) keyEl.textContent = 'Key: ' + bKeys[i];
+  }
+}
+
+function bgOnEvent(i, event) {
+  if (bcMode !== 'keys') return;
+  const data = event.target.value;
+  if (!validateGanPkt(data)) return;
+  const s = data.getUint8(3);
+  switch (s) {
+    case GAN_ST.HANDS_ON:
+      if (bState[i].state === 'idle' || bState[i].state === 'stopped') bSetState(i, 'holding');
+      break;
+    case GAN_ST.GET_SET:
+      if (bState[i].state === 'holding') bSetState(i, 'ready');
+      break;
+    case GAN_ST.RUNNING:
+      if (bState[i].state === 'ready' || bState[i].state === 'holding') {
+        bState[i].st = Date.now(); bState[i].t = 0;
+        document.getElementById(bIds[i] + '-time').textContent = '0.000';
+        document.getElementById('battleResult').textContent = '';
+        document.getElementById('b1-card').classList.remove('winner');
+        document.getElementById('b2-card').classList.remove('winner');
+        bSetState(i, 'running');
+        if (!bRaf) bRaf = requestAnimationFrame(bTick);
+      }
+      break;
+    case GAN_ST.STOPPED:
+      if (bState[i].state === 'running') {
+        const min = data.getUint8(4), sec = data.getUint8(5), ms = data.getUint16(6, true);
+        bState[i].t = (min * 60 + sec) * 1000 + ms;
+        document.getElementById(bIds[i] + '-time').textContent = bFmt(bState[i].t);
+        bSetState(i, 'stopped');
+        bCheckRoundEnd();
+      }
+      break;
+    case GAN_ST.HANDS_OFF:
+    case GAN_ST.IDLE:
+      if (bState[i].state === 'holding' || bState[i].state === 'ready') bSetState(i, 'idle');
+      else if (bState[i].state === 'stopped') {
+        bSetState(i, 'idle');
+        document.getElementById(bIds[i] + '-time').textContent = '0.000';
+      }
+      break;
+  }
+}
+
+async function bgScan(i) {
+  if (!navigator.bluetooth) { alert('Web Bluetooth not supported. Use Chrome or Edge.'); return; }
+  if (bgDevices[i]) return;
+  const btn = document.getElementById('b' + (i+1) + '-st-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [GAN_SVC] }, { namePrefix: 'GAN' }],
+      optionalServices: [GAN_SVC]
+    });
+    bgDevices[i] = device;
+    device.addEventListener('gattserverdisconnected', () => {
+      bgDevices[i] = null;
+      bgSetUI(i, false);
+      if (bState[i].state !== 'idle' && bState[i].state !== 'stopped') {
+        bSetState(i, 'idle');
+        document.getElementById(bIds[i] + '-time').textContent = '0.000';
+      } else {
+        bSetState(i, 'idle');
+      }
+    });
+    const server  = await device.gatt.connect();
+    const service = await server.getPrimaryService(GAN_SVC);
+    const char    = await service.getCharacteristic(GAN_STATE_CHAR);
+    char.addEventListener('characteristicvaluechanged', ev => bgOnEvent(i, ev));
+    await char.startNotifications();
+    bgSetUI(i, true, device.name || 'GAN Timer');
+    bSetState(i, 'idle');
+  } catch (err) {
+    bgDevices[i] = null;
+  }
+  if (btn) { btn.disabled = false; lucide.createIcons(); }
+}
+
+function bgDisconnect(i) {
+  try { if (bgDevices[i]?.gatt?.connected) bgDevices[i].gatt.disconnect(); } catch(e) {}
+  bgDevices[i] = null;
+  bgSetUI(i, false);
+  bSetState(i, 'idle');
+}
+
 // ── BATTLE MODE TIMERS ──
 const bState = [{t:0,st:0,state:'idle'},{t:0,st:0,state:'idle'}];
 const bKeys = ['Space','Enter'];
@@ -205,10 +310,11 @@ function bSetState(i,s){
     else if(s==='stopped')hintEl.textContent='Waiting for opponent…';
     bcUpdateCard(i);
   } else {
-    if(s==='idle'){hintEl.innerHTML=`Hold <strong>${key}</strong> to ready`;}
-    else if(s==='holding'){hintEl.innerHTML=`Keep holding <strong>${key}</strong>…`;}
-    else if(s==='ready'){hintEl.innerHTML=`Release <strong>${key}</strong> to start!`;}
-    else if(s==='running'){hintEl.innerHTML=`Press <strong>${key}</strong> to stop`;}
+    const hasBt = !!bgDevices[i];
+    if(s==='idle'){hintEl.innerHTML = hasBt ? 'Place hands on timer' : `Hold <strong>${key}</strong> to ready`;}
+    else if(s==='holding'){hintEl.innerHTML = hasBt ? 'Hold still…' : `Keep holding <strong>${key}</strong>…`;}
+    else if(s==='ready'){hintEl.innerHTML = hasBt ? 'Lift hands to start!' : `Release <strong>${key}</strong> to start!`;}
+    else if(s==='running'){hintEl.innerHTML = hasBt ? 'Solve!' : `Press <strong>${key}</strong> to stop`;}
     else if(s==='stopped'){hintEl.innerHTML=`Waiting for opponent…`;}
   }
 }
@@ -243,6 +349,7 @@ document.addEventListener('keydown', e=>{
   if(bcMode==='cubes') return;
   const i=bKeys.indexOf(e.code);
   if(i<0||e.repeat) return;
+  if(bgDevices[i]) return;
   if(bState[i].state==='idle'){
     bSetState(i,'holding');
     bHoldTimers[i]=setTimeout(()=>{ bSetState(i,'ready'); },bHoldMs);
@@ -259,6 +366,7 @@ document.addEventListener('keyup', e=>{
   if(bcMode==='cubes') return;
   const i=bKeys.indexOf(e.code);
   if(i<0) return;
+  if(bgDevices[i]) return;
   if(bState[i].state==='holding'){
     clearTimeout(bHoldTimers[i]);
     bSetState(i,'idle');
@@ -710,14 +818,16 @@ function bcSetMode(mode) {
   const bNet = document.getElementById('battleCubeNet');
   if (bScrTxt) bScrTxt.style.display = inCubes ? 'none' : '';
   if (bNet) bNet.style.display = inCubes ? 'none' : 'block';
-  if (inCubes) bcInitAllScrambles();
+  if (inCubes) { bcInitAllScrambles(); bgDisconnect(0); bgDisconnect(1); }
   for (let i = 0; i < 2; i++) {
     const keyEl = document.getElementById('b' + (i + 1) + '-key');
     const cubeUi = document.getElementById('b' + (i + 1) + '-cube-ui');
     const wrap3d = document.getElementById('b' + (i + 1) + '-3d-wrap');
     const scrTxt = document.getElementById('b' + (i + 1) + '-scr-txt');
+    const stUi   = document.getElementById('b' + (i + 1) + '-st-ui');
     if (keyEl) keyEl.style.display = inCubes ? 'none' : '';
     if (cubeUi) cubeUi.style.display = inCubes ? '' : 'none';
+    if (stUi) stUi.style.display = inCubes ? 'none' : '';
     if (scrTxt) scrTxt.style.display = inCubes ? '' : 'none';
     if (inCubes && wrap3d) {
       wrap3d.style.display = '';

@@ -143,6 +143,10 @@
     <div class="battle-result" id="battleResult"></div>
     <div class="battle-wrap">
       <div class="battle-player" id="b1-card">
+        <div class="b-st-ui" id="b1-st-ui">
+          <button class="b-st-btn" id="b1-st-btn" onclick="bgScan(0)" title="Connect Bluetooth Timer"><i data-lucide="bluetooth" style="width:13px;height:13px"></i></button>
+          <button class="b-st-disc" id="b1-st-disc" style="display:none" onclick="bgDisconnect(0)" title="Disconnect">✕</button>
+        </div>
         <div class="battle-name">Player 1</div>
         <div class="battle-score" id="b1-score">0</div>
         <div class="battle-time idle" id="b1-time">0.000</div>
@@ -164,6 +168,10 @@
         </div>
       </div>
       <div class="battle-player" id="b2-card">
+        <div class="b-st-ui" id="b2-st-ui">
+          <button class="b-st-btn" id="b2-st-btn" onclick="bgScan(1)" title="Connect Bluetooth Timer"><i data-lucide="bluetooth" style="width:13px;height:13px"></i></button>
+          <button class="b-st-disc" id="b2-st-disc" style="display:none" onclick="bgDisconnect(1)" title="Disconnect">✕</button>
+        </div>
         <div class="battle-name">Player 2</div>
         <div class="battle-score" id="b2-score">0</div>
         <div class="battle-time idle" id="b2-time">0.000</div>
