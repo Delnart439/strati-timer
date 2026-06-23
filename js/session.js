@@ -480,6 +480,34 @@ function shareOptClick(type, param) {
   generateShareImg(type, param);
 }
 
+function _niceYTicks(minMs, maxMs) {
+  const minS = minMs / 1000, maxS = maxMs / 1000, range = maxS - minS;
+  const steps = [0.5, 1, 2, 5, 10, 15, 20, 30, 60, 120];
+  const step = steps.find(s => range / s <= 6) || 120;
+  const ticks = [];
+  for (let v = Math.ceil(minS / step) * step; v <= maxS + step * 0.01; v = +(v + step).toFixed(6))
+    ticks.push(Math.round(v * 1000));
+  return { ticks, step };
+}
+function _niceYLabel(ms, step) {
+  const s = ms / 1000;
+  return step < 1 ? s.toFixed(1) : String(Math.round(s));
+}
+function _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py) {
+  const { ticks, step } = _niceYTicks(minV, maxV);
+  ctx.font = '9px Inter,system-ui,sans-serif'; ctx.textAlign = 'right';
+  ticks.forEach(ms => {
+    const y = py(ms);
+    if (y < gy - 4 || y > gy + gh + 4) return;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(_niceYLabel(ms, step), gx - 8, y + 3);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + gw, y); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+}
+
 function _shareCtxSetup(W, H) {
   const canvas = document.getElementById('shareCanvas');
   canvas.width = W * 2; canvas.height = H * 2;
@@ -627,18 +655,7 @@ function generateShareImg(type, param) {
     const py = v   => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
 
     // Y-axis ticks + grid lines
-    const TICKS = 4;
-    ctx.font = '9px Inter,system-ui,sans-serif'; ctx.textAlign = 'right';
-    for (let ti = 0; ti <= TICKS; ti++) {
-      const v = minV + (maxV - minV) * (ti / TICKS);
-      const y = py(v);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(fmtMs(v), gx - 8, y + 3);
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
-      ctx.setLineDash([3, 4]);
-      ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + gw, y); ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py);
 
     const reversedTs = [...ts].reverse();
     const plotIndices = plotData.map(t => reversedTs.indexOf(t));
@@ -743,16 +760,7 @@ function _generateShareAo(n) {
     const py = v   => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
 
     // Y-axis ticks + grid lines
-    ctx.font = '9px Inter,system-ui,sans-serif'; ctx.textAlign = 'right';
-    for (let ti = 0; ti <= 4; ti++) {
-      const v = minV + (maxV - minV) * (ti / 4);
-      const y = py(v);
-      ctx.fillStyle = '#fff'; ctx.fillText(fmtMs(v), gx - 8, y + 3);
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
-      ctx.setLineDash([3, 4]);
-      ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + gw, y); ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py);
 
     // Gradient fill
     const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
