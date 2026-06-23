@@ -756,7 +756,7 @@ function _generateShareAo(n) {
 
   // Top row
   const topCells = [
-    { label: `AO${n}`,      value: avg !== null ? _sMs(avg) : 'DNF', color: avg !== null ? '#fff' : '#e00000', bg: 'rgba(113,16,192,0.3)' },
+    { label: `AO${n}`,      value: avg !== null ? _sMs(avg) : 'DNF', color: avg !== null ? '#fff' : '#e00000' },
     { label: 'BEST SINGLE', value: pb  !== null ? _sMs(pb)  : '–' },
     { label: 'TRAINING TIME', value: trainingStr },
   ];
