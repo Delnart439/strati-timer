@@ -480,10 +480,86 @@ function shareOptClick(type, param) {
   generateShareImg(type, param);
 }
 
+
+function _sMs(ms) { return fmtMs(ms).slice(0, -1); }
+
+let _logoImg = null;
+let _shareTransparent = false;
+let _lastShareType = 'session', _lastShareParam = null;
+(function() {
+  fetch('Mascotte/logo.png').then(r => r.blob()).then(blob => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => { _logoImg = img; };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(blob);
+  }).catch(() => {});
+})();
+
+function _drawCubeCell(ctx, x, y, size, label, value, opts) {
+  const R = 14;
+  const bg = (opts && opts.bg) || 'rgba(255,255,255,0.07)';
+  ctx.fillStyle = bg;
+  beginRoundRect(ctx, x, y, size, size, R); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+  beginRoundRect(ctx, x, y, size, size, R); ctx.stroke();
+
+  const cx = x + size / 2;
+
+  if (opts && opts.isLogo) {
+    const lsize = 58;
+    if (_logoImg) {
+      ctx.save();
+      ctx.filter = 'grayscale(1) brightness(6)';
+      ctx.drawImage(_logoImg, cx - lsize / 2, y + 10, lsize, lsize);
+      ctx.restore();
+      ctx.filter = 'none';
+    }
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 24px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#a855f7';
+    ctx.fillText('STRATI', cx, y + 10 + lsize + 22);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif';
+    ctx.fillStyle = 'rgba(168,85,247,0.65)';
+    ctx.fillText('TIMER', cx, y + 10 + lsize + 40);
+    return;
+  }
+
+  ctx.font = 'bold 15px Inter,system-ui,sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.textAlign = 'center';
+  ctx.fillText(label, cx, y + size * 0.4);
+
+  const str = String(value);
+  let fs = str.length <= 5 ? 30 : str.length <= 7 ? 24 : str.length <= 10 ? 19 : 14;
+  ctx.font = `900 ${fs}px Inter,system-ui,sans-serif`;
+  const maxW = size - 14;
+  while (fs > 10 && ctx.measureText(str).width > maxW) { fs--; ctx.font = `900 ${fs}px Inter,system-ui,sans-serif`; }
+  ctx.fillStyle = (opts && opts.color) || '#fff';
+  ctx.fillText(str, cx, y + size * 0.72);
+}
+
+function _shareCtxSetup(W, H) {
+  const canvas = document.getElementById('shareCanvas');
+  canvas.width = W * 2; canvas.height = H * 2;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.clearRect(0, 0, W, H);
+  return ctx;
+}
+
+function _shareCardBg(ctx, W, H, R) {
+  if (_shareTransparent) return;
+  ctx.fillStyle = '#160c2e';
+  beginRoundRect(ctx, 0, 0, W, H, R); ctx.fill();
+}
+
 function _niceYTicks(minMs, maxMs) {
   const minS = minMs / 1000, maxS = maxMs / 1000, range = maxS - minS;
   const steps = [0.5, 1, 2, 5, 10, 15, 20, 30, 60, 120];
-  const step = steps.find(s => range / s <= 6) || 120;
+  const step = steps.find(s => range / s <= 5) || 120;
   const ticks = [];
   for (let v = Math.ceil(minS / step) * step; v <= maxS + step * 0.01; v = +(v + step).toFixed(6))
     ticks.push(Math.round(v * 1000));
@@ -499,47 +575,60 @@ function _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py) {
   ticks.forEach(ms => {
     const y = py(ms);
     if (y < gy - 4 || y > gy + gh + 4) return;
-    ctx.fillStyle = '#fff';
-    ctx.fillText(_niceYLabel(ms, step), gx - 8, y + 3);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText(_niceYLabel(ms, step), gx - 6, y + 3);
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
     ctx.setLineDash([3, 4]);
     ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + gw, y); ctx.stroke();
     ctx.setLineDash([]);
   });
 }
-
-function _drawGraphTip(ctx, vals, plotIndices, px, py, gy) {
-  const bestI = vals.indexOf(Math.min(...vals));
-  const tipX = px(plotIndices[bestI]);
-  const tipY = py(vals[bestI]);
-  const label = fmtMs(vals[bestI]);
-  ctx.font = 'bold 10px Inter,system-ui,sans-serif';
-  const lw = ctx.measureText(label).width;
-  const lx = Math.max(tipX - lw / 2, 0);
-  const ly = tipY - 8;
-  if (ly - 11 >= gy) {
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
-    ctx.fillText(label, lx, ly);
+function _drawGraph(ctx, solves, total, gx, gy, gw, gh) {
+  const plotData = solves.filter(t => !t.dnf);
+  const dnfData  = solves.map((t, i) => ({ t, i })).filter(({ t }) => t.dnf);
+  if (plotData.length < 2) {
+    ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.textAlign = 'center';
+    ctx.fillText('Not enough solves to graph', gx + gw / 2, gy + gh / 2); return;
   }
-}
-
-function _shareCtxSetup(W, H) {
-  const canvas = document.getElementById('shareCanvas');
-  canvas.width = W * 2; canvas.height = H * 2;
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(2, 2);
-  ctx.clearRect(0, 0, W, H);
-  return ctx;
-}
-
-function _shareCardBg(ctx, W, H, R) {
-  ctx.fillStyle = '#160c2e';
-  beginRoundRect(ctx, 0, 0, W, H, R); ctx.fill();
-  const glow = ctx.createRadialGradient(60, 0, 0, 60, 0, 220);
-  glow.addColorStop(0, 'rgba(113,16,192,0.38)'); glow.addColorStop(1, 'rgba(113,16,192,0)');
-  ctx.save(); ctx.beginPath(); roundRect(ctx, 0, 0, W, H, R); ctx.clip();
-  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H); ctx.restore();
+  const vals = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
+  const minV = Math.min(...vals), maxV = Math.max(...vals), range = (maxV - minV) || 1;
+  const plotIdx = plotData.map(t => solves.indexOf(t));
+  const px = i => gx + (i / Math.max(total - 1, 1)) * gw;
+  const py = v => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
+  _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py);
+  // Fill
+  const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
+  fill.addColorStop(0, 'rgba(168,85,247,0.25)'); fill.addColorStop(1, 'rgba(168,85,247,0.02)');
+  ctx.beginPath();
+  ctx.moveTo(px(plotIdx[0]), gy + gh); ctx.lineTo(px(plotIdx[0]), py(vals[0]));
+  for (let i = 1; i < plotData.length; i++) {
+    const cpx = (px(plotIdx[i-1]) + px(plotIdx[i])) / 2;
+    ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIdx[i]), py(vals[i]));
+  }
+  ctx.lineTo(px(plotIdx[plotData.length-1]), gy + gh);
+  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+  // Line
+  ctx.beginPath(); ctx.moveTo(px(plotIdx[0]), py(vals[0]));
+  for (let i = 1; i < plotData.length; i++) {
+    const cpx = (px(plotIdx[i-1]) + px(plotIdx[i])) / 2;
+    ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIdx[i]), py(vals[i]));
+  }
+  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke();
+  // Dots
+  if (plotData.length <= 60) {
+    plotData.forEach((t, i) => {
+      ctx.beginPath();
+      ctx.arc(px(plotIdx[i]), py(vals[i]), plotData.length <= 20 ? 3 : 2, 0, Math.PI * 2);
+      ctx.fillStyle = t.plus2 ? '#f59e0b' : '#a855f7'; ctx.fill();
+    });
+  }
+  // DNF markers
+  dnfData.forEach(({ i }) => {
+    const x = px(i), y = gy + gh * 0.5;
+    ctx.strokeStyle = 'rgba(255,80,80,0.7)'; ctx.lineWidth = 1.5;
+    const s = 4;
+    ctx.beginPath(); ctx.moveTo(x-s,y-s); ctx.lineTo(x+s,y+s); ctx.moveTo(x+s,y-s); ctx.lineTo(x-s,y+s); ctx.stroke();
+  });
 }
 
 function _shareHeader(ctx, W, PAD, subtitle, sesName, dateStr) {
@@ -569,161 +658,65 @@ function _shareFooter(ctx, W, H) {
 
 function generateShareImg(type, param) {
   type = type || 'session';
+  _lastShareType = type; _lastShareParam = param;
   const ts = curSes().times;
   if (!ts.length) { toast('No solves to share'); return; }
 
   if (type === 'ao') { _generateShareAo(param); return; }
   if (type === 'single') { _generateShareSingle(param || 0); return; }
 
-  const W = 680, H = 400, PAD = 28, R = 20;
+  const W = 480, H = 480, PAD = 24, GAP = 12, R = 20;
+  const CELL = (W - PAD * 2 - GAP * 2) / 3;
+
   const ctx = _shareCtxSetup(W, H);
   _shareCardBg(ctx, W, H, R);
 
   const ses = curSes();
-  const dated = ts.filter(t => t.date);
-  let dateStr = '';
-  if (dated.length) {
-    const oldest = new Date(dated[dated.length - 1].date);
-    const newest = new Date(dated[0].date);
-    const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    dateStr = oldest.toDateString() === newest.toDateString()
-      ? newest.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-      : `${fmt(oldest)} – ${fmt(newest)}`;
-  }
-  _shareHeader(ctx, W, PAD, null, ses.name, dateStr);
-
-  // ── Divider 1 ──
-  const div1Y = PAD + 42;
-  _shareDivider(ctx, W, PAD, div1Y);
-
-  // ── Stats ──
   const pb   = bestSingle();
   const mean = calcMean();
 
+  const dated = ts.filter(t => t.date).sort((a, b) => new Date(a.date) - new Date(b.date));
   let trainingStr = '–';
   if (dated.length >= 2) {
-    const durMs = new Date(dated[0].date) - new Date(dated[dated.length - 1].date);
-    const mins = Math.round(durMs / 60000);
-    trainingStr = mins < 1 ? '<1m' : mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h ${mins%60 ? (mins%60)+'m' : ''}`.trim();
-  } else if (dated.length === 1) {
-    trainingStr = '<1m';
-  }
+    const mins = Math.round((new Date(dated[dated.length-1].date) - new Date(dated[0].date)) / 60000);
+    trainingStr = mins < 1 ? '<1m' : mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h${mins%60?' '+(mins%60)+'m':''}`;
+  } else if (dated.length === 1) { trainingStr = '<1m'; }
 
   const btSolves = ts.filter(t => t.moves && t.moves.length > 0 && !t.dnf && t.ms > 0);
   const hasTps   = btSolves.length > 0;
   const avgTps   = hasTps ? btSolves.reduce((s, t) => s + t.moves.length / (t.ms / 1000), 0) / btSolves.length : 0;
 
-  const stats = [
-    { label: 'BEST SINGLE',  value: pb   !== null ? fmtMs(pb)   : '–', color: '#f59e0b' },
-    { label: 'SESSION AVG',  value: mean !== null ? fmtMs(mean) : '–', color: '#fff' },
-    { label: 'TRAINING',     value: trainingStr,                        color: '#fff' },
-    ...(hasTps ? [{ label: 'AVG TPS', value: avgTps.toFixed(1)+' t/s', color: '#22c55e' }] : []),
+  // Top row
+  const topCells = [
+    { label: 'BEST SINGLE',   value: pb   !== null ? _sMs(pb)   : '–' },
+    { label: 'SESSION AVG',   value: mean !== null ? _sMs(mean) : '–' },
+    { label: 'SOLVES',        value: String(ts.length) },
   ];
-
-  const statsY = div1Y + 14;
-  const statsH = 80;
-  const nStats = stats.length;
-  const statW  = (W - PAD * 2) / nStats;
-
-  stats.forEach(({ label, value, color }, i) => {
-    const cx = PAD + i * statW + statW / 2;
-    if (i > 0) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(PAD + i * statW, statsY + 4); ctx.lineTo(PAD + i * statW, statsY + statsH - 4); ctx.stroke();
-    }
-    ctx.font = '9px Inter, system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, cx, statsY + 16);
-    ctx.font = `bold 22px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = color;
-    ctx.fillText(value, cx, statsY + 52);
+  topCells.forEach((cell, i) => {
+    _drawCubeCell(ctx, PAD + i * (CELL + GAP), PAD, CELL, cell.label, cell.value, cell);
   });
 
-  // ── Divider 2 ──
-  const div2Y = statsY + statsH + 12;
-  _shareDivider(ctx, W, PAD, div2Y);
+  // Middle row — graph
+  const graphRowY = PAD + CELL + GAP;
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+  beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
+  const YLABELW = 44;
+  const HPAD = 14;
+  _drawGraph(ctx, [...ts].reverse(), ts.length, PAD + HPAD + YLABELW, graphRowY + 10, W - 2 * (PAD + HPAD) - YLABELW, CELL - 20);
 
-  // ── Graph ──
-  const YLABELW = 52;
-  const gx = PAD + YLABELW, gy = div2Y + 32;
-  const gw = W - gx - PAD;
-  const gh = H - gy - PAD - 14;
+  // Bottom row
+  const botCells = [
+    { label: 'TRAINING TIME', value: trainingStr },
+    { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
+    { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
+  ];
+  const botY = PAD + 2 * (CELL + GAP);
+  botCells.forEach((cell, i) => {
+    _drawCubeCell(ctx, PAD + i * (CELL + GAP), botY, CELL, cell.label || '', cell.value || '', cell);
+  });
 
-  // Solve count as graph title
-  ctx.font = 'bold 14px Inter,system-ui,sans-serif';
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
-  ctx.fillText(`${ts.length} Solve${ts.length!==1?'s':''}`, gx, div2Y + 22);
-
-  const plotData = [...ts].reverse().filter(t => !t.dnf);
-  const dnfData  = [...ts].reverse().map((t, i) => ({ t, i })).filter(({ t }) => t.dnf);
-
-  if (plotData.length >= 2) {
-    const vals  = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
-    const minV  = Math.min(...vals);
-    const maxV  = Math.max(...vals);
-    const range = (maxV - minV) || 1;
-    const total = ts.length;
-
-    const px = idx => gx + (idx / Math.max(total - 1, 1)) * gw;
-    const py = v   => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
-
-    // Y-axis ticks + grid lines
-    _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py);
-
-    const reversedTs = [...ts].reverse();
-    const plotIndices = plotData.map(t => reversedTs.indexOf(t));
-
-    // Gradient fill
-    const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
-    fill.addColorStop(0, 'rgba(113,16,192,0.45)');
-    fill.addColorStop(1, 'rgba(113,16,192,0.02)');
-    ctx.beginPath();
-    ctx.moveTo(px(plotIndices[0]), gy + gh);
-    ctx.lineTo(px(plotIndices[0]), py(vals[0]));
-    for (let i = 1; i < plotData.length; i++) {
-      const cpx = (px(plotIndices[i-1]) + px(plotIndices[i])) / 2;
-      ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIndices[i]), py(vals[i]));
-    }
-    ctx.lineTo(px(plotIndices[plotData.length - 1]), gy + gh);
-    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
-
-    // Line
-    ctx.beginPath();
-    ctx.moveTo(px(plotIndices[0]), py(vals[0]));
-    for (let i = 1; i < plotData.length; i++) {
-      const cpx = (px(plotIndices[i-1]) + px(plotIndices[i])) / 2;
-      ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIndices[i]), py(vals[i]));
-    }
-    ctx.strokeStyle = '#7110c0'; ctx.lineWidth = 2; ctx.stroke();
-
-    // Dots (small sets)
-    if (plotData.length <= 60) {
-      plotData.forEach((t, i) => {
-        ctx.beginPath();
-        ctx.arc(px(plotIndices[i]), py(vals[i]), plotData.length <= 20 ? 3.5 : 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = t.plus2 ? '#f59e0b' : '#a855f7'; ctx.fill();
-      });
-    }
-
-    // DNF markers
-    dnfData.forEach(({ i }) => {
-      const x = px(i), y = gy + gh * 0.5;
-      ctx.strokeStyle = 'rgba(224,0,0,0.6)'; ctx.lineWidth = 1.5;
-      const s = 5;
-      ctx.beginPath(); ctx.moveTo(x-s,y-s); ctx.lineTo(x+s,y+s); ctx.moveTo(x+s,y-s); ctx.lineTo(x-s,y+s); ctx.stroke();
-    });
-
-    // Tip label
-    _drawGraphTip(ctx, vals, plotIndices, px, py, gy);
-  } else {
-    ctx.font = '12px Inter,system-ui,sans-serif';
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-    ctx.fillText('Not enough solves to graph', gx + gw / 2, gy + gh / 2);
-  }
-
-  _shareFooter(ctx, W, H);
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }
@@ -736,87 +729,58 @@ function _generateShareAo(n) {
   const { chunk } = win;
   const avg = calcAoFromChunk(chunk);
 
-  const W = 680, H = 400, PAD = 28, R = 20;
+  const W = 480, H = 480, PAD = 24, GAP = 12, R = 20;
+  const CELL = (W - PAD * 2 - GAP * 2) / 3;
+
   const ctx = _shareCtxSetup(W, H);
   _shareCardBg(ctx, W, H, R);
 
   const ses = curSes();
-  const dateStr = ts[0]?.date ? new Date(ts[0].date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '';
-  _shareHeader(ctx, W, PAD, null, ses.name, dateStr);
-  _shareDivider(ctx, W, PAD, PAD + 42);
+  const chunkValid = chunk.filter(t => !t.dnf);
+  const pbMs = chunkValid.length ? Math.min(...chunkValid.map(t => t.ms + (t.plus2 ? 2000 : 0))) : null;
+  const pb = pbMs !== null && isFinite(pbMs) ? pbMs : null;
 
-  // Big average
-  const avgY = PAD + 42 + 16;
-  ctx.textAlign = 'center';
-  ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.fillText(`AO${n}`, W / 2, avgY + 14);
-  ctx.font = 'bold 42px Inter,system-ui,sans-serif';
-  ctx.fillStyle = avg !== null ? '#fff' : '#e00000';
-  ctx.fillText(avg !== null ? fmtMs(avg) : 'DNF', W / 2, avgY + 62);
+  const datedSorted = chunk.filter(t => t.date).sort((a, b) => new Date(a.date) - new Date(b.date));
+  let trainingStr = '–';
+  if (datedSorted.length >= 2) {
+    const mins = Math.round((new Date(datedSorted[datedSorted.length-1].date) - new Date(datedSorted[0].date)) / 60000);
+    trainingStr = mins < 1 ? '<1m' : mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h${mins%60?' '+(mins%60)+'m':''}`;
+  } else if (datedSorted.length === 1) { trainingStr = '<1m'; }
 
-  _shareDivider(ctx, W, PAD, avgY + 80);
+  const btSolves = chunk.filter(t => t.moves && t.moves.length > 0 && !t.dnf && t.ms > 0);
+  const hasTps   = btSolves.length > 0;
+  const avgTps   = hasTps ? btSolves.reduce((s, t) => s + t.moves.length / (t.ms / 1000), 0) / btSolves.length : 0;
 
-  // Graph of the N chunk times (oldest → newest = chunk[n-1] → chunk[0])
-  const YLABELW = 52;
-  const gx = PAD + YLABELW, gy = avgY + 80 + 32;
-  const gw = W - gx - PAD;
-  const gh = H - gy - PAD - 14;
+  // Top row
+  const topCells = [
+    { label: `AO${n}`,      value: avg !== null ? _sMs(avg) : 'DNF', color: avg !== null ? '#fff' : '#e00000', bg: 'rgba(113,16,192,0.3)' },
+    { label: 'BEST SINGLE', value: pb  !== null ? _sMs(pb)  : '–' },
+    { label: 'TRAINING TIME', value: trainingStr },
+  ];
+  topCells.forEach((cell, i) => {
+    _drawCubeCell(ctx, PAD + i * (CELL + GAP), PAD, CELL, cell.label, cell.value, cell);
+  });
 
-  ctx.font = 'bold 14px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
-  ctx.fillText(`${n} Solve${n !== 1 ? 's' : ''}`, gx, avgY + 80 + 22);
+  // Middle row — graph (chunk solves)
+  const graphRowY = PAD + CELL + GAP;
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+  beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
+  const YLABELW = 44;
+  _drawGraph(ctx, [...chunk].reverse(), chunk.length, PAD + YLABELW, graphRowY + 10, W - PAD - (PAD + YLABELW), CELL - 20);
 
-  const plotData = [...chunk].reverse().filter(t => !t.dnf);
-  if (plotData.length >= 2) {
-    const vals  = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
-    const minV  = Math.min(...vals);
-    const maxV  = Math.max(...vals);
-    const range = (maxV - minV) || 1;
-    const reversedChunk = [...chunk].reverse();
-    const plotIndices = plotData.map(t => reversedChunk.indexOf(t));
+  // Bottom row
+  const botCells = [
+    { label: 'SOLVES',        value: String(n) },
+    { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
+    { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
+  ];
+  const botY = PAD + 2 * (CELL + GAP);
+  botCells.forEach((cell, i) => {
+    _drawCubeCell(ctx, PAD + i * (CELL + GAP), botY, CELL, cell.label || '', cell.value || '', cell);
+  });
 
-    const px = idx => gx + (idx / Math.max(chunk.length - 1, 1)) * gw;
-    const py = v   => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
-
-    // Y-axis ticks + grid lines
-    _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py);
-
-    // Gradient fill
-    const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
-    fill.addColorStop(0, 'rgba(113,16,192,0.45)'); fill.addColorStop(1, 'rgba(113,16,192,0.02)');
-    ctx.beginPath();
-    ctx.moveTo(px(plotIndices[0]), gy + gh);
-    ctx.lineTo(px(plotIndices[0]), py(vals[0]));
-    for (let i = 1; i < plotData.length; i++) {
-      const cpx = (px(plotIndices[i-1]) + px(plotIndices[i])) / 2;
-      ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIndices[i]), py(vals[i]));
-    }
-    ctx.lineTo(px(plotIndices[plotData.length - 1]), gy + gh);
-    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
-
-    // Line
-    ctx.beginPath();
-    ctx.moveTo(px(plotIndices[0]), py(vals[0]));
-    for (let i = 1; i < plotData.length; i++) {
-      const cpx = (px(plotIndices[i-1]) + px(plotIndices[i])) / 2;
-      ctx.bezierCurveTo(cpx, py(vals[i-1]), cpx, py(vals[i]), px(plotIndices[i]), py(vals[i]));
-    }
-    ctx.strokeStyle = '#7110c0'; ctx.lineWidth = 2; ctx.stroke();
-
-    // Dots
-    plotData.forEach((t, i) => {
-      ctx.beginPath();
-      ctx.arc(px(plotIndices[i]), py(vals[i]), n <= 20 ? 3.5 : 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = t.plus2 ? '#f59e0b' : '#a855f7'; ctx.fill();
-    });
-
-    // Tip label
-    _drawGraphTip(ctx, vals, plotIndices, px, py, gy);
-  } else {
-    ctx.font = '12px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-    ctx.fillText('Not enough valid solves to graph', gx + gw / 2, gy + gh / 2);
-  }
-
-  _shareFooter(ctx, W, H);
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }
@@ -880,6 +844,16 @@ document.getElementById('shareImgDownload').addEventListener('click', ()=>{
   a.href = document.getElementById('shareCanvas').toDataURL('image/png');
   a.download = `strati-session-${Date.now()}.png`;
   a.click();
+});
+document.getElementById('shareImgTransparent').addEventListener('click', ()=>{
+  _shareTransparent = true;
+  generateShareImg(_lastShareType, _lastShareParam);
+  const a = document.createElement('a');
+  a.href = document.getElementById('shareCanvas').toDataURL('image/png');
+  a.download = `strati-transparent-${Date.now()}.png`;
+  a.click();
+  _shareTransparent = false;
+  generateShareImg(_lastShareType, _lastShareParam);
 });
 document.getElementById('shareImgCopy').addEventListener('click', ()=>{
   document.getElementById('shareCanvas').toBlob(blob=>{
