@@ -1049,11 +1049,12 @@ function _generateShareSingle(idx) {
   ctx.font = `900 ${tfs}px Inter,system-ui,sans-serif`;
   while (tfs > 24 && ctx.measureText(timeStr).width > W - PAD*2 - 40) { tfs -= 2; ctx.font = `900 ${tfs}px Inter,system-ui,sans-serif`; }
   ctx.textAlign = 'center'; ctx.fillStyle = timeColor;
-  const mainTimeY = row2Y + CELL / 2 + tfs * 0.35 - 10;
+  const mainTimeY = row2Y + CELL / 2 + tfs * 0.35;
   ctx.fillText(timeStr, W / 2, mainTimeY);
-  ctx.font = 'bold 14px Inter,system-ui,sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText('TIME', W / 2, mainTimeY + 20);
+  ctx.font = 'bold 15px Inter,system-ui,sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.fillText('TIME', PAD + 12, row2Y + CELL - 12);
 
   // Row 3 — TPS | date+time | STRATI
   const row3Y = PAD + 2 * (CELL + GAP);
