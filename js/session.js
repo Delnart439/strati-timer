@@ -539,12 +539,22 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
   ctx.font = `900 ${fs}px Inter,system-ui,sans-serif`;
   const maxW = size - 14;
   while (fs > 10 && ctx.measureText(str).width > maxW) { fs--; ctx.font = `900 ${fs}px Inter,system-ui,sans-serif`; }
-  ctx.fillStyle = (opts && opts.color) || '#fff'; ctx.textAlign = 'center';
-  ctx.fillText(str, cx, y + size * 0.52);
+  ctx.textAlign = 'center';
 
-  ctx.font = 'bold 15px Inter,system-ui,sans-serif';
-  ctx.fillStyle = '#fff';
-  ctx.fillText(label, cx, y + size * 0.78);
+  if (opts && opts.labelTop) {
+    ctx.font = 'bold 15px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, cx, y + size * 0.4);
+    ctx.font = `900 ${fs}px Inter,system-ui,sans-serif`;
+    ctx.fillStyle = (opts && opts.color) || '#fff';
+    ctx.fillText(str, cx, y + size * 0.72);
+  } else {
+    ctx.fillStyle = (opts && opts.color) || '#fff';
+    ctx.fillText(str, cx, y + size * 0.52);
+    ctx.font = 'bold 15px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, cx, y + size * 0.78);
+  }
 }
 
 function _shareCtxSetup(W, H) {
@@ -699,7 +709,7 @@ function generateShareImg(type, param) {
   const topCells = [
     { label: 'BEST SINGLE',   value: pb   !== null ? _sMs(pb)   : '–' },
     { label: 'SESSION AVG',   value: mean !== null ? _sMs(mean) : '–' },
-    { label: 'N° SOLVES',     value: String(ts.length) },
+    { label: 'N° SOLVES',     value: String(ts.length), labelTop: true },
   ];
   topCells.forEach((cell, i) => {
     _drawCubeCell(ctx, PAD + i * (CELL + GAP), PAD, CELL, cell.label, cell.value, cell);
@@ -786,7 +796,7 @@ function _generateShareAo(n) {
 
   // Bottom row
   const botCells = [
-    { label: 'N° SOLVES',     value: String(n) },
+    { label: 'N° SOLVES',     value: String(n), labelTop: true },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
     { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
   ];
