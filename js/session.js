@@ -701,13 +701,15 @@ function generateShareImg(type, param) {
 
   // Middle row — graph
   const graphRowY = PAD + CELL + GAP;
+  const YLABELW = 44, HPAD = 14;
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
+  ctx.save();
+  ctx.beginPath(); roundRect(ctx, PAD + 1, graphRowY + 1, W - PAD * 2 - 2, CELL - 2, 13); ctx.clip();
+  _drawGraph(ctx, [...ts].reverse(), ts.length, PAD + HPAD + YLABELW, graphRowY + 8, W - 2 * (PAD + HPAD) - YLABELW, CELL - 16);
+  ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
-  const YLABELW = 44;
-  const HPAD = 14;
-  _drawGraph(ctx, [...ts].reverse(), ts.length, PAD + HPAD + YLABELW, graphRowY + 10, W - 2 * (PAD + HPAD) - YLABELW, CELL - 20);
 
   // Bottom row
   const botCells = [
@@ -766,12 +768,15 @@ function _generateShareAo(n) {
 
   // Middle row — graph (chunk solves)
   const graphRowY = PAD + CELL + GAP;
+  const YLABELW = 44, HPAD = 14;
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
+  ctx.save();
+  ctx.beginPath(); roundRect(ctx, PAD + 1, graphRowY + 1, W - PAD * 2 - 2, CELL - 2, 13); ctx.clip();
+  _drawGraph(ctx, [...chunk].reverse(), chunk.length, PAD + HPAD + YLABELW, graphRowY + 8, W - 2 * (PAD + HPAD) - YLABELW, CELL - 16);
+  ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
-  const YLABELW = 44;
-  _drawGraph(ctx, [...chunk].reverse(), chunk.length, PAD + YLABELW, graphRowY + 10, W - PAD - (PAD + YLABELW), CELL - 20);
 
   // Bottom row
   const botCells = [
