@@ -249,7 +249,7 @@
       <div class="stats-fox">
         <div class="stats-fox-bub">Want to share your times with friends?</div>
         <img src="Mascotte/hi.png" alt="fox">
-        <button id="shareSelectBtn" class="stl-share-rect" title="Share solves"><i data-lucide="camera" style="width:15px;height:15px"></i>Share</button>
+        <button id="shareSelectBtn" class="stl-share-rect" title="Share session" onclick="generateStravaCard()"><i data-lucide="share-2" style="width:15px;height:15px"></i>Share</button>
       </div>
       <div class="stc">
       <div class="st-main">
@@ -272,18 +272,10 @@
     </div><!-- end .stats-top -->
     <div class="stl-card">
       <div class="stl-hdr">
-        <div class="stl-title"><i data-lucide="timer"></i> Time List <button id="graphToggleBtn" class="graph-toggle-btn" title="Show graphs"><i data-lucide="line-chart" style="width:28px;height:28px"></i></button><span id="shareBarCount" style="display:none;font-size:12px;color:var(--dim);margin-left:6px">0 selected</span><button id="shareBarGenerate" style="display:none;padding:5px 12px;background:var(--purple);border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:5px;margin-left:8px"><i data-lucide="image" style="width:13px;height:13px"></i> Generate Image</button><button id="shareBarCancel" class="share-btn" style="display:none;margin-left:6px">Cancel</button></div>
+        <div class="stl-title"><i data-lucide="timer"></i> Time List <button id="graphToggleBtn" class="graph-toggle-btn" title="Show graphs"><i data-lucide="line-chart" style="width:28px;height:28px"></i></button></div>
         <div class="stl-acts">
           <button class="clear-btn" id="clearBtn">Clear Session</button>
         </div>
-      </div>
-      <div class="sq-row" id="shareQuickSel">
-        <span class="sq-lbl">Quick select:</span>
-        <button class="sq-btn" data-n="5">Ao5</button>
-        <button class="sq-btn" data-n="12">Ao12</button>
-        <button class="sq-btn" data-n="20">Last 20</button>
-        <button class="sq-btn" data-n="50">Last 50</button>
-        <button class="sq-btn" data-n="100">Last 100</button>
       </div>
       <div id="statsGraphs" style="display:none">
         <div class="sg-wrap">
@@ -711,8 +703,8 @@
 <div class="ov h" id="shareImgModal">
   <div class="mo" style="width:max-content;max-width:92vw;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column">
     <button class="mo-x" id="shareImgClose">✕</button>
-    <div style="font-size:18px;font-weight:800;margin-bottom:14px;text-align:center">Share Solves</div>
-    <canvas id="shareCanvas" style="border-radius:10px;display:block;margin-bottom:14px"></canvas>
+    <div style="font-size:18px;font-weight:800;margin-bottom:14px;text-align:center">Share Session</div>
+    <canvas id="shareCanvas" style="border-radius:16px;display:block;margin-bottom:14px;max-width:100%"></canvas>
     <div style="display:flex;gap:8px">
       <button id="shareImgDownload" style="flex:1;padding:11px;background:var(--purple);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Download Image</button>
       <button id="shareImgCopy" style="flex:1;padding:11px;background:rgba(255,255,255,.1);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Copy to Clipboard</button>

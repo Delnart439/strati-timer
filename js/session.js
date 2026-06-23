@@ -445,117 +445,214 @@ document.getElementById('timeList').addEventListener('click', e=>{
   const te = e.target.closest('.te');
   if (te) openSolveModal(+te.dataset.idx);
 });
-let shareSelectMode = false;
-const shareSelected = new Set();
-
-function setShareMode(on) {
-  shareSelectMode = on;
-  shareSelected.clear();
-  document.getElementById('shareSelectBtn').classList.toggle('on', on);
-  const countEl = document.getElementById('shareBarCount');
-  const cancelBtn = document.getElementById('shareBarCancel');
-  const genBtn = document.getElementById('shareBarGenerate');
-  countEl.style.display = on ? 'inline' : 'none';
-  cancelBtn.style.display = on ? 'inline-flex' : 'none';
-  genBtn.style.display = on ? 'inline-flex' : 'none';
-  document.getElementById('shareQuickSel').style.display = on ? 'flex' : 'none';
-  document.querySelectorAll('.sq-btn').forEach(b => b.classList.remove('on'));
-  document.querySelectorAll('#statsGrid .sc').forEach(el => {
-    el.classList.toggle('selectable', on);
-    el.classList.remove('selected');
-  });
-  countEl.textContent = '0 selected';
-}
 
 document.getElementById('statsGrid').addEventListener('click', e=>{
   const sc = e.target.closest('.sc');
-  if (!sc) return;
-  if (shareSelectMode) {
-    const idx = +sc.dataset.idx;
-    if (shareSelected.has(idx)) { shareSelected.delete(idx); sc.classList.remove('selected'); }
-    else { shareSelected.add(idx); sc.classList.add('selected'); }
-    document.getElementById('shareBarCount').textContent = `${shareSelected.size} selected`;
-  } else {
-    openSolveModal(+sc.dataset.idx);
-  }
+  if (sc) openSolveModal(+sc.dataset.idx);
 });
 
-document.getElementById('shareSelectBtn').addEventListener('click', ()=> setShareMode(!shareSelectMode));
-document.getElementById('shareBarCancel').addEventListener('click', ()=> setShareMode(false));
-
-document.querySelectorAll('.sq-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const n = +btn.dataset.n;
-    const ts = curSes().times;
-    const count = Math.min(n, ts.length);
-    shareSelected.clear();
-    for (let i = 0; i < count; i++) shareSelected.add(i);
-    document.querySelectorAll('#statsGrid .sc').forEach(el => {
-      el.classList.toggle('selected', shareSelected.has(+el.dataset.idx));
-    });
-    document.getElementById('shareBarCount').textContent = `${shareSelected.size} selected`;
-    document.querySelectorAll('.sq-btn').forEach(b => b.classList.remove('on'));
-    btn.classList.add('on');
-  });
-});
-
-document.getElementById('shareBarGenerate').addEventListener('click', ()=>{
-  if (!shareSelected.size) return;
+function generateStravaCard() {
   const ts = curSes().times;
-  const solves = [...shareSelected].sort((a,b)=>b-a).map(idx=>({idx, t:ts[idx], n:ts.length-idx}));
+  if (!ts.length) { toast('No solves to share'); return; }
+
+  const W = 680, H = 400, PAD = 28, R = 20;
   const canvas = document.getElementById('shareCanvas');
-  const n = solves.length;
-  // Adaptive layout based on count
-  const cols = n <= 3 ? n : n <= 8 ? 4 : n <= 15 ? 5 : n <= 30 ? 6 : n <= 60 ? 8 : 10;
-  const rows = Math.ceil(n / cols);
-  // Smaller cells for larger sets
-  const CW = n <= 20 ? 110 : n <= 50 ? 90 : 76;
-  const CH = n <= 20 ? 56  : n <= 50 ? 44  : 36;
-  const PAD = 16, GAP = n <= 20 ? 8 : 6;
-  const numFontSz  = n <= 20 ? 11 : n <= 50 ? 10 : 9;
-  const timeFontSz = n <= 20 ? 15 : n <= 50 ? 13 : 11;
-  const W = cols*CW + (cols-1)*GAP + PAD*2;
-  const H = rows*CH + (rows-1)*GAP + PAD*2 + 54;
   canvas.width = W * 2; canvas.height = H * 2;
-  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   const ctx = canvas.getContext('2d');
-  ctx.scale(2,2);
-  // Background
-  ctx.fillStyle = '#1e1248';
-  ctx.beginPath(); roundRect(ctx,0,0,W,H,14); ctx.fill();
-  // Title
+  ctx.scale(2, 2);
+
+  // ── Transparent canvas, dark card ──
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#160c2e';
+  beginRoundRect(ctx, 0, 0, W, H, R); ctx.fill();
+
+  // Subtle purple radial glow top-left
+  const glow = ctx.createRadialGradient(60, 0, 0, 60, 0, 220);
+  glow.addColorStop(0, 'rgba(113,16,192,0.38)');
+  glow.addColorStop(1, 'rgba(113,16,192,0)');
+  ctx.save(); ctx.beginPath(); roundRect(ctx, 0, 0, W, H, R); ctx.clip();
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // ── Header ──
+  ctx.font = 'bold 20px Inter, system-ui, sans-serif';
+  ctx.fillStyle = '#7110c0';
+  ctx.textAlign = 'left';
+  ctx.fillText('STRATI', PAD, PAD + 20);
+
+  const ses = curSes();
+  ctx.font = 'bold 13px Inter, system-ui, sans-serif';
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 14px Inter, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(`${curSes().name} — ${solves.length} solve${solves.length!==1?'s':''}`, W/2, PAD+14);
-  ctx.font = '10px Inter, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,.45)';
-  ctx.fillText(new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}), W/2, PAD+28);
-  // Cells
-  solves.forEach(({t, n}, i)=>{
-    const col = i % cols, row = Math.floor(i / cols);
-    const x = PAD + col*(CW+GAP), y = PAD+42 + row*(CH+GAP);
-    ctx.fillStyle = '#3c146b';
-    beginRoundRect(ctx, x, y, CW, CH, 8); ctx.fill();
-    const numStr = `${n}.`;
-    const timeStr = ' ' + fmtMs2(t.ms, t);
-    ctx.font = `${numFontSz}px Inter, sans-serif`;
-    const numW = ctx.measureText(numStr).width;
-    ctx.font = `bold ${timeFontSz}px Inter, sans-serif`;
-    const timeW = ctx.measureText(timeStr).width;
-    const startX = x + CW/2 - (numW + timeW)/2;
-    const midY = y + CH/2 + timeFontSz*0.35;
-    ctx.fillStyle = 'rgba(255,255,255,.4)';
-    ctx.font = `${numFontSz}px Inter, sans-serif`;
-    ctx.textAlign = 'left';
-    ctx.fillText(numStr, startX, midY);
-    ctx.fillStyle = t.dnf?'#e00000':t.plus2?'#f59e0b':'#fff';
-    ctx.font = `bold ${timeFontSz}px Inter, sans-serif`;
-    ctx.fillText(timeStr, startX + numW, midY);
+  ctx.textAlign = 'right';
+  ctx.fillText(ses.name, W - PAD, PAD + 15);
+
+  const dated = ts.filter(t => t.date);
+  let dateStr = '';
+  if (dated.length) {
+    const oldest = new Date(dated[dated.length - 1].date);
+    const newest = new Date(dated[0].date);
+    const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    dateStr = oldest.toDateString() === newest.toDateString()
+      ? newest.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : `${fmt(oldest)} – ${fmt(newest)}`;
+  }
+  ctx.font = '11px Inter, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText(dateStr, W - PAD, PAD + 31);
+
+  // ── Divider 1 ──
+  const div1Y = PAD + 42;
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, div1Y); ctx.lineTo(W - PAD, div1Y); ctx.stroke();
+
+  // ── Stats ──
+  const pb   = bestSingle();
+  const mean = calcMean();
+
+  let trainingStr = '–';
+  if (dated.length >= 2) {
+    const durMs = new Date(dated[0].date) - new Date(dated[dated.length - 1].date);
+    const mins = Math.round(durMs / 60000);
+    trainingStr = mins < 1 ? '<1m' : mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h ${mins%60 ? (mins%60)+'m' : ''}`.trim();
+  } else if (dated.length === 1) {
+    trainingStr = '<1m';
+  }
+
+  const btSolves = ts.filter(t => t.moves && t.moves.length > 0 && !t.dnf && t.ms > 0);
+  const hasTps   = btSolves.length > 0;
+  const avgTps   = hasTps ? btSolves.reduce((s, t) => s + t.moves.length / (t.ms / 1000), 0) / btSolves.length : 0;
+
+  const stats = [
+    { label: 'BEST SINGLE',  value: pb   !== null ? fmtMs(pb)   : '–', color: '#f59e0b' },
+    { label: 'SESSION AVG',  value: mean !== null ? fmtMs(mean) : '–', color: '#fff' },
+    { label: 'TRAINING',     value: trainingStr,                        color: '#fff' },
+    ...(hasTps ? [{ label: 'AVG TPS', value: avgTps.toFixed(1)+' t/s', color: '#22c55e' }] : []),
+  ];
+
+  const statsY = div1Y + 14;
+  const statsH = 80;
+  const nStats = stats.length;
+  const statW  = (W - PAD * 2) / nStats;
+
+  stats.forEach(({ label, value, color }, i) => {
+    const cx = PAD + i * statW + statW / 2;
+    if (i > 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(PAD + i * statW, statsY + 4); ctx.lineTo(PAD + i * statW, statsY + statsH - 4); ctx.stroke();
+    }
+    ctx.font = '9px Inter, system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, cx, statsY + 16);
+    ctx.font = `bold 22px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = color;
+    ctx.fillText(value, cx, statsY + 52);
   });
+
+  // ── Divider 2 ──
+  const div2Y = statsY + statsH + 12;
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, div2Y); ctx.lineTo(W - PAD, div2Y); ctx.stroke();
+
+  // ── Graph ──
+  const gx = PAD, gy = div2Y + 14;
+  const gw = W - PAD * 2;
+  const gh = H - gy - PAD - 18;
+
+  const plotData = [...ts].reverse().filter(t => !t.dnf);
+  const dnfData  = [...ts].reverse().map((t, i) => ({ t, i: i })).filter(({ t }) => t.dnf);
+
+  if (plotData.length >= 2) {
+    const vals   = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
+    const minV   = Math.min(...vals);
+    const maxV   = Math.max(...vals);
+    const range  = (maxV - minV) || 1;
+    const total  = ts.length;
+
+    const px = idx => gx + (idx / Math.max(total - 1, 1)) * gw;
+    const py = v    => gy + gh - ((v - minV) / range) * gh * 0.88 - gh * 0.06;
+
+    // Build index map for plotData entries back to their position in reversed ts
+    const reversedTs = [...ts].reverse();
+    const plotIndices = plotData.map(t => reversedTs.indexOf(t));
+
+    // Gradient fill
+    const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
+    fill.addColorStop(0, 'rgba(113,16,192,0.45)');
+    fill.addColorStop(1, 'rgba(113,16,192,0.02)');
+
+    ctx.beginPath();
+    ctx.moveTo(px(plotIndices[0]), gy + gh);
+    ctx.lineTo(px(plotIndices[0]), py(vals[0]));
+    for (let i = 1; i < plotData.length; i++) {
+      const x0 = px(plotIndices[i-1]), y0 = py(vals[i-1]);
+      const x1 = px(plotIndices[i]),   y1 = py(vals[i]);
+      const cpx = (x0 + x1) / 2;
+      ctx.bezierCurveTo(cpx, y0, cpx, y1, x1, y1);
+    }
+    ctx.lineTo(px(plotIndices[plotData.length - 1]), gy + gh);
+    ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(px(plotIndices[0]), py(vals[0]));
+    for (let i = 1; i < plotData.length; i++) {
+      const x0 = px(plotIndices[i-1]), y0 = py(vals[i-1]);
+      const x1 = px(plotIndices[i]),   y1 = py(vals[i]);
+      const cpx = (x0 + x1) / 2;
+      ctx.bezierCurveTo(cpx, y0, cpx, y1, x1, y1);
+    }
+    ctx.strokeStyle = '#7110c0'; ctx.lineWidth = 2; ctx.stroke();
+
+    // Dots (small sets only)
+    if (plotData.length <= 60) {
+      plotData.forEach((t, i) => {
+        ctx.beginPath();
+        ctx.arc(px(plotIndices[i]), py(vals[i]), plotData.length <= 20 ? 3.5 : 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = t.plus2 ? '#f59e0b' : '#a855f7';
+        ctx.fill();
+      });
+    }
+
+    // DNF markers
+    dnfData.forEach(({ i }) => {
+      const x = px(i), y = gy + gh * 0.5;
+      ctx.strokeStyle = 'rgba(224,0,0,0.6)'; ctx.lineWidth = 1.5;
+      const s = 5;
+      ctx.beginPath(); ctx.moveTo(x-s,y-s); ctx.lineTo(x+s,y+s); ctx.moveTo(x+s,y-s); ctx.lineTo(x-s,y+s); ctx.stroke();
+    });
+
+    // Y-axis labels
+    ctx.font = '9px Inter, system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.textAlign = 'left';
+    ctx.fillText(fmtMs(maxV), gx, gy + 9);
+    ctx.fillText(fmtMs(minV), gx, gy + gh);
+
+    // Solve count
+    ctx.textAlign = 'right';
+    ctx.fillText(`${ts.length} solve${ts.length!==1?'s':''}`, W - PAD, gy + gh);
+  } else {
+    ctx.font = '12px Inter, system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.textAlign = 'center';
+    ctx.fillText('Not enough solves to graph', gx + gw / 2, gy + gh / 2);
+  }
+
+  // ── Footer ──
+  ctx.font = '10px Inter, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.textAlign = 'center';
+  ctx.fillText('STRATI TIMER', W / 2, H - 9);
+
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
-});
+}
 
 function roundRect(ctx,x,y,w,h,r){ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 function beginRoundRect(ctx,x,y,w,h,r){ctx.beginPath();roundRect(ctx,x,y,w,h,r);}
@@ -565,7 +662,7 @@ document.getElementById('shareImgModal').addEventListener('click', e=>{ if(e.tar
 document.getElementById('shareImgDownload').addEventListener('click', ()=>{
   const a = document.createElement('a');
   a.href = document.getElementById('shareCanvas').toDataURL('image/png');
-  a.download = `strati-solves-${Date.now()}.png`;
+  a.download = `strati-session-${Date.now()}.png`;
   a.click();
 });
 document.getElementById('shareImgCopy').addEventListener('click', ()=>{
