@@ -570,7 +570,7 @@ function _niceYTicks(minMs, maxMs) {
 }
 function _niceYLabel(ms, step) {
   const s = ms / 1000;
-  return step < 1 ? s.toFixed(1) : String(Math.round(s));
+  return (step < 1 ? s.toFixed(1) : String(Math.round(s))) + 's';
 }
 function _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py) {
   const { ticks, step } = _niceYTicks(minV, maxV);
@@ -593,6 +593,11 @@ function _drawGraph(ctx, solves, total, gx, gy, gw, gh) {
     ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.textAlign = 'center';
     ctx.fillText('Not enough solves to graph', gx + gw / 2, gy + gh / 2); return;
   }
+  // Solve count label — top right
+  ctx.font = 'bold 9px Inter,system-ui,sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.textAlign = 'right';
+  ctx.fillText(`n° ${total}`, gx + gw, gy + 9);
+
   const vals = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
   const minV = Math.min(...vals), maxV = Math.max(...vals), range = (maxV - minV) || 1;
   const plotIdx = plotData.map(t => solves.indexOf(t));
