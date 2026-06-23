@@ -201,6 +201,11 @@ function openSolveModal(idx, sesIdx) {
   const d = new Date(t.date);
   document.getElementById('mo-date').textContent  = d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   document.getElementById('mo-clock').textContent = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  const tpsChip = document.getElementById('mo-tps-chip');
+  const movesChip = document.getElementById('mo-moves-chip');
+  const hasMoves = t.moves && t.moves.length > 0;
+  if (tpsChip) tpsChip.textContent = (hasMoves && !t.dnf && t.ms > 0) ? (t.moves.length / (t.ms / 1000)).toFixed(2) + ' TPS' : '';
+  if (movesChip) movesChip.textContent = hasMoves ? t.moves.length + ' moves' : '';
   const cubeEl=document.getElementById('mo-cube');
   if(cubeEl){
     if(t.cubeName){cubeEl.style.color='';cubeEl.textContent=t.cubeName;}
