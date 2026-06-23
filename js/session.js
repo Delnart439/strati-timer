@@ -695,7 +695,7 @@ function generateShareImg(type, param) {
 
   // Top row
   const topCells = [
-    { label: 'BEST SINGLE',   value: pb   !== null ? _sMs(pb)   : '–' },
+    { label: 'PB',            value: pb   !== null ? _sMs(pb)   : '–' },
     { label: 'SESSION AVG',   value: mean !== null ? _sMs(mean) : '–' },
     { label: 'N° SOLVES',     value: String(ts.length) },
   ];
@@ -763,7 +763,7 @@ function _generateShareAo(n) {
   // Top row
   const topCells = [
     { label: `AO${n}`,      value: avg !== null ? _sMs(avg) : 'DNF', color: avg !== null ? '#fff' : '#e00000' },
-    { label: 'BEST SINGLE', value: pb  !== null ? _sMs(pb)  : '–' },
+    { label: 'PB',          value: pb  !== null ? _sMs(pb)  : '–' },
     { label: 'TRAINING TIME', value: trainingStr },
   ];
   topCells.forEach((cell, i) => {
