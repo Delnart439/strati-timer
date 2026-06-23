@@ -523,7 +523,7 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
       ctx.filter = 'none';
     }
     ctx.textAlign = 'center';
-    ctx.font = '800 26px Nunito,sans-serif';
+    ctx.font = '800 34px Nunito,sans-serif';
     ctx.letterSpacing = '-0.5px';
     ctx.fillStyle = '#a855f7';
     ctx.fillText('strati', cx, y + 10 + lsize + 24);
