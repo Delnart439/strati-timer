@@ -658,7 +658,7 @@ function _drawGraph(ctx, solves, total, gx, gy, gw, gh) {
 
 function _shareHeader(ctx, W, PAD, subtitle, sesName, dateStr) {
   ctx.font = 'bold 20px Inter,system-ui,sans-serif';
-  ctx.fillStyle = '#7110c0'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#3b0764'; ctx.textAlign = 'left';
   ctx.fillText('STRATI', PAD, PAD + 20);
   if (subtitle) {
     ctx.font = 'bold 11px Inter,system-ui,sans-serif';
@@ -746,7 +746,7 @@ function generateShareImg(type, param) {
   const botCells = [
     { label: 'N° SOLVES',     value: String(ts.length) },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
-    { isLogo: true, bg: '#7110c0' },
+    { isLogo: true, bg: '#3b0764' },
   ];
   const botY = PAD + 2 * (CELL + GAP);
   botCells.forEach((cell, i) => {
@@ -809,7 +809,7 @@ function _generateShareAo(n) {
   const botCells = [
     { label: 'N° SOLVES',     value: String(n) },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
-    { isLogo: true, bg: '#7110c0' },
+    { isLogo: true, bg: '#3b0764' },
   ];
   const botY = PAD + 2 * (CELL + GAP);
   botCells.forEach((cell, i) => {
@@ -869,7 +869,7 @@ function _generateCfopCard(t) {
   // Row 1 — TIME | MOVES | STRATI
   _drawCubeCell(ctx, PAD, PAD, CELL, 'TIME', timeStr, { color: t.dnf ? '#e00000' : '#fff' });
   _drawCubeCell(ctx, PAD + CELL + GAP, PAD, CELL, 'MOVES', moveCount, {});
-  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), PAD, CELL, '', '', { isLogo: true, bg: '#7110c0' });
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), PAD, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   // Row 2 — CFOP bar visualization
   const barRowY = PAD + CELL + GAP;
@@ -1065,7 +1065,7 @@ function _generateShareSingle(idx) {
   const row3Y = PAD + 2 * (CELL + GAP);
   _drawCubeCell(ctx, PAD, row3Y, CELL, 'TPS', tpsVal, {});
   _drawCubeCell(ctx, PAD + CELL + GAP, row3Y, CELL, timeLabel, dateVal, {});
-  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true, bg: '#7110c0' });
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
   document.getElementById('shareImgModal').classList.remove('h');
