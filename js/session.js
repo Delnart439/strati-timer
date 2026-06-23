@@ -484,7 +484,6 @@ function shareOptClick(type, param) {
 function _sMs(ms) { return fmtMs(ms).slice(0, -1); }
 
 let _logoImg = null;
-let _shareTransparent = false;
 let _lastShareType = 'session', _lastShareParam = null;
 (function() {
   fetch('Mascotte/logo.png').then(r => r.blob()).then(blob => {
@@ -557,9 +556,7 @@ function _shareCtxSetup(W, H) {
 }
 
 function _shareCardBg(ctx, W, H, R) {
-  if (_shareTransparent) return;
-  ctx.fillStyle = '#160c2e';
-  beginRoundRect(ctx, 0, 0, W, H, R); ctx.fill();
+  // background always transparent — canvas CSS provides dark preview in modal
 }
 
 function _niceYTicks(minMs, maxMs) {
@@ -848,18 +845,8 @@ document.getElementById('shareImgModal').addEventListener('click', e=>{ if(e.tar
 document.getElementById('shareImgDownload').addEventListener('click', ()=>{
   const a = document.createElement('a');
   a.href = document.getElementById('shareCanvas').toDataURL('image/png');
-  a.download = `strati-session-${Date.now()}.png`;
+  a.download = `strati-${Date.now()}.png`;
   a.click();
-});
-document.getElementById('shareImgTransparent').addEventListener('click', ()=>{
-  _shareTransparent = true;
-  generateShareImg(_lastShareType, _lastShareParam);
-  const a = document.createElement('a');
-  a.href = document.getElementById('shareCanvas').toDataURL('image/png');
-  a.download = `strati-transparent-${Date.now()}.png`;
-  a.click();
-  _shareTransparent = false;
-  generateShareImg(_lastShareType, _lastShareParam);
 });
 document.getElementById('shareImgCopy').addEventListener('click', ()=>{
   document.getElementById('shareCanvas').toBlob(blob=>{
