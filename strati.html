@@ -698,6 +698,7 @@
       <button class="mb mb-dnf" id="mo-dnf">DNF</button>
       <button class="mb mb-p2" id="mo-p2">+2</button>
       <button class="mb mb-del" id="mo-del">Delete</button>
+      <button class="mb" id="mo-share" style="background:var(--purple)">Share</button>
     </div>
     <div class="mo-dt">
       <div class="mo-di"><div class="mo-dl">Date:</div><div class="mo-dv" id="mo-date">–</div></div>
@@ -711,8 +712,11 @@
 <div class="ov h" id="shareImgModal">
   <div class="mo" style="width:max-content;max-width:92vw;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column">
     <button class="mo-x" id="shareImgClose">✕</button>
-    <div style="font-size:18px;font-weight:800;margin-bottom:14px;text-align:center">Share Session</div>
-    <canvas id="shareCanvas" style="border-radius:16px;display:block;margin-bottom:10px;max-width:100%;background:#160c2e"></canvas>
+    <div style="font-size:18px;font-weight:800;margin-bottom:14px;text-align:center" id="shareImgTitle">Share</div>
+    <div id="shareCanvasWrap" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-bottom:10px;scrollbar-width:none;-webkit-overflow-scrolling:touch">
+      <canvas id="shareCanvas" style="border-radius:16px;display:block;max-width:100%;background:#160c2e;scroll-snap-align:start;flex-shrink:0"></canvas>
+      <canvas id="shareCanvas2" style="border-radius:16px;display:none;max-width:100%;background:#160c2e;scroll-snap-align:start;flex-shrink:0"></canvas>
+    </div>
     <div style="display:flex;gap:8px">
       <button id="shareImgDownload" style="flex:1;padding:11px;background:var(--purple);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Download</button>
       <button id="shareImgCopy" style="flex:1;padding:11px;background:rgba(255,255,255,.1);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Copy</button>
