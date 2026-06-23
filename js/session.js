@@ -451,7 +451,7 @@ document.getElementById('statsGrid').addEventListener('click', e=>{
   if (sc) openSolveModal(+sc.dataset.idx);
 });
 
-function generateStravaCard() {
+function generateShareImg() {
   const ts = curSes().times;
   if (!ts.length) { toast('No solves to share'); return; }
 
