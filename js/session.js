@@ -729,7 +729,7 @@ function generateShareImg(type, param) {
 
   // Bottom row
   const botCells = [
-    { label: 'N° SOLVES',     value: String(ts.length), labelTop: true },
+    { label: 'N° SOLVES',     value: String(ts.length) },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
     { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
   ];
@@ -796,7 +796,7 @@ function _generateShareAo(n) {
 
   // Bottom row
   const botCells = [
-    { label: 'N° SOLVES',     value: String(n), labelTop: true },
+    { label: 'N° SOLVES',     value: String(n) },
     { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
     { isLogo: true, bg: 'rgba(113,16,192,0.35)' },
   ];
