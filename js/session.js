@@ -675,6 +675,20 @@ function _shareFooter(ctx, W, H) {
   ctx.textAlign = 'center'; ctx.fillText('STRATI TIMER', W / 2, H - 9);
 }
 
+function _calcTrainingTime(solves) {
+  const dated = solves.filter(t => t.date).sort((a, b) => new Date(a.date) - new Date(b.date));
+  if (dated.length < 2) return dated.length === 1 ? '<1m' : '–';
+  const BREAK = 10 * 60 * 1000;
+  let ms = 0;
+  for (let i = 1; i < dated.length; i++) {
+    const gap = new Date(dated[i].date) - new Date(dated[i-1].date);
+    if (gap < BREAK) ms += gap;
+  }
+  if (ms < 60000) return '<1m';
+  const mins = Math.round(ms / 60000);
+  return mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h${mins%60?' '+(mins%60)+'m':''}`;
+}
+
 function generateShareImg(type, param) {
   type = type || 'session';
   _lastShareType = type; _lastShareParam = param;
@@ -694,12 +708,7 @@ function generateShareImg(type, param) {
   const pb   = bestSingle();
   const mean = calcMean();
 
-  const dated = ts.filter(t => t.date).sort((a, b) => new Date(a.date) - new Date(b.date));
-  let trainingStr = '–';
-  if (dated.length >= 2) {
-    const mins = Math.round((new Date(dated[dated.length-1].date) - new Date(dated[0].date)) / 60000);
-    trainingStr = mins < 1 ? '<1m' : mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h${mins%60?' '+(mins%60)+'m':''}`;
-  } else if (dated.length === 1) { trainingStr = '<1m'; }
+  const trainingStr = _calcTrainingTime(ts);
 
   const btSolves = ts.filter(t => t.moves && t.moves.length > 0 && !t.dnf && t.ms > 0);
   const hasTps   = btSolves.length > 0;
@@ -761,12 +770,7 @@ function _generateShareAo(n) {
   const pbMs = chunkValid.length ? Math.min(...chunkValid.map(t => t.ms + (t.plus2 ? 2000 : 0))) : null;
   const pb = pbMs !== null && isFinite(pbMs) ? pbMs : null;
 
-  const datedSorted = chunk.filter(t => t.date).sort((a, b) => new Date(a.date) - new Date(b.date));
-  let trainingStr = '–';
-  if (datedSorted.length >= 2) {
-    const mins = Math.round((new Date(datedSorted[datedSorted.length-1].date) - new Date(datedSorted[0].date)) / 60000);
-    trainingStr = mins < 1 ? '<1m' : mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h${mins%60?' '+(mins%60)+'m':''}`;
-  } else if (datedSorted.length === 1) { trainingStr = '<1m'; }
+  const trainingStr = _calcTrainingTime(chunk);
 
   const btSolves = chunk.filter(t => t.moves && t.moves.length > 0 && !t.dnf && t.ms > 0);
   const hasTps   = btSolves.length > 0;
