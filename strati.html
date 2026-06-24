@@ -717,6 +717,11 @@
   <div class="mo" style="width:max-content;max-width:92vw;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column">
     <button class="mo-x" id="shareImgClose">✕</button>
     <div style="font-size:18px;font-weight:800;margin-bottom:14px;text-align:center" id="shareImgTitle">Share</div>
+    <div id="shareGraphPicker" style="display:none;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">
+      <button id="shareGraphPrev" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:18px;font-weight:700;cursor:pointer;padding:4px 12px;border-radius:8px">‹</button>
+      <span id="shareGraphLabel" style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85);min-width:130px;text-align:center">Time Trend</span>
+      <button id="shareGraphNext" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:18px;font-weight:700;cursor:pointer;padding:4px 12px;border-radius:8px">›</button>
+    </div>
     <div id="shareCanvasWrap" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-bottom:10px;scrollbar-width:none;-webkit-overflow-scrolling:touch">
       <canvas id="shareCanvas" style="border-radius:16px;display:block;max-width:100%;background:#160c2e;scroll-snap-align:start;flex-shrink:0"></canvas>
       <canvas id="shareCanvas2" style="border-radius:16px;display:none;max-width:100%;background:#160c2e;scroll-snap-align:start;flex-shrink:0"></canvas>

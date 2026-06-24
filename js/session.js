@@ -600,9 +600,25 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
     ctx.font = 'bold 15px Inter,system-ui,sans-serif';
     ctx.fillStyle = '#fff';
     ctx.fillText(label, cx, y + size * 0.66);
-    ctx.font = 'bold 16px Inter,system-ui,sans-serif';
+    // Draw number bold+large, "solves" smaller beside it
+    const subParts = String(opts.sub).match(/^(\d+)\s*(.*)$/) || [null, opts.sub, ''];
+    const subNum = subParts[1], subText = subParts[2];
+    ctx.font = 'bold 20px Inter,system-ui,sans-serif';
     ctx.fillStyle = '#fff';
-    ctx.fillText(opts.sub, cx, y + size * 0.84);
+    const numW = ctx.measureText(subNum).width;
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff';
+    const txtW = ctx.measureText(' ' + subText).width;
+    const totalW = numW + txtW;
+    const subY = y + size * 0.85;
+    ctx.font = 'bold 20px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
+    ctx.fillText(subNum, cx - totalW / 2, subY);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(' ' + subText, cx - totalW / 2 + numW, subY);
+    ctx.textAlign = 'center';
   } else {
     ctx.fillStyle = (opts && opts.color) || '#fff';
     ctx.fillText(str, cx, y + size * 0.52);
@@ -705,6 +721,61 @@ function _drawGraph(ctx, solves, total, gx, gy, gw, gh) {
   });
 }
 
+function _drawDistribution(ctx, solves, gx, gy, gw, gh) {
+  const vals = solves.filter(t => !t.dnf).map(t => (t.ms + (t.plus2 ? 2000 : 0)) / 1000);
+  if (vals.length < 3) {
+    ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.textAlign = 'center';
+    ctx.fillText('Not enough solves', gx + gw / 2, gy + gh / 2); return;
+  }
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  // Round bucket width to a nice step (0.5s, 1s, 2s, etc.)
+  const rawStep = range / Math.min(10, Math.max(5, Math.ceil(vals.length / 3)));
+  const niceSteps = [0.25, 0.5, 1, 2, 5, 10];
+  const step = niceSteps.find(s => s >= rawStep) || niceSteps[niceSteps.length - 1];
+  const bucketStart = Math.floor(minV / step) * step;
+  const bucketEnd   = Math.ceil(maxV / step) * step;
+  const bucketCount = Math.round((bucketEnd - bucketStart) / step) || 1;
+  const buckets = Array(bucketCount).fill(0);
+  vals.forEach(v => {
+    const b = Math.min(bucketCount - 1, Math.floor((v - bucketStart) / step));
+    buckets[b]++;
+  });
+  const maxCount = Math.max(...buckets);
+  // Reserve space: top for count labels, bottom for X labels
+  const topPad = 16, botPad = 14;
+  const barAreaH = gh - topPad - botPad;
+  const barW = gw / bucketCount;
+  const barGap = Math.max(2, barW * 0.15);
+  buckets.forEach((count, i) => {
+    if (!count) return;
+    const bh = (count / maxCount) * barAreaH;
+    const bx = gx + i * barW + barGap / 2;
+    const by = gy + topPad + barAreaH - bh;
+    const grad = ctx.createLinearGradient(0, by, 0, by + bh);
+    grad.addColorStop(0, 'rgba(168,85,247,0.9)'); grad.addColorStop(1, 'rgba(168,85,247,0.25)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); roundRect(ctx, bx, by, barW - barGap, bh, 3); ctx.fill();
+    // Count on top of bar
+    ctx.font = 'bold 9px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.fillText(count, bx + (barW - barGap) / 2, by - 3);
+  });
+  // X axis: time label centred under each bar
+  ctx.font = '8px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.textAlign = 'center';
+  const maxLabels = Math.floor(gw / 30);
+  const labelStep = Math.ceil(bucketCount / maxLabels) || 1;
+  buckets.forEach((_, i) => {
+    if (i % labelStep !== 0 && i !== bucketCount - 1) return;
+    const t = bucketStart + i * step;
+    const lx = gx + i * barW + barW / 2;
+    ctx.fillText(t.toFixed(step < 1 ? 2 : 1) + 's', lx, gy + gh);
+  });
+}
+
+let _sessionGraphType = 'trend';
+const _graphTypes = ['trend', 'distribution'];
+const _graphLabels = { trend: 'Time Trend', distribution: 'Time Distribution' };
+
 function _shareHeader(ctx, W, PAD, subtitle, sesName, dateStr) {
   ctx.font = 'bold 20px Inter,system-ui,sans-serif';
   ctx.fillStyle = '#3b0764'; ctx.textAlign = 'left';
@@ -779,17 +850,24 @@ function generateShareImg(type, param) {
     _drawCubeCell(ctx, PAD + i * (CELL + GAP), PAD, CELL, cell.label, cell.value, cell);
   });
 
-  // Middle row — graph
+  // Middle row — graph (trend or distribution)
   const graphRowY = PAD + CELL + GAP;
-  const HPAD = 10, YLABELW = 28;
+  const HPAD = 10, YLABELW = _sessionGraphType === 'trend' ? 28 : 0;
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.fill();
   ctx.save();
   ctx.beginPath(); roundRect(ctx, PAD + 1, graphRowY + 1, W - PAD * 2 - 2, CELL - 2, 13); ctx.clip();
-  _drawGraph(ctx, [...ts].reverse(), ts.length, PAD + HPAD + YLABELW, graphRowY + 8, W - 2 * (PAD + HPAD) - YLABELW, CELL - 16);
+  if (_sessionGraphType === 'distribution') {
+    _drawDistribution(ctx, ts, PAD + HPAD, graphRowY + 20, W - 2 * (PAD + HPAD), CELL - 30);
+  } else {
+    _drawGraph(ctx, [...ts].reverse(), ts.length, PAD + HPAD + YLABELW, graphRowY + 8, W - 2 * (PAD + HPAD) - YLABELW, CELL - 16);
+  }
   ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
+  // Graph type label top-left of cell
+  ctx.font = 'bold 10px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+  ctx.fillText(_graphLabels[_sessionGraphType].toUpperCase(), PAD + HPAD, graphRowY + 16);
 
   // Bottom row — TPS+MOVES combined | DEVICE | STRATI
   const avgMoves = hasTps ? (btSolves.reduce((s, t) => s + t.moves.length, 0) / btSolves.length).toFixed(1) : '–';
@@ -820,6 +898,8 @@ function generateShareImg(type, param) {
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
+  document.getElementById('shareGraphPicker').style.display = 'flex';
+  document.getElementById('shareGraphLabel').textContent = _graphLabels[_sessionGraphType];
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }
@@ -900,6 +980,7 @@ function _generateShareAo(n) {
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
+  document.getElementById('shareGraphPicker').style.display = 'none';
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }
@@ -1294,6 +1375,7 @@ function _generateShareSingle(idx) {
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
+  document.getElementById('shareGraphPicker').style.display = 'none';
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }
@@ -1303,6 +1385,18 @@ function beginRoundRect(ctx,x,y,w,h,r){ctx.beginPath();roundRect(ctx,x,y,w,h,r);
 
 document.getElementById('shareImgClose').addEventListener('click', ()=>document.getElementById('shareImgModal').classList.add('h'));
 document.getElementById('shareImgModal').addEventListener('click', e=>{ if(e.target===document.getElementById('shareImgModal')) document.getElementById('shareImgModal').classList.add('h'); });
+document.getElementById('shareGraphPrev').addEventListener('click', ()=>{
+  const i = _graphTypes.indexOf(_sessionGraphType);
+  _sessionGraphType = _graphTypes[(i - 1 + _graphTypes.length) % _graphTypes.length];
+  document.getElementById('shareGraphLabel').textContent = _graphLabels[_sessionGraphType];
+  generateShareImg('session');
+});
+document.getElementById('shareGraphNext').addEventListener('click', ()=>{
+  const i = _graphTypes.indexOf(_sessionGraphType);
+  _sessionGraphType = _graphTypes[(i + 1) % _graphTypes.length];
+  document.getElementById('shareGraphLabel').textContent = _graphLabels[_sessionGraphType];
+  generateShareImg('session');
+});
 function _activeShareCanvas() {
   const wrap = document.getElementById('shareCanvasWrap');
   const c2 = document.getElementById('shareCanvas2');
