@@ -551,15 +551,18 @@ function _friendlyCubeName(raw) {
 
 function _drawCubeCell(ctx, x, y, size, label, value, opts) {
   const R = 14;
-  const bg = (opts && opts.bg) || 'rgba(255,255,255,0.07)';
+  const isLogo = opts && opts.isLogo;
+  const bg = isLogo ? '#7c3aed' : ((opts && opts.bg) || 'rgba(255,255,255,0.07)');
   ctx.fillStyle = bg;
   beginRoundRect(ctx, x, y, size, size, R); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
-  beginRoundRect(ctx, x, y, size, size, R); ctx.stroke();
+  if (!isLogo) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+    beginRoundRect(ctx, x, y, size, size, R); ctx.stroke();
+  }
 
   const cx = x + size / 2;
 
-  if (opts && opts.isLogo) {
+  if (isLogo) {
     const lsize = 80;
     if (_logoImg) {
       ctx.save();
@@ -571,11 +574,11 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
     ctx.textAlign = 'center';
     ctx.font = '800 28px Nunito,sans-serif';
     ctx.letterSpacing = '-0.5px';
-    ctx.fillStyle = '#a855f7';
+    ctx.fillStyle = '#fff';
     ctx.fillText('strati', cx, y + 6 + lsize + 20);
     ctx.letterSpacing = '0px';
     ctx.font = '800 13px Inter,system-ui,sans-serif';
-    ctx.fillStyle = 'rgba(168,85,247,0.75)';
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
     ctx.fillText('TIMER', cx, y + 6 + lsize + 36);
     return;
   }
@@ -895,7 +898,7 @@ function generateShareImg(type, param) {
   ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
   ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
   _drawCubeCell(ctx, PAD + CELL + GAP, botY, CELL, deviceLabel, deviceStr, deviceOpts);
-  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true, bg: '#3b0764' });
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true });
 
   document.getElementById('shareCanvas2').style.display = 'none';
   document.getElementById('shareGraphPrev').style.display = '';
@@ -979,7 +982,7 @@ function _generateShareAo(n) {
   ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
   ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
   _drawCubeCell(ctx, PAD + CELL + GAP, botY, CELL, deviceLabel, deviceStr, deviceOpts);
-  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true, bg: '#3b0764' });
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true });
 
   document.getElementById('shareCanvas2').style.display = 'none';
   document.getElementById('shareGraphPrev').style.display = 'none';
@@ -1037,7 +1040,7 @@ function _generateCfopCard(t) {
   // Row 1 — TIME | MOVES | STRATI
   _drawCubeCell(ctx, PAD, PAD, CELL, 'TIME', timeStr, { color: t.dnf ? '#e00000' : '#fff' });
   _drawCubeCell(ctx, PAD + CELL + GAP, PAD, CELL, 'MOVES', moveCount, {});
-  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), PAD, CELL, '', '', { isLogo: true, bg: '#3b0764' });
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), PAD, CELL, '', '', { isLogo: true });
 
   // Row 2 — CFOP bar visualization
   const barRowY = PAD + CELL + GAP;
@@ -1376,7 +1379,7 @@ function _generateShareSingle(idx) {
     ctx.fillText('TIMER', kcx, ky + CELL - 12);
   }
   _drawCubeCell(ctx, PAD + CELL + GAP, row3Y, CELL, timeLabel, dateVal, {});
-  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true, bg: '#3b0764' });
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true });
 
   document.getElementById('shareCanvas2').style.display = 'none';
   document.getElementById('shareGraphPrev').style.display = 'none';
