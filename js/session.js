@@ -755,9 +755,7 @@ function _drawDistribution(ctx, solves, gx, gy, gw, gh) {
     const bh = (count / maxCount) * barAreaH;
     const bx = gx + i * barW + barGap / 2;
     const by = gy + topPad + barAreaH - bh;
-    const grad = ctx.createLinearGradient(0, by, 0, by + bh);
-    grad.addColorStop(0, 'rgba(168,85,247,0.9)'); grad.addColorStop(1, 'rgba(168,85,247,0.25)');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = '#a855f7';
     ctx.beginPath(); roundRect(ctx, bx, by, barW - barGap, bh, 3); ctx.fill();
     // Count on top of bar
     ctx.font = 'bold 9px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
