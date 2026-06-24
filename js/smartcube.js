@@ -378,7 +378,7 @@ function scInitScramble(){
 function scHighlight(){
   const el=document.getElementById('scrTxt'); if(!el||!scScrambleMoves.length||!scConn) return;
   if(scPhase==='ready'){
-    el.innerHTML='<span style="color:var(--green);font-weight:800;letter-spacing:.04em">Scramble done — start solving!</span>';
+    el.innerHTML='<span style="color:var(--green);font-weight:800;letter-spacing:.04em">Scramble done, you can start</span>';
     return;
   }
   if(scErrSeq.length>0){
