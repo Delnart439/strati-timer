@@ -2,9 +2,9 @@
 function fmtMs(ms, {plus2=false,dnf=false}={}) {
   if (dnf) return 'DNF';
   const t = plus2 ? ms + 2000 : ms;
-  if (t < 60000) return (t/1000).toFixed(3);
-  const m = Math.floor(t/60000);
-  const s = ((t%60000)/1000).toFixed(3).padStart(6,'0');
+  if (t < 60000) return (Math.floor(t / 10) / 100).toFixed(2);
+  const m = Math.floor(t / 60000);
+  const s = (Math.floor((t % 60000) / 10) / 100).toFixed(2).padStart(5, '0');
   return `${m}:${s}`;
 }
 
@@ -16,9 +16,9 @@ function fmtMsFull(ms, flags={}) {
 function fmtMs2(ms, flags={}) {
   if (flags.dnf) return 'DNF';
   const t = flags.plus2 ? ms + 2000 : ms;
-  if (t < 60000) return (t/1000).toFixed(2) + (flags.plus2?'+':'');
-  const m = Math.floor(t/60000);
-  const s = ((t%60000)/1000).toFixed(2).padStart(5,'0');
+  if (t < 60000) return (Math.floor(t / 10) / 100).toFixed(2) + (flags.plus2?'+':'');
+  const m = Math.floor(t / 60000);
+  const s = (Math.floor((t % 60000) / 10) / 100).toFixed(2).padStart(5, '0');
   return `${m}:${s}` + (flags.plus2?'+':'');
 }
 

@@ -208,7 +208,7 @@ function openSolveModal(idx, sesIdx) {
   if (movesChip) movesChip.textContent = hasMoves ? t.moves.length + ' moves' : '';
   const cubeEl=document.getElementById('mo-cube');
   if(cubeEl){
-    if(t.cubeName){cubeEl.style.color='';cubeEl.textContent=t.cubeName;}
+    if(t.cubeName){cubeEl.style.color='';cubeEl.textContent=_friendlyCubeName(t.cubeName);}
     else{cubeEl.style.color='var(--dim)';cubeEl.textContent='Use a Bluetooth cube';}
   }
   drawPuzzleImage(document.getElementById('mo-net'), ses.puzzle || state.puzzle, t.scramble||'', 0.85);
@@ -401,7 +401,7 @@ addTimeModal.addEventListener('click', e=>{ if(e.target===addTimeModal) addTimeM
 function confirmAddTime() {
   const ms = parseManualTime(addTimeInput.value);
   if (ms===null) { addTimeInput.style.borderColor='var(--red)'; return; }
-  const solve = { ms, dnf:false, plus2:false, scramble: state.scrHistory[state.scrIdx]||'', date: new Date().toISOString() };
+  const solve = { ms, dnf:false, plus2:false, scramble: state.scrHistory[state.scrIdx]||'', date: new Date().toISOString(), manual: true };
   curSes().times.unshift(solve);
   document.getElementById('timerDisp').textContent = fmtMs(ms);
   save(); renderStats(); renderTimeList();
@@ -487,27 +487,67 @@ function shareOptClick(type, param) {
 }
 
 
-function _sMs(ms) { return fmtMs(ms).slice(0, -1); }
+function _sMs(ms) { return fmtMs(ms); }
 
 let _logoImg = null;
 let _lastShareType = 'session', _lastShareParam = null;
 (function() {
+  function _loadLogoImg(src) {
+    const img = new Image();
+    img.onload = () => {
+      _logoImg = img;
+      const modal = document.getElementById('shareImgModal');
+      if (modal && !modal.classList.contains('h') && _lastShareType) {
+        generateShareImg(_lastShareType, _lastShareParam);
+      }
+    };
+    img.src = src;
+  }
   fetch('Mascotte/logo.png').then(r => r.blob()).then(blob => {
     const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        _logoImg = img;
-        const modal = document.getElementById('shareImgModal');
-        if (modal && !modal.classList.contains('h') && _lastShareType) {
-          generateShareImg(_lastShareType, _lastShareParam);
-        }
-      };
-      img.src = e.target.result;
-    };
+    reader.onload = e => _loadLogoImg(e.target.result);
     reader.readAsDataURL(blob);
-  }).catch(() => {});
+  }).catch(() => _loadLogoImg('Mascotte/logo.png'));
 })();
+
+function _friendlyCubeName(raw) {
+  if (!raw) return raw;
+  const r = raw.trim();
+  // Moyu AI cubes — BLE name "WCU_MY<model>_<suffix>"
+  // Specific suffix codes take priority over model-level fallbacks
+  if (/MY32_C75A/i.test(r)) return 'Moyu V11';
+  if (/MY32_C698/i.test(r)) return 'Moyu V10';
+  if (/MY32_A6BB/i.test(r)) return 'Moyu V10';
+  if (/MY32_C/i.test(r))    return 'Moyu V10';
+  if (/MY32_A/i.test(r))    return 'Moyu V10';
+  if (/MY32/i.test(r))      return 'Moyu AI Cube';
+  if (/MY30/i.test(r))      return 'Moyu RS3M AI';
+  if (/MY31/i.test(r))      return 'Moyu Super RS3M AI';
+  if (/MY33/i.test(r))      return 'Moyu RS3 AI';
+  if (/^WCU/i.test(r))      return 'Moyu AI Cube';
+  // GAN AI cubes
+  if (/^GANi4/i.test(r))                    return 'GAN i4';
+  if (/^GANi3/i.test(r))                    return 'GAN i3';
+  if (/^GAN[\s-]?356\s*i/i.test(r))        return 'GAN 356i';
+  if (/^GAN[\s-]?12\s*ui/i.test(r))        return 'GAN 12 UI';
+  if (/^GAN[\s-]?14/i.test(r))             return 'GAN 14 AI';
+  if (/^GAN[\s-]?i4/i.test(r))             return 'GAN i4';
+  if (/^GAN[\s-]?i3/i.test(r))             return 'GAN i3';
+  if (/^GAN[\s-]?11\s*m\s*pro/i.test(r))   return 'GAN 11 M Pro';
+  if (/^GAN/i.test(r))                      return 'GAN AI Cube';
+  // GoCube
+  if (/^GoCube[\s-]?edge/i.test(r))  return 'GoCube Edge';
+  if (/^GoCube/i.test(r))            return 'GoCube';
+  // Giiker
+  if (/^GiEKER[\s-]?i3s/i.test(r) || /^Giiker[\s-]?i3s/i.test(r)) return 'Giiker i3s';
+  if (/^GiEKER[\s-]?i2/i.test(r)  || /^Giiker[\s-]?i2/i.test(r))  return 'Giiker i2';
+  if (/^GiEKER|^Giiker/i.test(r))    return 'Giiker';
+  // QiYi
+  if (/^QiYi[\s-]?AI/i.test(r) || /^Qiyi[\s-]?AI/i.test(r)) return 'QiYi AI Cube';
+  // Rubik's Connected
+  if (/^Rubik/i.test(r)) return "Rubik's Connected";
+  return r;
+}
 
 function _drawCubeCell(ctx, x, y, size, label, value, opts) {
   const R = 14;
@@ -520,23 +560,23 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
   const cx = x + size / 2;
 
   if (opts && opts.isLogo) {
-    const lsize = 58;
+    const lsize = 80;
     if (_logoImg) {
       ctx.save();
       ctx.filter = 'grayscale(1) brightness(6)';
-      ctx.drawImage(_logoImg, cx - lsize / 2, y + 10, lsize, lsize);
+      ctx.drawImage(_logoImg, cx - lsize / 2, y + 6, lsize, lsize);
       ctx.restore();
       ctx.filter = 'none';
     }
     ctx.textAlign = 'center';
-    ctx.font = '800 38px Nunito,sans-serif';
+    ctx.font = '800 28px Nunito,sans-serif';
     ctx.letterSpacing = '-0.5px';
     ctx.fillStyle = '#a855f7';
-    ctx.fillText('strati', cx, y + 10 + lsize + 26);
+    ctx.fillText('strati', cx, y + 6 + lsize + 20);
     ctx.letterSpacing = '0px';
-    ctx.font = '800 16px Inter,system-ui,sans-serif';
+    ctx.font = '800 13px Inter,system-ui,sans-serif';
     ctx.fillStyle = 'rgba(168,85,247,0.75)';
-    ctx.fillText('TIMER', cx, y + 10 + lsize + 46);
+    ctx.fillText('TIMER', cx, y + 6 + lsize + 36);
     return;
   }
 
@@ -554,6 +594,15 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
     ctx.font = `900 ${fs}px Inter,system-ui,sans-serif`;
     ctx.fillStyle = (opts && opts.color) || '#fff';
     ctx.fillText(str, cx, y + size * 0.72);
+  } else if (opts && opts.sub) {
+    ctx.fillStyle = (opts && opts.color) || '#fff';
+    ctx.fillText(str, cx, y + size * 0.45);
+    ctx.font = 'bold 15px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, cx, y + size * 0.66);
+    ctx.font = 'bold 16px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(opts.sub, cx, y + size * 0.84);
   } else {
     ctx.fillStyle = (opts && opts.color) || '#fff';
     ctx.fillText(str, cx, y + size * 0.52);
@@ -723,7 +772,7 @@ function generateShareImg(type, param) {
   // Top row
   const topCells = [
     { label: 'BEST SINGLE',   value: pb   !== null ? _sMs(pb)   + 's' : '–' },
-    { label: 'SESSION AVG',   value: mean !== null ? _sMs(mean) + 's' : '–' },
+    { label: 'SESSION AVG',   value: mean !== null ? _sMs(mean) + 's' : '–', sub: ts.length + ' solves' },
     { label: 'TRAINING TIME', value: trainingStr },
   ];
   topCells.forEach((cell, i) => {
@@ -742,16 +791,33 @@ function generateShareImg(type, param) {
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
 
-  // Bottom row
-  const botCells = [
-    { label: 'N° SOLVES',     value: String(ts.length) },
-    { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
-    { isLogo: true, bg: '#3b0764' },
-  ];
+  // Bottom row — TPS+MOVES combined | DEVICE | STRATI
+  const avgMoves = hasTps ? (btSolves.reduce((s, t) => s + t.moves.length, 0) / btSolves.length).toFixed(1) : '–';
+  const tpsStr = hasTps ? avgTps.toFixed(1) : '–';
+  const cubeName = _friendlyCubeName(ts.find(t => t.cubeName)?.cubeName);
+  const hasManual = !cubeName && ts.some(t => t.manual || t.stackmat);
+  const deviceLabel = cubeName ? 'Smart Cube' : 'TIMER';
+  const deviceStr = cubeName || (hasManual ? 'STACKMAT' : 'KEYBOARD');
+  const deviceOpts = cubeName ? { labelTop: true } : {};
   const botY = PAD + 2 * (CELL + GAP);
-  botCells.forEach((cell, i) => {
-    _drawCubeCell(ctx, PAD + i * (CELL + GAP), botY, CELL, cell.label || '', cell.value || '', cell);
-  });
+  const cx0 = PAD + CELL / 2;
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  beginRoundRect(ctx, PAD, botY, CELL, CELL, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+  beginRoundRect(ctx, PAD, botY, CELL, CELL, 14); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText(tpsStr, cx0, botY + CELL * 0.28);
+  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText('AVG TPS', cx0, botY + CELL * 0.44);
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PAD + 10, botY + CELL * 0.52); ctx.lineTo(PAD + CELL - 10, botY + CELL * 0.52); ctx.stroke();
+  ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText(avgMoves, cx0, botY + CELL * 0.72);
+  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
+  _drawCubeCell(ctx, PAD + CELL + GAP, botY, CELL, deviceLabel, deviceStr, deviceOpts);
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
   document.getElementById('shareImgModal').classList.remove('h');
@@ -805,16 +871,33 @@ function _generateShareAo(n) {
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
   beginRoundRect(ctx, PAD, graphRowY, W - PAD * 2, CELL, 14); ctx.stroke();
 
-  // Bottom row
-  const botCells = [
-    { label: 'N° SOLVES',     value: String(n) },
-    { label: 'AVG TPS',       value: hasTps ? avgTps.toFixed(1) : '–' },
-    { isLogo: true, bg: '#3b0764' },
-  ];
+  // Bottom row — TPS+MOVES combined | DEVICE | STRATI
+  const avgMoves = hasTps ? (btSolves.reduce((s, t) => s + t.moves.length, 0) / btSolves.length).toFixed(1) : '–';
+  const tpsStr = hasTps ? avgTps.toFixed(1) : '–';
+  const cubeName = _friendlyCubeName(chunk.find(t => t.cubeName)?.cubeName);
+  const hasManual = !cubeName && chunk.some(t => t.manual);
+  const deviceLabel = cubeName ? 'Smart Cube' : 'TIMER';
+  const deviceStr = cubeName || (hasManual ? 'STACKMAT' : 'KEYBOARD');
+  const deviceOpts = cubeName ? { labelTop: true } : {};
   const botY = PAD + 2 * (CELL + GAP);
-  botCells.forEach((cell, i) => {
-    _drawCubeCell(ctx, PAD + i * (CELL + GAP), botY, CELL, cell.label || '', cell.value || '', cell);
-  });
+  const cx0 = PAD + CELL / 2;
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  beginRoundRect(ctx, PAD, botY, CELL, CELL, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+  beginRoundRect(ctx, PAD, botY, CELL, CELL, 14); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText(tpsStr, cx0, botY + CELL * 0.28);
+  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText('AVG TPS', cx0, botY + CELL * 0.44);
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PAD + 10, botY + CELL * 0.52); ctx.lineTo(PAD + CELL - 10, botY + CELL * 0.52); ctx.stroke();
+  ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText(avgMoves, cx0, botY + CELL * 0.72);
+  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
+  _drawCubeCell(ctx, PAD + CELL + GAP, botY, CELL, deviceLabel, deviceStr, deviceOpts);
+  _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
   document.getElementById('shareImgModal').classList.remove('h');
@@ -1012,22 +1095,68 @@ function _generateShareSingle(idx) {
     timeLabel = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   }
 
-  // Row 1 — full-width box: cube net (left) + scramble (right)
+  const solveCubeName = _friendlyCubeName(t.cubeName);
+  const solveIsManual = !solveCubeName && (t.manual || t.stackmat);
+
+  // Row 1 — TIME (full-width, or 2/3 + TPS/moves cell for AI cube)
   const row1Y = PAD;
-  const row1W = W - PAD * 2;
+  const timeBoxW = solveCubeName ? 2*CELL + GAP : W - PAD*2;
   ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  beginRoundRect(ctx, PAD, row1Y, row1W, CELL, 14); ctx.fill();
+  beginRoundRect(ctx, PAD, row1Y, timeBoxW, CELL, 14); ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
-  beginRoundRect(ctx, PAD, row1Y, row1W, CELL, 14); ctx.stroke();
+  beginRoundRect(ctx, PAD, row1Y, timeBoxW, CELL, 14); ctx.stroke();
 
-  const halfW = row1W / 2;
-  _drawCubeNetCanvas(ctx, t.scramble || '', PAD + halfW / 2, row1Y + CELL / 2, halfW - 16, CELL - 16);
+  const timeCx = PAD + timeBoxW / 2;
+  const timeColor = t.dnf ? '#e00000' : t.plus2 ? '#f59e0b' : '#fff';
+  let tfs = 72;
+  ctx.font = `900 ${tfs}px Inter,system-ui,sans-serif`;
+  while (tfs > 24 && ctx.measureText(timeStr).width > timeBoxW - 40) { tfs -= 2; ctx.font = `900 ${tfs}px Inter,system-ui,sans-serif`; }
+  ctx.textAlign = 'center'; ctx.fillStyle = timeColor;
+  const mainTimeY = row1Y + CELL / 2 + tfs * 0.35;
+  ctx.fillText(timeStr, timeCx, mainTimeY);
+  ctx.font = 'bold 15px Inter,system-ui,sans-serif';
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'right';
+  ctx.fillText('TIME', PAD + timeBoxW - 12, row1Y + CELL - 12);
 
+  if (solveCubeName) {
+    // TPS + Moves cell on the right of row 1
+    const tmx = PAD + 2*(CELL + GAP), tmy = row1Y;
+    const tmcx = tmx + CELL / 2;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    beginRoundRect(ctx, tmx, tmy, CELL, CELL, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+    beginRoundRect(ctx, tmx, tmy, CELL, CELL, 14); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText(tpsVal, tmcx, tmy + CELL * 0.28);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('TPS', tmcx, tmy + CELL * 0.44);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(tmx + 10, tmy + CELL * 0.52); ctx.lineTo(tmx + CELL - 10, tmy + CELL * 0.52); ctx.stroke();
+    const moveCount = (t.moves && t.moves.length > 0) ? String(t.moves.length) : '–';
+    ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText(moveCount, tmcx, tmy + CELL * 0.72);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('MOVES', tmcx, tmy + CELL * 0.88);
+  }
+
+  // Row 2 — SCRAMBLE full-width
+  const row2Y = PAD + CELL + GAP;
+  const scrW = W - PAD * 2;
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  beginRoundRect(ctx, PAD, row2Y, scrW, CELL, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+  beginRoundRect(ctx, PAD, row2Y, scrW, CELL, 14); ctx.stroke();
+  const halfW = scrW / 2;
+  _drawCubeNetCanvas(ctx, t.scramble || '', PAD + halfW / 2, row2Y + CELL / 2, halfW - 38, CELL - 30);
+  ctx.font = 'bold 15px Inter,system-ui,sans-serif';
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'right';
+  ctx.fillText('SCRAMBLE', PAD + scrW - 12, row2Y + CELL - 12);
   if (t.scramble) {
-    const scrCx = PAD + halfW;
     const words = t.scramble.split(/\s+/).filter(Boolean);
     const maxLineW = halfW - 20;
-    ctx.font = 'bold 17px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = 'bold 17px Inter,system-ui,sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.textAlign = 'left';
     const lineH = 23;
     let lines = [], line = '';
@@ -1038,32 +1167,129 @@ function _generateShareSingle(idx) {
     });
     if (line) lines.push(line);
     const totalH = lines.length * lineH;
-    let lineY = row1Y + (CELL - totalH) / 2 + 17;
-    lines.forEach(l => { ctx.fillText(l, scrCx + 4, lineY); lineY += lineH; });
+    let lineY = row2Y + (CELL - totalH) / 2 + 17;
+    lines.forEach(l => { ctx.fillText(l, PAD + halfW + 4, lineY); lineY += lineH; });
   }
 
-  // Row 2 — full-width TIME
-  const row2Y = PAD + CELL + GAP;
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  beginRoundRect(ctx, PAD, row2Y, W - PAD*2, CELL, 14); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
-  beginRoundRect(ctx, PAD, row2Y, W - PAD*2, CELL, 14); ctx.stroke();
-
-  const timeColor = t.dnf ? '#e00000' : t.plus2 ? '#f59e0b' : '#fff';
-  let tfs = 72;
-  ctx.font = `900 ${tfs}px Inter,system-ui,sans-serif`;
-  while (tfs > 24 && ctx.measureText(timeStr).width > W - PAD*2 - 40) { tfs -= 2; ctx.font = `900 ${tfs}px Inter,system-ui,sans-serif`; }
-  ctx.textAlign = 'center'; ctx.fillStyle = timeColor;
-  const mainTimeY = row2Y + CELL / 2 + tfs * 0.35;
-  ctx.fillText(timeStr, W / 2, mainTimeY);
-  ctx.font = 'bold 15px Inter,system-ui,sans-serif';
-  ctx.fillStyle = '#fff';
-  ctx.textAlign = 'left';
-  ctx.fillText('TIME', PAD + 12, row2Y + CELL - 12);
-
-  // Row 3 — TPS | date+time | STRATI
+  // Row 3 — device/TPS | date+time | STRATI
   const row3Y = PAD + 2 * (CELL + GAP);
-  _drawCubeCell(ctx, PAD, row3Y, CELL, 'TPS', tpsVal, {});
+  if (solveCubeName) {
+    // AI cube cell — 3D cube icon + "AI CUBE" + cube name
+    const ax = PAD, ay = row3Y;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    beginRoundRect(ctx, ax, ay, CELL, CELL, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+    beginRoundRect(ctx, ax, ay, CELL, CELL, 14); ctx.stroke();
+    const acx = ax + CELL / 2;
+    // Rubik's cube icon — isometric, 3 visible faces each with 3×3 stickers
+    const r = 18, icx = acx, icy = ay + 42;
+    const rh = r * Math.sqrt(3) / 2;
+    const fp = {
+      top:   (s,t) => [icx + rh*(s-t),  icy - r/2*(s+t)],
+      right: (s,t) => [icx + s*rh,       icy + r*(t - s/2)],
+      left:  (s,t) => [icx - s*rh,       icy + r*(t - s/2)],
+    };
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+    // Outer hexagon
+    ctx.beginPath();
+    for (let i=0; i<6; i++) {
+      const a = -Math.PI/2 + i*Math.PI/3;
+      i===0 ? ctx.moveTo(icx+r*Math.cos(a), icy+r*Math.sin(a))
+            : ctx.lineTo(icx+r*Math.cos(a), icy+r*Math.sin(a));
+    }
+    ctx.closePath(); ctx.stroke();
+    // Face dividers (center → v[1], v[3], v[5])
+    ctx.beginPath();
+    [1,3,5].forEach(vi => {
+      const a = -Math.PI/2 + vi*Math.PI/3;
+      ctx.moveTo(icx, icy); ctx.lineTo(icx+r*Math.cos(a), icy+r*Math.sin(a));
+    });
+    ctx.stroke();
+    // 3×3 grid lines on each face (thinner)
+    ctx.lineWidth = 0.75;
+    ctx.beginPath();
+    ['top','right','left'].forEach(face => {
+      const fn = fp[face];
+      [1/3, 2/3].forEach(v => {
+        const [a1,a2] = [fn(v,0), fn(v,1)];
+        const [b1,b2] = [fn(0,v), fn(1,v)];
+        ctx.moveTo(a1[0],a1[1]); ctx.lineTo(a2[0],a2[1]);
+        ctx.moveTo(b1[0],b1[1]); ctx.lineTo(b2[0],b2[1]);
+      });
+    });
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('Smart Cube', acx, ay + CELL * 0.65);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif';
+    ctx.fillText(solveCubeName, acx, ay + CELL - 22);
+  } else if (solveIsManual) {
+    // Stackmat visual cell
+    const sx = PAD, sy = row3Y;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    beginRoundRect(ctx, sx, sy, CELL, CELL, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+    beginRoundRect(ctx, sx, sy, CELL, CELL, 14); ctx.stroke();
+    const scx = sx + CELL / 2;
+    const bodyW = 110, bodyH = 26, bodyX = sx + (CELL - bodyW) / 2, bodyY = sy + 34;
+    const padW = 20, padH = 16, padR = 5, padY = bodyY + (bodyH - padH) / 2;
+    // Body
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    beginRoundRect(ctx, bodyX, bodyY, bodyW, bodyH, 8); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5;
+    beginRoundRect(ctx, bodyX, bodyY, bodyW, bodyH, 8); ctx.stroke();
+    // Pads (left + right)
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath();
+    roundRect(ctx, bodyX + 4, padY, padW, padH, padR);
+    roundRect(ctx, bodyX + bodyW - 4 - padW, padY, padW, padH, padR);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    roundRect(ctx, bodyX + 4, padY, padW, padH, padR);
+    roundRect(ctx, bodyX + bodyW - 4 - padW, padY, padW, padH, padR);
+    ctx.stroke();
+    // Screen
+    const scrW = 34, scrH = 12;
+    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    beginRoundRect(ctx, scx - scrW / 2, bodyY + (bodyH - scrH) / 2, scrW, scrH, 3); ctx.fill();
+    // Labels
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 11px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('STACKMAT', scx, bodyY + bodyH + 17);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif';
+    ctx.fillText('TIMER', scx, sy + CELL - 12);
+  } else {
+    // Keyboard visual cell
+    const kx = PAD, ky = row3Y;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    beginRoundRect(ctx, kx, ky, CELL, CELL, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+    beginRoundRect(ctx, kx, ky, CELL, CELL, 14); ctx.stroke();
+    const kW = 9, kH = 9, kGap = 2, sbW = 72, sbH = 13;
+    const kRows = [{ n: 10, ox: 0 }, { n: 9, ox: 5 }, { n: 7, ox: 15 }];
+    const totalKbH = kRows.length * kH + (kRows.length - 1) * kGap + 6 + sbH;
+    let kY = ky + Math.round((CELL - totalKbH) / 2);
+    const kcx = kx + CELL / 2;
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.beginPath();
+    kRows.forEach(({ n }) => {
+      const rowW = n * kW + (n - 1) * kGap;
+      const rx = Math.round(kcx - rowW / 2);
+      for (let i = 0; i < n; i++) roundRect(ctx, rx + i * (kW + kGap), kY, kW, kH, 2);
+      kY += kH + kGap;
+    });
+    ctx.fill();
+    kY += 6;
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    beginRoundRect(ctx, Math.round(kcx - sbW / 2), kY, sbW, sbH, 3); ctx.fill();
+    ctx.font = 'bold 8px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.fillText('KEYBOARD', kcx, kY + 9);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('TIMER', kcx, ky + CELL - 12);
+  }
   _drawCubeCell(ctx, PAD + CELL + GAP, row3Y, CELL, timeLabel, dateVal, {});
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
