@@ -503,11 +503,23 @@ let _lastShareType = 'session', _lastShareParam = null;
     };
     img.src = src;
   }
-  fetch('Mascotte/logo.png').then(r => r.blob()).then(blob => {
+  function _blobToDataUrl(blob, cb) {
     const reader = new FileReader();
-    reader.onload = e => _loadLogoImg(e.target.result);
+    reader.onload = e => cb(e.target.result);
     reader.readAsDataURL(blob);
-  }).catch(() => _loadLogoImg('Mascotte/logo.png'));
+  }
+  fetch('Mascotte/logo.png')
+    .then(r => r.blob())
+    .then(blob => _blobToDataUrl(blob, _loadLogoImg))
+    .catch(() => {
+      // fetch failed (e.g. file:// protocol) — try XHR so we still get a data URL
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', 'Mascotte/logo.png');
+      xhr.responseType = 'blob';
+      xhr.onload = () => _blobToDataUrl(xhr.response, _loadLogoImg);
+      xhr.onerror = () => {}; // give up — no logo, but canvas stays untainted
+      xhr.send();
+    });
 })();
 
 function _friendlyCubeName(raw) {
@@ -1423,17 +1435,21 @@ document.getElementById('shareImgDownload').addEventListener('click', ()=>{
   }, 'image/png');
 });
 document.getElementById('shareImgCopy').addEventListener('click', ()=>{
+  if (!navigator.clipboard || !navigator.clipboard.write) { toast('Copy requires HTTPS — use Download instead'); return; }
   const btn = document.getElementById('shareImgCopy');
-  _activeShareCanvas().toBlob(blob=>{
-    navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{
-      toast('Image copied!');
-      const orig = btn.textContent;
-      btn.textContent = '✓ Copied!';
-      btn.style.background = 'rgba(34,197,94,0.25)';
-      btn.style.color = '#22c55e';
-      setTimeout(()=>{ btn.textContent = orig; btn.style.background = ''; btn.style.color = ''; }, 2000);
-    }).catch(()=>toast('Copy failed'));
-  });
+  try {
+    _activeShareCanvas().toBlob(blob=>{
+      if (!blob) { toast('Copy failed'); return; }
+      navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{
+        toast('Image copied!');
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.style.background = 'rgba(34,197,94,0.25)';
+        btn.style.color = '#22c55e';
+        setTimeout(()=>{ btn.textContent = orig; btn.style.background = ''; btn.style.color = ''; }, 2000);
+      }).catch(()=>toast('Copy failed'));
+    });
+  } catch(e) { toast('Copy failed'); }
 });
 
 // ─── CLEAR SESSION ───────────────────────────────────────────────────────────
