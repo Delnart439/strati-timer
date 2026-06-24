@@ -643,101 +643,97 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
   }
 }
 
-function _drawDeviceCell(ctx, x, y, size, cubeName, isManual) {
-  const R = 14, cx = x + size / 2;
+function _iconCube(ctx, cx, cy, sc) {
+  const r=18*sc, rh=r*Math.sqrt(3)/2;
+  const fp={top:(s,t)=>[cx+rh*(s-t),cy-r/2*(s+t)],right:(s,t)=>[cx+s*rh,cy+r*(t-s/2)],left:(s,t)=>[cx-s*rh,cy+r*(t-s/2)]};
+  ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(0.5,1.5*sc);
+  ctx.beginPath();
+  for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;i===0?ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
+  ctx.closePath();ctx.stroke();
+  ctx.beginPath();[1,3,5].forEach(vi=>{const a=-Math.PI/2+vi*Math.PI/3;ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));});ctx.stroke();
+  ctx.lineWidth=Math.max(0.3,0.75*sc);ctx.beginPath();
+  ['top','right','left'].forEach(face=>{const fn=fp[face];[1/3,2/3].forEach(v=>{const[a1,a2]=[fn(v,0),fn(v,1)],[b1,b2]=[fn(0,v),fn(1,v)];ctx.moveTo(a1[0],a1[1]);ctx.lineTo(a2[0],a2[1]);ctx.moveTo(b1[0],b1[1]);ctx.lineTo(b2[0],b2[1]);});});
+  ctx.stroke();
+}
+function _iconStackmat(ctx, cx, cy, sc) {
+  const bW=110*sc,bH=26*sc,bX=cx-bW/2,bY=cy-bH/2;
+  const pW=20*sc,pH=16*sc,pR=5*sc,pY=bY+(bH-pH)/2;
+  ctx.fillStyle='rgba(255,255,255,0.1)';beginRoundRect(ctx,bX,bY,bW,bH,8*sc);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=Math.max(0.5,1.5*sc);beginRoundRect(ctx,bX,bY,bW,bH,8*sc);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.22)';ctx.beginPath();
+  roundRect(ctx,bX+4*sc,pY,pW,pH,pR);roundRect(ctx,bX+bW-4*sc-pW,pY,pW,pH,pR);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=Math.max(0.3,sc);ctx.beginPath();
+  roundRect(ctx,bX+4*sc,pY,pW,pH,pR);roundRect(ctx,bX+bW-4*sc-pW,pY,pW,pH,pR);ctx.stroke();
+  const sW=34*sc,sH=12*sc;ctx.fillStyle='rgba(255,255,255,0.38)';
+  beginRoundRect(ctx,cx-sW/2,bY+(bH-sH)/2,sW,sH,3*sc);ctx.fill();
+}
+function _iconKeyboard(ctx, cx, cy, sc) {
+  const kW=9*sc,kH=9*sc,kGap=2*sc,sbW=72*sc,sbH=13*sc;
+  const kRows=[10,9,7];
+  const totalH=kRows.length*(kH+kGap)-kGap+6*sc+sbH;
+  let ky=cy-totalH/2;
+  ctx.fillStyle='rgba(255,255,255,0.25)';ctx.beginPath();
+  kRows.forEach(n=>{const rw=n*kW+(n-1)*kGap,rx=cx-rw/2;for(let i=0;i<n;i++)roundRect(ctx,rx+i*(kW+kGap),ky,kW,kH,2*sc);ky+=kH+kGap;});
+  ctx.fill();ky+=6*sc;
+  ctx.fillStyle='rgba(255,255,255,0.25)';beginRoundRect(ctx,cx-sbW/2,ky,sbW,sbH,3*sc);ctx.fill();
+  if(sc>=0.5){ctx.font=`bold ${Math.round(8*sc)}px Inter,system-ui,sans-serif`;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText('KEYBOARD',cx,ky+sbH*0.75);}
+}
+function _drawDeviceCell(ctx, x, y, size, devices) {
+  const R = 14;
   ctx.fillStyle = 'rgba(255,255,255,0.07)';
   beginRoundRect(ctx, x, y, size, size, R); ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
   beginRoundRect(ctx, x, y, size, size, R); ctx.stroke();
+  if (!devices || !devices.length) return;
 
-  if (cubeName) {
-    // Isometric Rubik's cube icon
-    const r = 18, icx = cx, icy = y + 42;
-    const rh = r * Math.sqrt(3) / 2;
-    const fp = {
-      top:   (s,t) => [icx + rh*(s-t),  icy - r/2*(s+t)],
-      right: (s,t) => [icx + s*rh,       icy + r*(t - s/2)],
-      left:  (s,t) => [icx - s*rh,       icy + r*(t - s/2)],
-    };
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let i=0; i<6; i++) {
-      const a = -Math.PI/2 + i*Math.PI/3;
-      i===0 ? ctx.moveTo(icx+r*Math.cos(a), icy+r*Math.sin(a))
-            : ctx.lineTo(icx+r*Math.cos(a), icy+r*Math.sin(a));
+  const n = Math.min(devices.length, 3);
+  const gap = 6;
+  const slotW = n > 1 ? (size - gap*(n-1)) / n : size;
+  const sc = slotW / size;
+
+  devices.slice(0, n).forEach((dev, i) => {
+    const sx = x + i*(slotW+gap), scx = sx + slotW/2;
+    if (i > 0) {
+      ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(sx-gap/2,y+8);ctx.lineTo(sx-gap/2,y+size-8);ctx.stroke();
     }
-    ctx.closePath(); ctx.stroke();
-    ctx.beginPath();
-    [1,3,5].forEach(vi => {
-      const a = -Math.PI/2 + vi*Math.PI/3;
-      ctx.moveTo(icx, icy); ctx.lineTo(icx+r*Math.cos(a), icy+r*Math.sin(a));
-    });
-    ctx.stroke();
-    ctx.lineWidth = 0.75;
-    ctx.beginPath();
-    ['top','right','left'].forEach(face => {
-      const fn = fp[face];
-      [1/3, 2/3].forEach(v => {
-        const [a1,a2] = [fn(v,0), fn(v,1)];
-        const [b1,b2] = [fn(0,v), fn(1,v)];
-        ctx.moveTo(a1[0],a1[1]); ctx.lineTo(a2[0],a2[1]);
-        ctx.moveTo(b1[0],b1[1]); ctx.lineTo(b2[0],b2[1]);
-      });
-    });
-    ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-    ctx.fillText('Smart Cube', cx, y + size * 0.65);
-    ctx.fillText(cubeName, cx, y + size - 22);
-  } else if (isManual) {
-    // Stackmat silhouette
-    const bodyW = 110, bodyH = 26, bodyX = x + (size - bodyW) / 2, bodyY = y + 34;
-    const padW = 20, padH = 16, padR = 5, padY = bodyY + (bodyH - padH) / 2;
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    beginRoundRect(ctx, bodyX, bodyY, bodyW, bodyH, 8); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5;
-    beginRoundRect(ctx, bodyX, bodyY, bodyW, bodyH, 8); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.beginPath();
-    roundRect(ctx, bodyX + 4, padY, padW, padH, padR);
-    roundRect(ctx, bodyX + bodyW - 4 - padW, padY, padW, padH, padR);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1;
-    ctx.beginPath();
-    roundRect(ctx, bodyX + 4, padY, padW, padH, padR);
-    roundRect(ctx, bodyX + bodyW - 4 - padW, padY, padW, padH, padR);
-    ctx.stroke();
-    const scrW2 = 34, scrH2 = 12;
-    ctx.fillStyle = 'rgba(255,255,255,0.38)';
-    beginRoundRect(ctx, cx - scrW2/2, bodyY + (bodyH - scrH2)/2, scrW2, scrH2, 3); ctx.fill();
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 11px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-    ctx.fillText('STACKMAT', cx, bodyY + bodyH + 17);
-    ctx.font = 'bold 13px Inter,system-ui,sans-serif';
-    ctx.fillText('TIMER', cx, y + size - 12);
-  } else {
-    // Keyboard visual
-    const kW = 9, kH = 9, kGap = 2, sbW = 72, sbH = 13;
-    const kRows = [{ n: 10 }, { n: 9 }, { n: 7 }];
-    const totalKbH = kRows.length * kH + (kRows.length - 1) * kGap + 6 + sbH;
-    let kY = y + Math.round((size - totalKbH) / 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.beginPath();
-    kRows.forEach(({ n }) => {
-      const rowW = n * kW + (n - 1) * kGap;
-      const rx = Math.round(cx - rowW / 2);
-      for (let i = 0; i < n; i++) roundRect(ctx, rx + i*(kW+kGap), kY, kW, kH, 2);
-      kY += kH + kGap;
-    });
-    ctx.fill();
-    kY += 6;
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    beginRoundRect(ctx, Math.round(cx - sbW/2), kY, sbW, sbH, 3); ctx.fill();
-    ctx.font = 'bold 8px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-    ctx.fillText('KEYBOARD', cx, kY + 9);
-    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-    ctx.fillText('TIMER', cx, y + size - 12);
-  }
+    ctx.textAlign='center';ctx.fillStyle='#fff';
+
+    if (n === 1) {
+      // Full-size, original positioning
+      if (dev.type==='cube') {
+        _iconCube(ctx, scx, y+42, 1);
+        ctx.font='bold 13px Inter,system-ui,sans-serif';
+        ctx.fillText('Smart Cube',scx,y+size*0.65);
+        ctx.fillText(dev.name||'',scx,y+size-22);
+      } else if (dev.type==='stackmat') {
+        _iconStackmat(ctx,scx,y+47,1);
+        ctx.font='bold 11px Inter,system-ui,sans-serif';ctx.fillText('STACKMAT',scx,y+60+17);
+        ctx.font='bold 13px Inter,system-ui,sans-serif';ctx.fillText('TIMER',scx,y+size-12);
+      } else {
+        _iconKeyboard(ctx,scx,y+size*0.5,1);
+        ctx.font='bold 13px Inter,system-ui,sans-serif';ctx.fillText('TIMER',scx,y+size-12);
+      }
+    } else {
+      // Scaled-down, shared layout
+      const iconCY = y + size*0.34;
+      const fs1 = n===2 ? 10 : 8, fs2 = n===2 ? 9 : 7;
+      if (dev.type==='cube') {
+        _iconCube(ctx,scx,iconCY,sc);
+        ctx.font=`bold ${fs1}px Inter,system-ui,sans-serif`;
+        ctx.fillText('Smart Cube',scx,y+size*0.65);
+        if(n===2&&dev.name){ctx.font=`bold ${fs2}px Inter,system-ui,sans-serif`;ctx.fillText(dev.name,scx,y+size*0.82);}
+      } else if (dev.type==='stackmat') {
+        _iconStackmat(ctx,scx,iconCY,sc);
+        ctx.font=`bold ${fs1}px Inter,system-ui,sans-serif`;ctx.fillText('Stackmat',scx,y+size*0.65);
+        ctx.font=`bold ${fs2}px Inter,system-ui,sans-serif`;ctx.fillText('Timer',scx,y+size*0.80);
+      } else {
+        _iconKeyboard(ctx,scx,iconCY,sc);
+        ctx.font=`bold ${fs1}px Inter,system-ui,sans-serif`;ctx.fillText('Keyboard',scx,y+size*0.68);
+        ctx.font=`bold ${fs2}px Inter,system-ui,sans-serif`;ctx.fillText('Timer',scx,y+size*0.82);
+      }
+    }
+  });
 }
 
 function _shareCtxSetup(W, H) {
@@ -982,8 +978,10 @@ function generateShareImg(type, param) {
   // Bottom row — TPS+MOVES combined | DEVICE | STRATI
   const avgMoves = hasTps ? (btSolves.reduce((s, t) => s + t.moves.length, 0) / btSolves.length).toFixed(1) : '–';
   const tpsStr = hasTps ? avgTps.toFixed(1) : '–';
-  const cubeName = _friendlyCubeName(ts.find(t => t.cubeName)?.cubeName);
-  const hasManual = !cubeName && ts.some(t => t.manual || t.stackmat);
+  const _sesAllCubes = [...new Set(ts.filter(t=>t.cubeName).map(t=>_friendlyCubeName(t.cubeName)).filter(Boolean))];
+  const _sesHasStackmat = ts.some(t=>(t.manual||t.stackmat)&&!t.cubeName);
+  const _sesHasKeyboard = ts.some(t=>!t.cubeName&&!t.manual&&!t.stackmat);
+  const sessionDevices = [..._sesAllCubes.map(name=>({type:'cube',name})),...(_sesHasStackmat?[{type:'stackmat'}]:[]),...(_sesHasKeyboard?[{type:'keyboard'}]:[])];
   const botY = PAD + 2 * (CELL + GAP);
   const cx0 = PAD + CELL / 2;
   ctx.fillStyle = 'rgba(255,255,255,0.07)';
@@ -1001,7 +999,7 @@ function generateShareImg(type, param) {
   ctx.fillText(avgMoves, cx0, botY + CELL * 0.72);
   ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
   ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
-  _drawDeviceCell(ctx, PAD + CELL + GAP, botY, CELL, cubeName, hasManual);
+  _drawDeviceCell(ctx, PAD + CELL + GAP, botY, CELL, sessionDevices);
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true });
 
   document.getElementById('shareCanvas2').style.display = 'none';
@@ -1063,8 +1061,10 @@ function _generateShareAo(n) {
   // Bottom row — TPS+MOVES combined | DEVICE | STRATI
   const avgMoves = hasTps ? (btSolves.reduce((s, t) => s + t.moves.length, 0) / btSolves.length).toFixed(1) : '–';
   const tpsStr = hasTps ? avgTps.toFixed(1) : '–';
-  const cubeName = _friendlyCubeName(chunk.find(t => t.cubeName)?.cubeName);
-  const hasManual = !cubeName && chunk.some(t => t.manual || t.stackmat);
+  const _aoAllCubes = [...new Set(chunk.filter(t=>t.cubeName).map(t=>_friendlyCubeName(t.cubeName)).filter(Boolean))];
+  const _aoHasStackmat = chunk.some(t=>(t.manual||t.stackmat)&&!t.cubeName);
+  const _aoHasKeyboard = chunk.some(t=>!t.cubeName&&!t.manual&&!t.stackmat);
+  const aoDevices = [..._aoAllCubes.map(name=>({type:'cube',name})),...(_aoHasStackmat?[{type:'stackmat'}]:[]),...(_aoHasKeyboard?[{type:'keyboard'}]:[])];
   const botY = PAD + 2 * (CELL + GAP);
   const cx0 = PAD + CELL / 2;
   ctx.fillStyle = 'rgba(255,255,255,0.07)';
@@ -1082,7 +1082,7 @@ function _generateShareAo(n) {
   ctx.fillText(avgMoves, cx0, botY + CELL * 0.72);
   ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
   ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
-  _drawDeviceCell(ctx, PAD + CELL + GAP, botY, CELL, cubeName, hasManual);
+  _drawDeviceCell(ctx, PAD + CELL + GAP, botY, CELL, aoDevices);
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true });
 
   document.getElementById('shareCanvas2').style.display = 'none';
@@ -1362,7 +1362,8 @@ function _generateShareSingle(idx) {
 
   // Row 3 — device | date+time | STRATI
   const row3Y = PAD + 2 * (CELL + GAP);
-  _drawDeviceCell(ctx, PAD, row3Y, CELL, solveCubeName, solveIsManual);
+  const singleDevices = solveCubeName ? [{type:'cube',name:solveCubeName}] : solveIsManual ? [{type:'stackmat'}] : [{type:'keyboard'}];
+  _drawDeviceCell(ctx, PAD, row3Y, CELL, singleDevices);
   _drawCubeCell(ctx, PAD + CELL + GAP, row3Y, CELL, timeLabel, dateVal, {});
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true });
 
