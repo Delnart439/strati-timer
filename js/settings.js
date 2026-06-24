@@ -7,8 +7,8 @@ function renderXP() {
    ['profLvl','profXpFill','profXpCur','profXpMax']].forEach(([lvlId, fillId, curId, maxId]) => {
     document.getElementById(lvlId).textContent = level;
     document.getElementById(fillId).style.width = pct;
-    document.getElementById(curId).textContent = xp;
-    document.getElementById(maxId).textContent = xpMax;
+    document.getElementById(curId).textContent = xp.toLocaleString('fr-FR');
+    document.getElementById(maxId).textContent = xpMax.toLocaleString('fr-FR');
   });
 }
 

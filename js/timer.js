@@ -65,7 +65,7 @@ function stopTimer(overrideMs) {
     ...(typeof scPendingSolveData!=='undefined'&&scPendingSolveData?scPendingSolveData:{})
   };
   curSes().times.unshift(solve);
-  save();
+  addXP(1);
   renderStats();
   renderTimeList();
   setTimerState('stopped');
@@ -223,10 +223,12 @@ document.getElementById('clearTimesClose').addEventListener('click', ()=>clearTi
 document.getElementById('clearTimesCancel').addEventListener('click', ()=>clearTimesModal.classList.add('h'));
 clearTimesModal.addEventListener('click', e=>{ if(e.target===clearTimesModal) clearTimesModal.classList.add('h'); });
 document.getElementById('clearTimesConfirm').addEventListener('click', ()=>{
+  const n = curSes().times.length;
   curSes().times = [];
   clearTimesModal.classList.add('h');
   document.getElementById('timerDisp').textContent = '0.000';
-  save(); renderStats(); renderTimeList();
+  addXP(-n);
+  renderStats(); renderTimeList();
 });
 document.addEventListener('keydown', e=>{
   if (!delSolveModal.classList.contains('h') && e.key==='Enter') {
@@ -242,7 +244,8 @@ document.getElementById('delSolveConfirm').addEventListener('click', ()=>{
   const times = curSes().times;
   if (!times.length) return;
   times.splice(0, 1);
-  save(); renderStats(); renderTimeList();
+  addXP(-1);
+  renderStats(); renderTimeList();
   setTimerState('idle');
   const disp = document.getElementById('timerDisp');
   const t = times[0];

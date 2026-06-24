@@ -19,7 +19,7 @@ let state = {
   algFilter: null,
   algStatusFilter: null,
   drillResults: [], // {set, id, ms, date}[]
-  settings: {inspection:false, delay:0.30, username:'Delnart', email:'', goal:10, createdAt:0, xp:10, xpMax:100, level:5, share:{algs:true, session:true, sessionNames:null, prs:true}},
+  settings: {inspection:false, delay:0.30, username:'Delnart', email:'', goal:10, createdAt:0, xp:0, xpMax:1000, level:1, share:{algs:true, session:true, sessionNames:null, prs:true}},
 };
 
 function save() {
@@ -38,10 +38,40 @@ function load() {
     state.puzzle = curSes()?.puzzle || state.puzzle;
     if (d.algStatus) state.algStatus = d.algStatus;
     if (d.drillResults) state.drillResults = d.drillResults;
-    if (d.settings) state.settings = Object.assign(state.settings, d.settings);
+    if (d.settings) {
+      state.settings = Object.assign(state.settings, d.settings);
+      // Always recalculate xpMax from current level (handles migration from old systems)
+      state.settings.xpMax = xpForLevel(state.settings.level);
+      if (state.settings.xp >= state.settings.xpMax) {
+        state.settings.xp = 0; state.settings.level = 1; state.settings.xpMax = 1000;
+      }
+    }
     if (d.scrHistory) state.scrHistory = d.scrHistory;
   } catch(e) {}
 }
 
 
 function curSes() { return state.sessions[state.sesIdx]; }
+
+function xpForLevel(level) {
+  return Math.min(level * 1000, 10000);
+}
+
+function addXP(delta) {
+  const s = state.settings;
+  s.xp += delta;
+  // Level up
+  while (s.xp >= xpForLevel(s.level)) {
+    s.xp -= xpForLevel(s.level);
+    s.level++;
+  }
+  // Level down
+  while (s.level > 1 && s.xp < 0) {
+    s.level--;
+    s.xp += xpForLevel(s.level);
+  }
+  s.xp = Math.max(0, s.xp);
+  s.xpMax = xpForLevel(s.level);
+  save();
+  if (typeof renderXP === 'function') renderXP();
+}
