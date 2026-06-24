@@ -552,7 +552,7 @@ function _friendlyCubeName(raw) {
 function _drawCubeCell(ctx, x, y, size, label, value, opts) {
   const R = 14;
   const isLogo = opts && opts.isLogo;
-  const bg = isLogo ? '#7c3aed' : ((opts && opts.bg) || 'rgba(255,255,255,0.07)');
+  const bg = isLogo ? '#3b0764' : ((opts && opts.bg) || 'rgba(255,255,255,0.07)');
   ctx.fillStyle = bg;
   beginRoundRect(ctx, x, y, size, size, R); ctx.fill();
   if (!isLogo) {
