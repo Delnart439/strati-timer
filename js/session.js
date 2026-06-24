@@ -1407,16 +1407,19 @@ document.getElementById('shareGraphNext').addEventListener('click', ()=>{
   generateShareImg('session');
 });
 function _activeShareCanvas() {
-  const wrap = document.getElementById('shareCanvasWrap');
   const c2 = document.getElementById('shareCanvas2');
-  if (c2.style.display !== 'none' && wrap.scrollLeft > wrap.clientWidth / 2) return c2;
+  if (c2.style.display !== 'none') return c2;
   return document.getElementById('shareCanvas');
 }
 document.getElementById('shareImgDownload').addEventListener('click', ()=>{
-  const a = document.createElement('a');
-  a.href = _activeShareCanvas().toDataURL('image/png');
-  a.download = `strati-${Date.now()}.png`;
-  a.click();
+  try {
+    const a = document.createElement('a');
+    a.href = _activeShareCanvas().toDataURL('image/png');
+    a.download = `strati-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch(e) { toast('Download failed'); }
 });
 document.getElementById('shareImgCopy').addEventListener('click', ()=>{
   const btn = document.getElementById('shareImgCopy');
