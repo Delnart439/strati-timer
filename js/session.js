@@ -898,7 +898,9 @@ function generateShareImg(type, param) {
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
-  document.getElementById('shareGraphPicker').style.display = 'flex';
+  document.getElementById('shareGraphPrev').style.display = '';
+  document.getElementById('shareGraphNext').style.display = '';
+  document.getElementById('shareGraphLabel').style.display = '';
   document.getElementById('shareGraphLabel').textContent = _graphLabels[_sessionGraphType];
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
@@ -980,7 +982,9 @@ function _generateShareAo(n) {
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
-  document.getElementById('shareGraphPicker').style.display = 'none';
+  document.getElementById('shareGraphPrev').style.display = 'none';
+  document.getElementById('shareGraphNext').style.display = 'none';
+  document.getElementById('shareGraphLabel').style.display = 'none';
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }
@@ -1375,7 +1379,9 @@ function _generateShareSingle(idx) {
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true, bg: '#3b0764' });
 
   document.getElementById('shareCanvas2').style.display = 'none';
-  document.getElementById('shareGraphPicker').style.display = 'none';
+  document.getElementById('shareGraphPrev').style.display = 'none';
+  document.getElementById('shareGraphNext').style.display = 'none';
+  document.getElementById('shareGraphLabel').style.display = 'none';
   document.getElementById('shareImgModal').classList.remove('h');
   lucide.createIcons();
 }
