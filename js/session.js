@@ -572,14 +572,14 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
       ctx.filter = 'none';
     }
     ctx.textAlign = 'center';
-    ctx.font = '800 28px Nunito,sans-serif';
+    ctx.font = '800 36px Nunito,sans-serif';
     ctx.letterSpacing = '-0.5px';
     ctx.fillStyle = '#a855f7';
-    ctx.fillText('strati', cx, y + 6 + lsize + 20);
+    ctx.fillText('strati', cx, y + 6 + lsize + 26);
     ctx.letterSpacing = '0px';
-    ctx.font = '800 13px Inter,system-ui,sans-serif';
+    ctx.font = '800 16px Inter,system-ui,sans-serif';
     ctx.fillStyle = 'rgba(168,85,247,0.75)';
-    ctx.fillText('TIMER', cx, y + 6 + lsize + 36);
+    ctx.fillText('TIMER', cx, y + 6 + lsize + 46);
     return;
   }
 
