@@ -894,6 +894,10 @@ async function scConnect(){
     scMoveQueue.length=0;
     scUpdateColors(SC_SOLVED);
 
+    // Reset gyro state so the cube always appears straight on (re)connect
+    scLastGyroQ=null; scGyroOffset=null; scGyroAppliedQ=null;
+    if(scCubeGroup) scCubeGroup.quaternion.identity();
+
     scSub=scConn.events$.subscribe({
       next(ev){
         switch(ev.type){
