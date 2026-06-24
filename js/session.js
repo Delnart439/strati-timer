@@ -574,11 +574,11 @@ function _drawCubeCell(ctx, x, y, size, label, value, opts) {
     ctx.textAlign = 'center';
     ctx.font = '800 28px Nunito,sans-serif';
     ctx.letterSpacing = '-0.5px';
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#a855f7';
     ctx.fillText('strati', cx, y + 6 + lsize + 20);
     ctx.letterSpacing = '0px';
     ctx.font = '800 13px Inter,system-ui,sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillStyle = 'rgba(168,85,247,0.75)';
     ctx.fillText('TIMER', cx, y + 6 + lsize + 36);
     return;
   }
@@ -1412,14 +1412,17 @@ function _activeShareCanvas() {
   return document.getElementById('shareCanvas');
 }
 document.getElementById('shareImgDownload').addEventListener('click', ()=>{
-  try {
+  _activeShareCanvas().toBlob(blob => {
+    if (!blob) { toast('Download failed'); return; }
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = _activeShareCanvas().toDataURL('image/png');
+    a.href = url;
     a.download = `strati-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  } catch(e) { toast('Download failed'); }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
 });
 document.getElementById('shareImgCopy').addEventListener('click', ()=>{
   const btn = document.getElementById('shareImgCopy');
