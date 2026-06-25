@@ -120,7 +120,7 @@ function scInitScene(container) {
 
   // WebGL support check
   try { const c=document.createElement('canvas'); if(!c.getContext('webgl')&&!c.getContext('experimental-webgl')) throw new Error(); } catch(e) {
-    container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">WebGL not supported in this browser</div>'; return;
+    container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view not supported on this device</div>'; return;
   }
 
   const W=container.clientWidth||300, H=container.clientHeight||300;
@@ -869,7 +869,7 @@ function scSetConnUI(on){
 // ─── BLE CONNECTION ──────────────────────────────────────────────────────────
 async function scConnect(){
   if(!navigator?.bluetooth){
-    scSetStatus('Bluetooth not available — use Chrome or Edge over HTTPS');
+    scSetStatus('Bluetooth is not supported on this device.');
     return;
   }
 
@@ -981,8 +981,8 @@ function scResetGyro(){
 // Show unsupported notice immediately if Web Bluetooth unavailable
 if(!navigator?.bluetooth){
   const btn=document.getElementById('scConnBtn');
-  if(btn){ btn.disabled=true; btn.title='Web Bluetooth not supported — use Chrome or Edge'; }
-  scSetStatus('Web Bluetooth is not supported in this browser. Please use Chrome or Edge.');
+  if(btn){ btn.disabled=true; btn.title='Bluetooth not supported on this device'; }
+  scSetStatus('Bluetooth is not supported on this device.');
 }
 document.getElementById('scConnBtn')?.addEventListener('click', scConnect);
 document.getElementById('scDisconnBtn')?.addEventListener('click', scDisconnect);

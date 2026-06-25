@@ -236,7 +236,7 @@ function bgOnEvent(i, event) {
 }
 
 async function bgScan(i) {
-  if (!navigator.bluetooth) { alert('Web Bluetooth not supported. Use Chrome or Edge.'); return; }
+  if (!navigator.bluetooth) { alert('Bluetooth is not supported on this device.'); return; }
   if (bgDevices[i]) return;
   const btn = document.getElementById('b' + (i+1) + '-st-btn');
   if (btn) btn.disabled = true;
