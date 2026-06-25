@@ -116,10 +116,17 @@ let scLastGyroQ=null, scGyroOffset=null, scGyroAppliedQ=null, scLastMoveQ=null, 
 function scInitScene(container) {
   if(scScene) return;
   const T = window.THREE;
-  if(!T){ console.error('Three.js not loaded'); return; }
+  if(!T){ container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view unavailable</div>'; return; }
+
+  // WebGL support check
+  try { const c=document.createElement('canvas'); if(!c.getContext('webgl')&&!c.getContext('experimental-webgl')) throw new Error(); } catch(e) {
+    container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">WebGL not supported in this browser</div>'; return;
+  }
 
   const W=container.clientWidth||300, H=container.clientHeight||300;
-  scRenderer = new T.WebGLRenderer({antialias:true, alpha:true});
+  try { scRenderer = new T.WebGLRenderer({antialias:true, alpha:true}); } catch(e) {
+    container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view unavailable</div>'; return;
+  }
   scRenderer.setSize(W,H);
   scRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   container.appendChild(scRenderer.domElement);
@@ -971,6 +978,12 @@ function scResetGyro(){
   scGyroAppliedQ.identity();
 }
 
+// Show unsupported notice immediately if Web Bluetooth unavailable
+if(!navigator?.bluetooth){
+  const btn=document.getElementById('scConnBtn');
+  if(btn){ btn.disabled=true; btn.title='Web Bluetooth not supported — use Chrome or Edge'; }
+  scSetStatus('Web Bluetooth is not supported in this browser. Please use Chrome or Edge.');
+}
 document.getElementById('scConnBtn')?.addEventListener('click', scConnect);
 document.getElementById('scDisconnBtn')?.addEventListener('click', scDisconnect);
 document.getElementById('scResetBtn')?.addEventListener('click', scReset);
