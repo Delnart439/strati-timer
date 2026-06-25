@@ -19,7 +19,7 @@ let state = {
   algFilter: null,
   algStatusFilter: null,
   drillResults: [], // {set, id, ms, date}[]
-  settings: {inspection:false, delay:0.30, username:'Delnart', email:'', goal:10, createdAt:0, xp:0, xpMax:1000, level:1, share:{algs:true, session:true, sessionNames:null, prs:true}},
+  settings: {inspection:false, delay:0.30, username:'Delnart', email:'', goal:10, createdAt:0, xp:0, xpMax:1000, level:1, xpVersion:1, share:{algs:true, session:true, sessionNames:null, prs:true}},
 };
 
 function save() {
@@ -40,11 +40,12 @@ function load() {
     if (d.drillResults) state.drillResults = d.drillResults;
     if (d.settings) {
       state.settings = Object.assign(state.settings, d.settings);
-      // Always recalculate xpMax from current level (handles migration from old systems)
-      state.settings.xpMax = xpForLevel(state.settings.level);
-      if (state.settings.xp >= state.settings.xpMax) {
-        state.settings.xp = 0; state.settings.level = 1; state.settings.xpMax = 1000;
+      // Reset XP if data is from the old placeholder system (no xpVersion flag)
+      if (!state.settings.xpVersion) {
+        state.settings.xp = 0; state.settings.level = 1;
+        state.settings.xpVersion = 1;
       }
+      state.settings.xpMax = xpForLevel(state.settings.level);
     }
     if (d.scrHistory) state.scrHistory = d.scrHistory;
   } catch(e) {}
