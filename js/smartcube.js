@@ -118,14 +118,11 @@ function scInitScene(container) {
   const T = window.THREE;
   if(!T){ container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view unavailable</div>'; return; }
 
-  // WebGL support check
-  try { const c=document.createElement('canvas'); if(!c.getContext('webgl')&&!c.getContext('experimental-webgl')) throw new Error(); } catch(e) {
-    container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view not supported on this device</div>'; return;
-  }
-
   const W=container.clientWidth||300, H=container.clientHeight||300;
-  try { scRenderer = new T.WebGLRenderer({antialias:true, alpha:true}); } catch(e) {
-    container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view unavailable</div>'; return;
+  try {
+    scRenderer = new T.WebGLRenderer({antialias:true, alpha:true, powerPreference:'default'});
+  } catch(e) {
+    container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view not supported on this device</div>'; return;
   }
   scRenderer.setSize(W,H);
   scRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
