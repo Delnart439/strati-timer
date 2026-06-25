@@ -39,12 +39,11 @@ function load() {
     if (d.algStatus) state.algStatus = d.algStatus;
     if (d.drillResults) state.drillResults = d.drillResults;
     if (d.settings) {
-      state.settings = Object.assign(state.settings, d.settings);
-      // Reset XP if data is from the old placeholder system (no xpVersion flag)
-      if (!state.settings.xpVersion) {
-        state.settings.xp = 0; state.settings.level = 1;
-        state.settings.xpVersion = 1;
+      // Check version on raw data BEFORE merging so the default xpVersion:1 doesn't mask old data
+      if (!d.settings.xpVersion) {
+        d.settings.xp = 0; d.settings.level = 1; d.settings.xpVersion = 1;
       }
+      state.settings = Object.assign(state.settings, d.settings);
       state.settings.xpMax = xpForLevel(state.settings.level);
     }
     if (d.scrHistory) state.scrHistory = d.scrHistory;
