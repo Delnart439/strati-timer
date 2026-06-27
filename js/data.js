@@ -1,5 +1,5 @@
 // ─── DATA ───────────────────────────────────────────────────────────────────
-const PUZZLES = ['3×3','2×2','4×4','5×5','6×6','7×7','3OH','3BLD','Pyraminx','Megaminx','Skewb','Square-1','Clock','Gear Cube','FTO'];
+const PUZZLES = ['3×3','2×2','4×4','5×5','6×6','7×7','3OH','3BLD','FTO','Pyraminx','Megaminx','Skewb','Square-1','Clock','Gear Cube'];
 
 // OLL top face patterns [9 values, 1=yellow, 0=not]. positions: 0=BL,1=B,2=BR,3=L,4=C,5=R,6=FL,7=F,8=FR
 // sides: [U[3], R[3], D[3], L[3]] — 1=yellow sticker, 0=not. U=back strip, D=front strip, L/R=left/right strips
