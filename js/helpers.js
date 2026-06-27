@@ -155,14 +155,15 @@ function genPyraminx() {
   return result.join(' ');
 }
 
-// FTO: 40 moves, 8 faces (U F R L D B BL BR), CW/CCW only, no same or opposite face twice in a row
+// FTO: ~24 moves, 8 faces (U F R L D B BL BR), CW/CCW only, no same or opposite face twice in a row
+// Move set matches cstimer (ra="U U' F F' r r' l l' D D' B B' R R' L L'" with l→BL, r→BR)
 function genFTO() {
   const faces = ['U','F','R','L','D','B','BL','BR'];
   const opposites = { U:'D', D:'U', F:'B', B:'F', R:'L', L:'R', BL:'BR', BR:'BL' };
   const sfxs = ["","'"];
   const result = [];
   let last = '', lastOpp = '';
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 24; i++) {
     let f;
     do { f = _pick(faces); } while (f === last || f === lastOpp);
     result.push(f + _pick(sfxs));
