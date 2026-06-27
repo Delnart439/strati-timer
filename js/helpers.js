@@ -734,34 +734,31 @@ function drawClockNet(svgEl, scr, scale=1) {
   svgEl.innerHTML = svg;
 }
 
-// FTO net: 2 rows of 4 equilateral triangles
-// Top row (left→right): U(△) R(▽) F(△) L(▽)
-// Bottom row (left→right): B(▽) BL(△) D(▽) BR(△)
+// FTO net: two square views side by side, each divided by X diagonals into 4 triangles
+// Left view:  U(top)  R(right)  F(bottom)  L(left)
+// Right view: B(top)  BR(right) D(bottom)  BL(left)
 function drawFTONet(svgEl, scr, scale=1) {
-  const S = Math.round(40 * scale);
-  const H = S * Math.sqrt(3) / 2;
+  const S = Math.round(56 * scale);
+  const G = Math.round(6 * scale);
+  // U=white R=red F=green L=orange B=blue BL=purple D=yellow BR=cyan
   const FCLRS = ['#f0f0f0','#e00000','#22c55e','#ff6a00','#3b82f6','#7c3aed','#f5d714','#06b6d4'];
+  // face order: 0=U 1=R 2=F 3=L 4=B 5=BL 6=D 7=BR
   const st = seededState(8, 1, scr);
-  const shrink = (pts, k=0.88) => {
-    const cx = (pts[0][0]+pts[1][0]+pts[2][0])/3;
-    const cy = (pts[0][1]+pts[1][1]+pts[2][1])/3;
-    return pts.map(([x,y]) => [cx+(x-cx)*k, cy+(y-cy)*k]);
-  };
-  const poly = (pts, fi) => {
-    const sp = shrink(pts);
-    const p = sp.map(([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-    return `<polygon points="${p}" fill="${FCLRS[st[fi]]}" stroke="#0003" stroke-width="0.5"/>`;
-  };
   let svg = '';
-  svg += poly([[0,H],[S,H],[S/2,0]], 0);                   // U △
-  svg += poly([[S/2,0],[3*S/2,0],[S,H]], 1);               // R ▽
-  svg += poly([[S,H],[2*S,H],[3*S/2,0]], 2);               // F △
-  svg += poly([[3*S/2,0],[5*S/2,0],[2*S,H]], 3);           // L ▽
-  svg += poly([[0,H],[S,H],[S/2,2*H]], 4);                 // B ▽
-  svg += poly([[S/2,2*H],[3*S/2,2*H],[S,H]], 5);           // BL △
-  svg += poly([[S,H],[2*S,H],[3*S/2,2*H]], 6);             // D ▽
-  svg += poly([[3*S/2,2*H],[5*S/2,2*H],[2*S,H]], 7);       // BR △
-  svgEl.setAttribute('viewBox', `0 0 ${(5*S/2).toFixed(1)} ${(2*H).toFixed(1)}`);
+  const poly = (pts, fi) => {
+    const p = pts.map(([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+    return `<polygon points="${p}" fill="${FCLRS[st[fi]]}" stroke="#0006" stroke-width="1"/>`;
+  };
+  const drawHalf = (ox, [ft, fr, fb, fl]) => {
+    const cx = ox + S/2, cy = S/2;
+    svg += poly([[ox,0],[ox+S,0],[cx,cy]], ft);     // top
+    svg += poly([[ox+S,0],[ox+S,S],[cx,cy]], fr);   // right
+    svg += poly([[ox+S,S],[ox,S],[cx,cy]], fb);     // bottom
+    svg += poly([[ox,S],[ox,0],[cx,cy]], fl);       // left
+  };
+  drawHalf(0,     [0, 1, 2, 3]);  // U R F L
+  drawHalf(S + G, [4, 7, 6, 5]);  // B BR D BL
+  svgEl.setAttribute('viewBox', `0 0 ${2*S+G} ${S}`);
   svgEl.innerHTML = svg;
 }
 
