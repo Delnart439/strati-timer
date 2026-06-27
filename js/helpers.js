@@ -155,6 +155,22 @@ function genPyraminx() {
   return result.join(' ');
 }
 
+// FTO: 40 moves, 8 faces (U F R L D B BL BR), CW/CCW only, no same or opposite face twice in a row
+function genFTO() {
+  const faces = ['U','F','R','L','D','B','BL','BR'];
+  const opposites = { U:'D', D:'U', F:'B', B:'F', R:'L', L:'R', BL:'BR', BR:'BL' };
+  const sfxs = ["","'"];
+  const result = [];
+  let last = '', lastOpp = '';
+  for (let i = 0; i < 40; i++) {
+    let f;
+    do { f = _pick(faces); } while (f === last || f === lastOpp);
+    result.push(f + _pick(sfxs));
+    last = f; lastOpp = opposites[f];
+  }
+  return result.join(' ');
+}
+
 // Skewb: 11 moves using R L U B (vertex-turn notation, no 2-suffix, no same face twice)
 function genSkewb() {
   const bases = ['R','L','U','B'], sfxs = ["","'"];
@@ -328,6 +344,7 @@ function genScramble(puzzle) {
     case 'Clock':   return genClock();
     case '3BLD':    return gen3x3BLD();
     case 'Gear Cube': return GearCube.generateScramble();
+    case 'FTO':      return genFTO();
     default:        return gen3x3(); // 3×3, 3OH
   }
 }
