@@ -743,19 +743,31 @@ function drawFTONet(svgEl, scr, scale=1) {
   const G = Math.round(6 * scale);
   // U=white R=red F=green L=orange B=blue BL=purple D=yellow BR=cyan
   const FCLRS = ['#f0f0f0','#e00000','#22c55e','#ff6a00','#3b82f6','#7c3aed','#f5d714','#06b6d4'];
-  // 8 faces × 4 stickers = 32; each color appears exactly 4 times in shuffled state
-  const st = seededState(8, 4, scr);
+  // 8 faces × 9 stickers = 72; each color appears exactly 9 times in shuffled state
+  const st = seededState(8, 9, scr);
   let svg = '';
   const tri = (pts, si) => {
     const p = pts.map(([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-    svg += `<polygon points="${p}" fill="${FCLRS[st[si]]}" stroke="#0005" stroke-width="0.7"/>`;
+    svg += `<polygon points="${p}" fill="${FCLRS[st[si]]}" stroke="#0005" stroke-width="0.5"/>`;
   };
-  // Split triangle ABC into 4 via edge midpoints
-  const sub4 = ([A, B, C]) => {
-    const M1 = [(A[0]+B[0])/2, (A[1]+B[1])/2];
-    const M2 = [(B[0]+C[0])/2, (B[1]+C[1])/2];
-    const M3 = [(C[0]+A[0])/2, (C[1]+A[1])/2];
-    return [[A,M1,M3],[M1,B,M2],[M3,M2,C],[M1,M2,M3]];
+  // Split triangle [A,B,C] into 9 by dividing each edge into thirds
+  // pt(i,j) = A*(1-(i+j)/3) + B*(i/3) + C*(j/3)
+  const sub9 = ([A, B, C]) => {
+    const pt = (i, j) => [
+      A[0]*(1-(i+j)/3) + B[0]*(i/3) + C[0]*(j/3),
+      A[1]*(1-(i+j)/3) + B[1]*(i/3) + C[1]*(j/3),
+    ];
+    return [
+      [pt(0,0), pt(1,0), pt(0,1)],   // same-orientation (6)
+      [pt(1,0), pt(2,0), pt(1,1)],
+      [pt(2,0), pt(3,0), pt(2,1)],
+      [pt(0,1), pt(1,1), pt(0,2)],
+      [pt(1,1), pt(2,1), pt(1,2)],
+      [pt(0,2), pt(1,2), pt(0,3)],
+      [pt(1,0), pt(0,1), pt(1,1)],   // inverted (3)
+      [pt(2,0), pt(1,1), pt(2,1)],
+      [pt(1,1), pt(0,2), pt(1,2)],
+    ];
   };
   const drawHalf = (ox, faceOrder) => {
     const cx = ox + S/2, cy = S/2;
@@ -766,7 +778,7 @@ function drawFTONet(svgEl, scr, scale=1) {
       [[ox,S],[ox,0],[cx,cy]],      // left face
     ];
     faces.forEach((face, fi) => {
-      sub4(face).forEach((subTri, si) => tri(subTri, faceOrder[fi] * 4 + si));
+      sub9(face).forEach((subTri, si) => tri(subTri, faceOrder[fi] * 9 + si));
     });
   };
   drawHalf(0,     [0, 1, 2, 3]);  // U R F L
