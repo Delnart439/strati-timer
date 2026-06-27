@@ -734,27 +734,40 @@ function drawClockNet(svgEl, scr, scale=1) {
   svgEl.innerHTML = svg;
 }
 
-// FTO net: two square views side by side, each divided by X diagonals into 4 triangles
-// Left view:  U(top)  R(right)  F(bottom)  L(left)
-// Right view: B(top)  BR(right) D(bottom)  BL(left)
+// FTO net: two square views, each divided by X into 4 face triangles,
+// each face triangle subdivided into 4 sticker triangles via midpoints (32 stickers total)
+// Left view:  U(top) R(right) F(bottom) L(left)
+// Right view: B(top) BR(right) D(bottom) BL(left)
 function drawFTONet(svgEl, scr, scale=1) {
   const S = Math.round(56 * scale);
   const G = Math.round(6 * scale);
   // U=white R=red F=green L=orange B=blue BL=purple D=yellow BR=cyan
   const FCLRS = ['#f0f0f0','#e00000','#22c55e','#ff6a00','#3b82f6','#7c3aed','#f5d714','#06b6d4'];
-  // face order: 0=U 1=R 2=F 3=L 4=B 5=BL 6=D 7=BR
-  const st = seededState(8, 1, scr);
+  // 8 faces × 4 stickers = 32; each color appears exactly 4 times in shuffled state
+  const st = seededState(8, 4, scr);
   let svg = '';
-  const poly = (pts, fi) => {
+  const tri = (pts, si) => {
     const p = pts.map(([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-    return `<polygon points="${p}" fill="${FCLRS[st[fi]]}" stroke="#0006" stroke-width="1"/>`;
+    svg += `<polygon points="${p}" fill="${FCLRS[st[si]]}" stroke="#0005" stroke-width="0.7"/>`;
   };
-  const drawHalf = (ox, [ft, fr, fb, fl]) => {
+  // Split triangle ABC into 4 via edge midpoints
+  const sub4 = ([A, B, C]) => {
+    const M1 = [(A[0]+B[0])/2, (A[1]+B[1])/2];
+    const M2 = [(B[0]+C[0])/2, (B[1]+C[1])/2];
+    const M3 = [(C[0]+A[0])/2, (C[1]+A[1])/2];
+    return [[A,M1,M3],[M1,B,M2],[M3,M2,C],[M1,M2,M3]];
+  };
+  const drawHalf = (ox, faceOrder) => {
     const cx = ox + S/2, cy = S/2;
-    svg += poly([[ox,0],[ox+S,0],[cx,cy]], ft);     // top
-    svg += poly([[ox+S,0],[ox+S,S],[cx,cy]], fr);   // right
-    svg += poly([[ox+S,S],[ox,S],[cx,cy]], fb);     // bottom
-    svg += poly([[ox,S],[ox,0],[cx,cy]], fl);       // left
+    const faces = [
+      [[ox,0],[ox+S,0],[cx,cy]],    // top face
+      [[ox+S,0],[ox+S,S],[cx,cy]],  // right face
+      [[ox+S,S],[ox,S],[cx,cy]],    // bottom face
+      [[ox,S],[ox,0],[cx,cy]],      // left face
+    ];
+    faces.forEach((face, fi) => {
+      sub4(face).forEach((subTri, si) => tri(subTri, faceOrder[fi] * 4 + si));
+    });
   };
   drawHalf(0,     [0, 1, 2, 3]);  // U R F L
   drawHalf(S + G, [4, 7, 6, 5]);  // B BR D BL
