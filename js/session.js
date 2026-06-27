@@ -148,7 +148,18 @@ function getPuzIcon(puzzle) {
   if (puzzle==='Square-1') return `<svg viewBox="0 0 20 20" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9" fill="currentColor" opacity=".35"/><rect x="4" y="4" width="12" height="12" rx="2" fill="currentColor"/></svg>`;
   if (puzzle==='Clock') return `<svg viewBox="0 0 20 20" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="2" fill="none"/><line x1="10" y1="5" x2="10" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="10" y1="10" x2="14" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
   if (puzzle==='Gear Cube') return `<svg viewBox="0 0 20 20" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" fill="currentColor" d="M8.1,1.2 L11.9,1.2 L11.4,3.6 L14.8,5.6 L16.7,4.0 L18.6,7.2 L16.2,8.0 L16.2,12.0 L18.6,12.8 L16.7,16.0 L14.8,14.3 L11.4,16.4 L11.9,18.8 L8.1,18.8 L8.6,16.4 L5.2,14.3 L3.3,16.0 L1.4,12.8 L3.8,12.0 L3.8,8.0 L1.4,7.2 L3.3,4.0 L5.2,5.6 L8.6,3.6 Z M13,10 A3,3,0,1,0,7,10 A3,3,0,1,0,13,10 Z"/></svg>`;
-  if (puzzle==='FTO') return `<svg viewBox="0 0 20 20" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><polygon points="1,8 9,8 5,1" fill="currentColor"/><polygon points="11,8 19,8 15,1" fill="currentColor"/><polygon points="1,19 9,19 5,12" fill="currentColor"/><polygon points="11,19 19,19 15,12" fill="currentColor"/></svg>`;
+  if (puzzle==='FTO') {
+    const S=20, h=S/2;
+    const pt=([ax,ay],[bx,by],[cx,cy],i,j)=>`${(ax*(1-(i+j)/3)+bx*(i/3)+cx*(j/3)).toFixed(1)},${(ay*(1-(i+j)/3)+by*(i/3)+cy*(j/3)).toFixed(1)}`;
+    const T9=[[0,0,1,0,0,1],[1,0,2,0,1,1],[2,0,3,0,2,1],[0,1,1,1,0,2],[1,1,2,1,1,2],[0,2,1,2,0,3],[1,0,0,1,1,1],[2,0,1,1,2,1],[1,1,0,2,1,2]];
+    const faces=[[[0,0],[S,0],[h,h]],[[S,0],[S,S],[h,h]],[[S,S],[0,S],[h,h]],[[0,S],[0,0],[h,h]]];
+    const fop=[1,.4,.75,.2];
+    let r='';
+    faces.forEach((f,fi)=>T9.forEach(([i0,j0,i1,j1,i2,j2],ti)=>{
+      r+=`<polygon points="${pt(f[0],f[1],f[2],i0,j0)} ${pt(f[0],f[1],f[2],i1,j1)} ${pt(f[0],f[1],f[2],i2,j2)}" fill="currentColor" opacity="${(fop[fi]*(ti>=6?.5:1)).toFixed(2)}"/>`;
+    }));
+    return `<svg viewBox="0 0 ${S} ${S}" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
+  }
   return `<svg viewBox="0 0 20 20" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="8" height="8" rx="1" fill="currentColor"/><rect x="11" y="1" width="8" height="8" rx="1" fill="currentColor"/><rect x="1" y="11" width="8" height="8" rx="1" fill="currentColor"/><rect x="11" y="11" width="8" height="8" rx="1" fill="currentColor"/></svg>`;
 }
 function updatePuzIcon(){ document.getElementById('puzIcon').innerHTML = getPuzIcon(state.puzzle); }
