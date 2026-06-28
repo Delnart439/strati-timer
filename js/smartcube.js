@@ -101,6 +101,7 @@ function scIsSolved(fl){for(let f=0;f<6;f++){const c=fl[f*9+4];for(let i=f*9;i<f
 // ─── SCENE STATE ─────────────────────────────────────────────────────────────
 let scScene, scCamera, scRenderer, scRafId, scRenderActive=false;
 let scCubeGroup=null;
+let scFallbackMode=false, scFallbackSvgEl=null;
 let scCubies={}, scCamTheta=0, scCamPhi=1.3;
 const SC_CAM_DIST = 6.5;
 
@@ -114,15 +115,46 @@ let scLastGyroQ=null, scGyroOffset=null, scGyroAppliedQ=null, scLastMoveQ=null, 
 
 // ─── SCENE INIT ──────────────────────────────────────────────────────────────
 function scInitScene(container) {
-  if(scScene) return;
+  if(scScene || scFallbackMode) return;
   const T = window.THREE;
-  if(!T){ container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view unavailable</div>'; return; }
+  if(!T) { scInitFallback2D(container); return; }
 
   const W=container.clientWidth||300, H=container.clientHeight||300;
+
+  // Probe WebGL availability (webgl2 → webgl → experimental-webgl).
+  // We explicitly release the probed context so Three.js gets a clean slot.
+  let glType = null;
+  try {
+    const probe = document.createElement('canvas');
+    probe.width = 1; probe.height = 1;
+    for(const t of ['webgl2','webgl','experimental-webgl']) {
+      const c = probe.getContext(t);
+      if(c) {
+        glType = t;
+        console.log('[Strati 3D]', {
+          webgl: t,
+          renderer: c.getParameter(c.RENDERER),
+          vendor:   c.getParameter(c.VENDOR),
+          software: /swiftshader|llvmpipe|softpipe/i.test(c.getParameter(c.RENDERER)||''),
+          dpr: window.devicePixelRatio,
+        });
+        c.getExtension('WEBGL_lose_context')?.loseContext(); // free slot before Three.js claims it
+        break;
+      }
+    }
+    if(!glType) console.log('[Strati 3D] WebGL unavailable — falling back to 2D');
+  } catch(e) {
+    console.warn('[Strati 3D] probe error:', e);
+  }
+
+  if(!glType) { scInitFallback2D(container); return; }
+
   try {
     scRenderer = new T.WebGLRenderer({antialias:true, alpha:true, powerPreference:'default'});
   } catch(e) {
-    container.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:20px">3D view not supported on this device</div>'; return;
+    console.warn('[Strati 3D] WebGLRenderer failed:', e);
+    scInitFallback2D(container);
+    return;
   }
   scRenderer.setSize(W,H);
   scRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
@@ -140,6 +172,36 @@ function scInitScene(container) {
   scBuildCubies();
   scAddOrbit(scRenderer.domElement);
   scStartRender();
+}
+
+// ─── 2D FALLBACK ─────────────────────────────────────────────────────────────
+function scInitFallback2D(container) {
+  scFallbackMode = true;
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgEl.style.cssText = 'width:100%;height:100%;display:block';
+  container.appendChild(svgEl);
+  scFallbackSvgEl = svgEl;
+  scFallback2DDraw(SC_SOLVED);
+}
+
+function scFallback2DDraw(facelets) {
+  if(!scFallbackSvgEl) return;
+  const fMap={U:0,R:1,F:2,D:3,L:4,B:5};
+  const st=Array.from(facelets).map(c=>fMap[c]??0);
+  const S=16,G=1,STEP=S+G,FG=4;
+  const layout=[
+    {fi:1,fj:0,face:0},{fi:0,fj:1,face:4},{fi:1,fj:1,face:2},
+    {fi:2,fj:1,face:1},{fi:3,fj:1,face:5},{fi:1,fj:2,face:3},
+  ];
+  const vw=4*3*STEP+3*FG, vh=3*3*STEP+2*FG;
+  scFallbackSvgEl.setAttribute('viewBox',`0 0 ${vw} ${vh}`);
+  let s='';
+  for(const {fi,fj,face} of layout){
+    const base=face*9,ox=fi*(3*STEP+FG),oy=fj*(3*STEP+FG);
+    for(let r=0;r<3;r++) for(let c=0;c<3;c++)
+      s+=`<rect x="${ox+c*STEP}" y="${oy+r*STEP}" width="${S}" height="${S}" rx="2" fill="${CLRS[st[base+r*3+c]]}" stroke="#0004" stroke-width=".5"/>`;
+  }
+  scFallbackSvgEl.innerHTML=s;
 }
 
 function scPosCamera(){
@@ -220,6 +282,7 @@ function scGetLocalFi(mesh, globalFi){
 }
 
 function scUpdateColors(facelets){
+  if(scFallbackMode) { scFallback2DDraw(facelets); return; }
   if(!scScene) return;
   for(let i=0;i<54;i++){
     const sf=SC_S2F[i]; if(!sf) continue;
@@ -989,7 +1052,7 @@ document.getElementById('scGyroBtn')?.addEventListener('click', scResetGyro);
 // Resize + restart render when cube mode is activated
 document.querySelector('.ac[data-mode="cube"]')?.addEventListener('click',()=>{
   const wrap=document.getElementById('sc3dWrap');
-  if(!scScene&&wrap&&window.THREE) scInitScene(wrap);
+  if(!scScene&&!scFallbackMode&&wrap&&window.THREE) scInitScene(wrap);
   if(scRenderer&&wrap){
     const W=wrap.clientWidth||300,H=wrap.clientHeight||300;
     scRenderer.setSize(W,H);
