@@ -698,31 +698,100 @@ function _iconKeyboard(ctx, cx, cy, sc) {
   ctx.fillStyle='rgba(255,255,255,0.85)';beginRoundRect(ctx,cx-sbW/2,ky,sbW,sbH,3*sc);ctx.fill();
   if(sc>=0.5){ctx.font=`bold ${Math.round(8*sc)}px Inter,system-ui,sans-serif`;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText('KEYBOARD',cx,ky+sbH*0.75);}
 }
-function _drawDeviceCell(ctx, x, y, w, h, devices) {
+function _drawPuzIconCanvas(ctx, puzzle, cx, cy, size) {
+  const grids = {'2×2':2,'3×3':3,'4×4':4,'5×5':5,'6×6':6,'7×7':7,'3OH':3,'3BLD':3};
+  if (grids[puzzle]) {
+    const n = grids[puzzle], gap = Math.max(0.5, size/20), cell = (size-(n-1)*gap)/n;
+    const ox = cx - size/2, oy = cy - size/2;
+    ctx.beginPath();
+    for (let r=0;r<n;r++) for (let c=0;c<n;c++) roundRect(ctx, ox+c*(cell+gap), oy+r*(cell+gap), cell, cell, 1);
+    ctx.fill();
+  } else if (puzzle==='Pyraminx') {
+    ctx.beginPath(); ctx.moveTo(cx, cy-size*0.46); ctx.lineTo(cx+size*0.46, cy+size*0.4); ctx.lineTo(cx-size*0.46, cy+size*0.4); ctx.closePath(); ctx.fill();
+  } else if (puzzle==='Megaminx') {
+    ctx.beginPath();
+    for (let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5;i===0?ctx.moveTo(cx+size*0.46*Math.cos(a),cy+size*0.46*Math.sin(a)):ctx.lineTo(cx+size*0.46*Math.cos(a),cy+size*0.46*Math.sin(a));}
+    ctx.closePath(); ctx.fill();
+  } else if (puzzle==='Skewb') {
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(Math.PI/4);
+    beginRoundRect(ctx,-size*0.36,-size*0.36,size*0.72,size*0.72,2); ctx.fill(); ctx.restore();
+  } else if (puzzle==='Square-1') {
+    const prev=ctx.globalAlpha; ctx.globalAlpha=prev*0.35;
+    ctx.beginPath(); ctx.arc(cx,cy,size*0.46,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=prev;
+    beginRoundRect(ctx,cx-size*0.3,cy-size*0.3,size*0.6,size*0.6,2); ctx.fill();
+  } else if (puzzle==='Clock') {
+    ctx.lineWidth=Math.max(1,size/12); ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(cx,cy,size*0.45,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy-size*0.26); ctx.lineTo(cx,cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+size*0.2,cy+size*0.14); ctx.stroke();
+  } else if (puzzle==='FTO') {
+    const ptF=(A,B,C,i,j)=>[A[0]*(1-(i+j)/3)+B[0]*(i/3)+C[0]*(j/3),A[1]*(1-(i+j)/3)+B[1]*(i/3)+C[1]*(j/3)];
+    const T9=[[0,0,1,0,0,1],[1,0,2,0,1,1],[2,0,3,0,2,1],[0,1,1,1,0,2],[1,1,2,1,1,2],[0,2,1,2,0,3],[1,0,0,1,1,1],[2,0,1,1,2,1],[1,1,0,2,1,2]];
+    const ox=cx-size/2, oy=cy-size/2, h=size/2;
+    const faces=[[[ox,oy],[ox+size,oy],[ox+h,oy+h]],[[ox+size,oy],[ox+size,oy+size],[ox+h,oy+h]],[[ox+size,oy+size],[ox,oy+size],[ox+h,oy+h]],[[ox,oy+size],[ox,oy],[ox+h,oy+h]]];
+    const fop=[1,0.4,0.75,0.2];
+    const prev=ctx.globalAlpha;
+    faces.forEach((f,fi)=>T9.forEach(([i0,j0,i1,j1,i2,j2],ti)=>{
+      const p0=ptF(f[0],f[1],f[2],i0,j0),p1=ptF(f[0],f[1],f[2],i1,j1),p2=ptF(f[0],f[1],f[2],i2,j2);
+      ctx.globalAlpha=prev*fop[fi]*(ti>=6?0.5:1);
+      ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.lineTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);ctx.closePath();ctx.fill();
+    }));
+    ctx.globalAlpha=prev;
+  } else if (puzzle==='Gear Cube') {
+    ctx.lineWidth=Math.max(1,size/14);
+    const teeth=8;
+    ctx.beginPath();
+    for(let i=0;i<teeth*2;i++){const a=i*Math.PI/teeth,r=(i%2===0)?size*0.46:size*0.35;ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
+    ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,size*0.18,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fill();
+  } else {
+    // Default: 2×2 grid of squares
+    const s=size*0.38, g=size*0.09;
+    ctx.beginPath();
+    [[cx-s-g/2,cy-s-g/2],[cx+g/2,cy-s-g/2],[cx-s-g/2,cy+g/2],[cx+g/2,cy+g/2]].forEach(([rx,ry])=>roundRect(ctx,rx,ry,s,s,2));
+    ctx.fill();
+  }
+}
+function _drawDeviceCell(ctx, x, y, w, h, devices, puzzle) {
   const R = 14;
   ctx.fillStyle = 'rgba(255,255,255,0.07)';
   beginRoundRect(ctx, x, y, w, h, R); ctx.fill();
   ctx.save();
   ctx.beginPath(); roundRect(ctx, x, y, w, h, R); ctx.clip();
+
+  const logoFrac = puzzle ? 0.42 : 0;
+  const devY = y + h * logoFrac;
+  const devH = h * (1 - logoFrac);
+  const cx0 = x + w / 2;
+
+  if (puzzle) {
+    const iconSize = Math.min(h * 0.22, w * 0.38);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = Math.max(1, iconSize / 12); ctx.lineCap = 'round';
+    _drawPuzIconCanvas(ctx, puzzle, cx0, y + h * 0.21, iconSize);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x + 8, devY); ctx.lineTo(x + w - 8, devY); ctx.stroke();
+  }
+
   if (devices && devices.length) {
     const n = Math.min(devices.length, 3);
     const gap = 8;
     const slotW = n > 1 ? (w - gap*(n-1)) / n : w;
-    const sc = Math.min(1, slotW / h);
+    const sc = puzzle ? 0.58 : Math.min(1, slotW / h);
     devices.slice(0, n).forEach((dev, i) => {
       const sx = x + i*(slotW+gap), scx = sx + slotW/2;
       if (i > 0) {
-        ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;
-        ctx.beginPath();ctx.moveTo(sx-gap/2,y+8);ctx.lineTo(sx-gap/2,y+h-8);ctx.stroke();
+        ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(sx-gap/2, devY+4); ctx.lineTo(sx-gap/2, devY+devH-4); ctx.stroke();
       }
-      ctx.textAlign='center';ctx.fillStyle='#fff';
+      ctx.textAlign='center'; ctx.fillStyle='#fff';
       const label = dev.type==='cube' ? 'Smart Cube' : dev.type==='stackmat' ? 'Stackmat' : 'Keyboard';
-      const fs = sc===1 ? 13 : 10;
+      const fs = sc >= 0.9 ? 13 : 10;
       ctx.font = `bold ${fs}px Inter,system-ui,sans-serif`;
       const labelW = ctx.measureText(label).width;
       const fitsHoriz = n > 1 && labelW < slotW - 4;
-      if (sc === 1) {
-        // single device: icon top, label, then cube name below
+      if (sc >= 0.9) {
         if (dev.type==='cube') {
           _iconCube(ctx, scx, y+h*0.30, sc);
           ctx.font = `bold ${fs}px Inter,system-ui,sans-serif`; ctx.fillStyle = '#fff';
@@ -737,14 +806,25 @@ function _drawDeviceCell(ctx, x, y, w, h, devices) {
           else                       _iconKeyboard(ctx, scx, iconCY, sc);
           ctx.fillText(label, scx, y+h*0.82);
         }
+      } else if (puzzle) {
+        // compact: device icon + label in lower portion of cell
+        const iconCY = devY + devH * 0.36;
+        const labelY  = devY + devH * 0.77;
+        if (dev.type==='cube')          _iconCube(ctx, scx, iconCY, sc);
+        else if (dev.type==='stackmat') _iconStackmat(ctx, scx, iconCY, sc);
+        else                            _iconKeyboard(ctx, scx, iconCY, sc);
+        ctx.font = 'bold 10px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+        ctx.fillText(label, scx, labelY);
+        if (dev.name && dev.type==='cube') {
+          ctx.font = '9px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.fillText(dev.name, scx, devY + devH * 0.94);
+        }
       } else if (fitsHoriz) {
-        // text fits centered below icon in slot
         if (dev.type==='cube')      _iconCube(ctx, scx, y+h*0.34, sc);
         else if (dev.type==='stackmat') _iconStackmat(ctx, scx, y+h*0.34, sc);
         else                        _iconKeyboard(ctx, scx, y+h*0.34, sc);
         ctx.fillText(label, scx, y+h*0.72);
       } else {
-        // slot too narrow: icon only, label on next line inside slot
         if (dev.type==='cube')      _iconCube(ctx, scx, y+h*0.30, sc);
         else if (dev.type==='stackmat') _iconStackmat(ctx, scx, y+h*0.30, sc);
         else                        _iconKeyboard(ctx, scx, y+h*0.30, sc);
@@ -775,10 +855,12 @@ function _shareCardBg(ctx, W, H, R) {
 
 function _niceYTicks(minMs, maxMs) {
   const minS = minMs / 1000, maxS = maxMs / 1000;
-  if (minS >= maxS) return { ticks: [Math.round(minMs)], step: 2 };
-  const step = 2;
+  const range = maxS - minS;
+  if (range < 0.01) return { ticks: [Math.round(minMs)], step: 1 };
+  const step = range <= 1 ? 0.5 : range <= 3 ? 1 : range <= 8 ? 2 : 5;
   const ticks = [];
-  for (let v = Math.ceil(minS / step) * step; v <= maxS + step * 0.01; v = +(v + step).toFixed(6))
+  // start at first tick at or above minS, end at least one tick above maxS
+  for (let v = Math.ceil(minS / step) * step; v <= maxS + step; v = +(v + step).toFixed(6))
     ticks.push(Math.round(v * 1000));
   return { ticks, step };
 }
@@ -788,11 +870,9 @@ function _niceYLabel(ms, step) {
   if (step >= 0.1) return s.toFixed(1) + 's';
   return s.toFixed(2) + 's';
 }
-function _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py) {
+function _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py, niceMin) {
   const { ticks, step } = _niceYTicks(minV, maxV);
-  const stepMs = Math.round(step * 1000);
-  // Include one extra tick exactly 1s below the data minimum
-  const allTicks = [minV - 1000, ...ticks];
+  const allTicks = niceMin !== undefined ? [niceMin, ...ticks] : ticks;
   ctx.font = '9px Inter,system-ui,sans-serif'; ctx.textAlign = 'right';
   allTicks.forEach(ms => {
     const y = py(ms);
@@ -818,7 +898,7 @@ function _drawGraph(ctx, solves, total, gx, gy, gw, gh) {
 
   const vals = plotData.map(t => t.ms + (t.plus2 ? 2000 : 0));
   const minV = Math.min(...vals), maxV = Math.max(...vals);
-  // Build nice axis bounds: 1s below data min → last tick above data max
+  // Build nice axis bounds: 0.5s below data min → at least one tick above data max
   const { ticks, step } = _niceYTicks(minV, maxV);
   const niceMin = minV - 1000;
   const niceMax = ticks[ticks.length - 1];
@@ -827,7 +907,7 @@ function _drawGraph(ctx, solves, total, gx, gy, gw, gh) {
   const px = i => gx + (i / Math.max(total - 1, 1)) * gw;
   // 4% bottom pad, 10% top pad for more breathing room above the line
   const py = v => gy + gh - ((v - niceMin) / niceRange) * gh * 0.86 - gh * 0.04;
-  _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py);
+  _drawYAxis(ctx, minV, maxV, gx, gy, gh, gw, py, niceMin);
   // Fill
   const fill = ctx.createLinearGradient(0, gy, 0, gy + gh);
   fill.addColorStop(0, 'rgba(168,85,247,0.25)'); fill.addColorStop(1, 'rgba(168,85,247,0.02)');
@@ -1009,30 +1089,41 @@ function generateShareImg(type, param) {
   ctx.font = 'bold 10px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
   ctx.fillText(_graphLabels[_sessionGraphType].toUpperCase(), PAD + HPAD, graphRowY + 16);
 
-  // Bottom row — TPS+MOVES combined | DEVICE | STRATI
+  // Bottom row — TPS+MOVES (BT only) or puzzle+device | DATE RANGE | STRATI
   const avgMoves = hasTps ? (btSolves.reduce((s, t) => s + t.moves.length, 0) / btSolves.length).toFixed(1) : '–';
   const tpsStr = hasTps ? avgTps.toFixed(1) : '–';
-  const _sesAllCubes = [...new Set(ts.filter(t=>t.cubeName).map(t=>_friendlyCubeName(t.cubeName)).filter(Boolean))];
-  const _sesHasStackmat = ts.some(t=>(t.manual||t.stackmat)&&!t.cubeName);
-  const _sesHasKeyboard = ts.some(t=>!t.cubeName&&!t.manual&&!t.stackmat);
-  const sessionDevices = [..._sesAllCubes.map(name=>({type:'cube',name})),...(_sesHasStackmat?[{type:'stackmat'}]:[]),...(_sesHasKeyboard?[{type:'keyboard'}]:[])];
+  const _sesCubeCounts = {};
+  ts.filter(t=>t.cubeName).forEach(t=>{const n=_friendlyCubeName(t.cubeName);if(n)_sesCubeCounts[n]=(_sesCubeCounts[n]||0)+1;});
+  const _sesCubeCount   = ts.filter(t=>t.cubeName).length;
+  const _sesStackCount  = ts.filter(t=>(t.manual||t.stackmat)&&!t.cubeName).length;
+  const _sesKeyCount    = ts.filter(t=>!t.cubeName&&!t.manual&&!t.stackmat).length;
+  const _sesMostCubeName = Object.entries(_sesCubeCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
+  const sessionDevices = _sesCubeCount>=_sesStackCount&&_sesCubeCount>=_sesKeyCount
+    ? (_sesCubeCount>0?[{type:'cube',name:_sesMostCubeName}]:[])
+    : _sesStackCount>=_sesKeyCount
+      ? [{type:'stackmat'}]
+      : [{type:'keyboard'}];
   const botY = PAD + 2 * (CELL + GAP);
   const cx0 = PAD + CELL / 2;
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  beginRoundRect(ctx, PAD, botY, CELL, CELL, 14); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
-  beginRoundRect(ctx, PAD, botY, CELL, CELL, 14); ctx.stroke();
-  ctx.textAlign = 'center';
-  ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-  ctx.fillText(tpsStr, cx0, botY + CELL * 0.28);
-  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-  ctx.fillText('AVG TPS', cx0, botY + CELL * 0.44);
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(PAD + 10, botY + CELL * 0.52); ctx.lineTo(PAD + CELL - 10, botY + CELL * 0.52); ctx.stroke();
-  ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-  ctx.fillText(avgMoves, cx0, botY + CELL * 0.72);
-  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-  ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
+  if (hasTps) {
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    beginRoundRect(ctx, PAD, botY, CELL, CELL, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+    beginRoundRect(ctx, PAD, botY, CELL, CELL, 14); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText(tpsStr, cx0, botY + CELL * 0.28);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('AVG TPS', cx0, botY + CELL * 0.44);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(PAD + 10, botY + CELL * 0.52); ctx.lineTo(PAD + CELL - 10, botY + CELL * 0.52); ctx.stroke();
+    ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText(avgMoves, cx0, botY + CELL * 0.72);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
+  } else {
+    _drawDeviceCell(ctx, PAD, botY, CELL, CELL, sessionDevices, ses.puzzle || state.puzzle);
+  }
   // Date range cell
   const _drSolves = ts.filter(t => t.date);
   const _drOldest = _drSolves.length ? new Date(_drSolves[_drSolves.length - 1].date) : null;
@@ -1144,117 +1235,71 @@ function _generateShareAo(n) {
   const avgMoves = hasTps ? (btSolves.reduce((s, t) => s + t.moves.length, 0) / btSolves.length).toFixed(1) : '–';
   const tpsStr = hasTps ? avgTps.toFixed(1) : '–';
   // Deduplicate: at most one cube, one stackmat, one keyboard
-  const _aoHasCube     = chunk.some(t => t.cubeName);
-  const _aoHasStackmat = chunk.some(t => (t.manual || t.stackmat) && !t.cubeName);
-  const _aoHasKeyboard = chunk.some(t => !t.cubeName && !t.manual && !t.stackmat);
-  const _aoFirstCube   = _aoHasCube ? _friendlyCubeName(chunk.find(t => t.cubeName).cubeName) : null;
-  const aoDevTypes = [...(_aoHasCube?[{type:'cube',name:_aoFirstCube}]:[]), ...(_aoHasStackmat?[{type:'stackmat'}]:[]), ...(_aoHasKeyboard?[{type:'keyboard'}]:[])];
+  const _aoCubeCounts = {};
+  chunk.filter(t=>t.cubeName).forEach(t=>{const n=_friendlyCubeName(t.cubeName);if(n)_aoCubeCounts[n]=(_aoCubeCounts[n]||0)+1;});
+  const _aoCubeCount  = chunk.filter(t=>t.cubeName).length;
+  const _aoStackCount = chunk.filter(t=>(t.manual||t.stackmat)&&!t.cubeName).length;
+  const _aoKeyCount   = chunk.filter(t=>!t.cubeName&&!t.manual&&!t.stackmat).length;
+  const _aoMostCubeName = Object.entries(_aoCubeCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
+  const aoDevTypes = _aoCubeCount>=_aoStackCount&&_aoCubeCount>=_aoKeyCount
+    ? (_aoCubeCount>0?[{type:'cube',name:_aoMostCubeName}]:[])
+    : _aoStackCount>=_aoKeyCount
+      ? [{type:'stackmat'}]
+      : [{type:'keyboard'}];
   const botY = PAD + 2 * (CELL + GAP);
 
-  // 1. Device cell — leftmost
+  // 1. Device cell — leftmost (with event logo above)
   const dcx = PAD;
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  beginRoundRect(ctx, dcx, botY, CELL, CELL, 14); ctx.fill();
-  // Clip so icons can't bleed outside the cell
-  ctx.save();
-  ctx.beginPath(); roundRect(ctx, dcx, botY, CELL, CELL, 14); ctx.clip();
-  const nd = aoDevTypes.length;
-  if (nd === 1) {
-    // Single device: label top, big icon in between, sub-label bottom
-    const dev = aoDevTypes[0];
-    const devCx = dcx + CELL / 2;
-    ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-    if (dev.type === 'cube') {
-      const iconCY  = botY + CELL * 0.30;
-      const label1Y = botY + CELL * 0.59;
-      const label2Y = botY + CELL * 0.76;
-      _iconCube(ctx, devCx, iconCY, 0.88);
-      ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-      ctx.fillText('Smart Cube', devCx, label1Y);
-      if (dev.name) {
-        ctx.font = '11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.fillText(dev.name, devCx, label2Y);
-      }
-    } else if (dev.type === 'stackmat') {
-      const iconSc = 0.72;
-      const iconCY = botY + CELL * 0.37;
-      _iconStackmat(ctx, devCx, iconCY, iconSc);
-      ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-      ctx.fillText('Stackmat', devCx, botY + CELL * 0.84);
-    } else {
-      const iconSc = 0.72;
-      const iconCY = botY + CELL * 0.37;
-      _iconKeyboard(ctx, devCx, iconCY, iconSc);
-      ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-      ctx.font = 'bold 13px Inter,system-ui,sans-serif';
-      ctx.fillText('Keyboard', devCx, botY + CELL * 0.86);
-    }
-  } else if (nd > 1) {
-    // Multiple devices: stacked vertically, icon left + text right per row
-    const rowH = CELL / nd;
-    const iconSc = nd === 2 ? 0.42 : 0.32;   // keyboard / stackmat scale
-    const cubeSc = nd === 2 ? 0.60 : 0.46;   // cube draws larger in same slot
-    // Anchor on keyboard half-width (widest icon) + more right padding
-    const kbHalfW = (10*9*iconSc + 9*2*iconSc) / 2 + 4*iconSc;
-    const iconX  = dcx + kbHalfW + 18;
-    const textX  = iconX + kbHalfW + 10;
-    const availTextW = dcx + CELL - textX - 4;
-    aoDevTypes.forEach((dev, i) => {
-      const rowY = botY + i * rowH;
-      const midY = rowY + rowH / 2;
-      const fs = nd === 2 ? 10 : 9;
-      const label = dev.type === 'cube' ? 'Smart Cube' : dev.type === 'stackmat' ? 'Stackmat' : 'Keyboard';
-      ctx.font = `bold ${fs}px Inter,system-ui,sans-serif`;
-      const labelW = ctx.measureText(label).width;
-      const sc = dev.type === 'cube' ? cubeSc : iconSc;
-      ctx.fillStyle = '#fff';
-      if (labelW <= availTextW) {
-        // horizontal: icon left, text right
-        ctx.textAlign = 'left';
-        if (dev.type === 'cube')          _iconCube(ctx, iconX, midY, cubeSc);
-        else if (dev.type === 'stackmat') _iconStackmat(ctx, iconX, midY, iconSc);
-        else                              _iconKeyboard(ctx, iconX, midY, iconSc);
-        ctx.fillText(label, textX, midY + 4);
-      } else {
-        // too wide: vertical fallback — icon top, text below within this row
-        const cx = dcx + CELL / 2;
-        const iconFallCY = rowY + rowH * 0.35;
-        const textFallY  = rowY + rowH * 0.78;
-        ctx.textAlign = 'center';
-        if (dev.type === 'cube')          _iconCube(ctx, cx, iconFallCY, cubeSc);
-        else if (dev.type === 'stackmat') _iconStackmat(ctx, cx, iconFallCY, iconSc);
-        else                              _iconKeyboard(ctx, cx, iconFallCY, iconSc);
-        ctx.fillText(label, cx, textFallY);
-      }
-      if (i < nd - 1) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(dcx + 8, rowY + rowH); ctx.lineTo(dcx + CELL - 8, rowY + rowH); ctx.stroke();
-      }
-    });
-  }
-  ctx.restore();
-  // Border drawn after restore so it sits on top of icons
-  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
-  beginRoundRect(ctx, dcx, botY, CELL, CELL, 14); ctx.stroke();
+  _drawDeviceCell(ctx, dcx, botY, CELL, CELL, aoDevTypes, hasTps ? null : curSes().puzzle || state.puzzle);
 
-  // 2. TPS+Moves cell — middle
+  // 2. TPS+Moves cell — middle (BT only), otherwise puzzle+device
   const cx0 = PAD + CELL + GAP + CELL / 2;
   const tpsX = PAD + CELL + GAP;
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  beginRoundRect(ctx, tpsX, botY, CELL, CELL, 14); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
-  beginRoundRect(ctx, tpsX, botY, CELL, CELL, 14); ctx.stroke();
-  ctx.textAlign = 'center';
-  ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-  ctx.fillText(tpsStr, cx0, botY + CELL * 0.28);
-  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-  ctx.fillText('AVG TPS', cx0, botY + CELL * 0.44);
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(tpsX + 10, botY + CELL * 0.52); ctx.lineTo(tpsX + CELL - 10, botY + CELL * 0.52); ctx.stroke();
-  ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-  ctx.fillText(avgMoves, cx0, botY + CELL * 0.72);
-  ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
-  ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
+  if (hasTps) {
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    beginRoundRect(ctx, tpsX, botY, CELL, CELL, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+    beginRoundRect(ctx, tpsX, botY, CELL, CELL, 14); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText(tpsStr, cx0, botY + CELL * 0.28);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('AVG TPS', cx0, botY + CELL * 0.44);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(tpsX + 10, botY + CELL * 0.52); ctx.lineTo(tpsX + CELL - 10, botY + CELL * 0.52); ctx.stroke();
+    ctx.font = '900 26px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText(avgMoves, cx0, botY + CELL * 0.72);
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('AVG MOVES', cx0, botY + CELL * 0.88);
+  } else {
+    // No BT data: show date of the Ao result
+    const _aoLatestDate = chunk.map(t => t.date).filter(Boolean).reduce((a, b) => a > b ? a : b, null);
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    beginRoundRect(ctx, tpsX, botY, CELL, CELL, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3;
+    beginRoundRect(ctx, tpsX, botY, CELL, CELL, 14); ctx.stroke();
+    const _aoDcx = tpsX + CELL / 2;
+    // Puzzle logo in top ~42%
+    const _aoIconSize = Math.min(CELL * 0.22, CELL * 0.38);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = Math.max(1, _aoIconSize / 12); ctx.lineCap = 'round';
+    _drawPuzIconCanvas(ctx, curSes().puzzle || state.puzzle, _aoDcx, botY + CELL * 0.15, _aoIconSize);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(tpsX + 8, botY + CELL * 0.42); ctx.lineTo(tpsX + CELL - 8, botY + CELL * 0.42); ctx.stroke();
+    if (_aoLatestDate) {
+      const _aoD = new Date(_aoLatestDate);
+      const _aoDateStr = _aoD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const _aoTimStr  = _aoD.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const _aoDcy = botY + CELL * 0.72;
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 18px Inter,system-ui,sans-serif'; ctx.fillStyle = '#fff';
+      ctx.fillText(_aoDateStr, _aoDcx, _aoDcy - 8);
+      ctx.font = 'bold 11px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText(_aoD.getFullYear(), _aoDcx, _aoDcy + 8);
+      ctx.font = '10px Inter,system-ui,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillText(_aoTimStr, _aoDcx, _aoDcy + 23);
+    }
+  }
 
   // 3. STRATI logo — rightmost
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), botY, CELL, '', '', { isLogo: true });
@@ -1537,7 +1582,7 @@ function _generateShareSingle(idx) {
   // Row 3 — device | date+time | STRATI
   const row3Y = PAD + 2 * (CELL + GAP);
   const singleDevices = solveCubeName ? [{type:'cube',name:solveCubeName}] : solveIsManual ? [{type:'stackmat'}] : [{type:'keyboard'}];
-  _drawDeviceCell(ctx, PAD, row3Y, CELL, CELL, singleDevices);
+  _drawDeviceCell(ctx, PAD, row3Y, CELL, CELL, singleDevices, solveCubeName ? null : curSes().puzzle || state.puzzle);
   _drawCubeCell(ctx, PAD + CELL + GAP, row3Y, CELL, timeLabel, dateVal, {});
   _drawCubeCell(ctx, PAD + 2*(CELL+GAP), row3Y, CELL, '', '', { isLogo: true });
 

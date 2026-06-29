@@ -951,12 +951,13 @@ function drawGraph(svgId, datasets) {
         const tx=cx, ty=cy;
         const bx=Math.max(pad.l, Math.min(tx-18, W-pad.r-36));
         const by=Math.max(pad.t, ty-22);
+        const textY=by+10;
         html+=`<g class="sg-tip" style="cursor:default">`;
         html+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="7" fill="transparent"/>`;
         html+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${i===n-1?3.5:2}" fill="${color}"/>`;
         html+=`<g class="sg-tip-label">`;
         html+=`<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="36" height="14" rx="4" fill="#231450"/>`;
-        html+=`<text x="${tx.toFixed(1)}" y="${(ty-11).toFixed(1)}" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">${lbl}</text>`;
+        html+=`<text x="${tx.toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">${lbl}</text>`;
         html+=`</g></g>`;
       });
     }
