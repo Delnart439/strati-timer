@@ -685,6 +685,12 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 #sb.sb-collapsed .sb-set .set-link{justify-content:center;padding:10px 0}
 #sb.sb-collapsed .sb-logo{justify-content:center;padding:0 0 14px}
 
+/* Shared: tb-more-item and tbMoreBtn */
+.tb-more-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.85);transition:background .12s}
+.tb-more-item:hover{background:rgba(255,255,255,.1)}
+.tb-more-item svg{width:16px;height:16px;flex-shrink:0}
+#tbMoreBtn{display:none}
+
 /* ── INTERMEDIATE WIDTHS ── */
 @media (max-width:1024px) {
   /* Reduce right panel width so it doesn't crowd the timer at medium sizes */
@@ -696,6 +702,33 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 
   /* Compact top bar padding */
   #tb{padding:0 14px;gap:10px}
+}
+
+/* ── COMPACT (881px–701px): icon sidebar + merged action button) ── */
+@media (max-width:880px) and (min-width:701px) {
+  /* Auto-collapse sidebar to icon strip */
+  :root{--sbw:68px}
+  #sb{width:68px;min-width:68px}
+  #sb .nav-lbl,#sb .logo-txt,#sb .logo-dots,#sb .sb-uinfo,#sb .sb-foot{display:none}
+  #sb .vip-box{padding:8px 0;background:transparent;border:none;display:flex;justify-content:center}
+  #sb .vip-head{justify-content:center;font-size:18px}
+  #sb .vip-head svg{width:28px;height:28px}
+  #sb .nav-item{padding:14px 0;justify-content:center}
+  #sb .sb-user{justify-content:center;padding:12px 0}
+  #sb .sb-set .set-link{justify-content:center;padding:10px 0}
+  #sb .sb-logo{justify-content:center;padding:0 0 14px}
+  /* Merge action buttons into ··· */
+  #addTimeBtn,#helpBtn{display:none!important}
+  /* BT wrap: invisible but kept in DOM so btDropdown can be fixed-positioned */
+  #btBtnWrap{visibility:hidden;width:0;min-width:0;padding:0;overflow:visible}
+  #btDropdown{visibility:visible;position:fixed!important;top:var(--tbh);right:12px}
+  #tbMoreBtn{display:flex}
+  /* Compact top bar */
+  .ses-lbl{display:none}
+  .ses-sel{padding:6px 16px}
+  .ses-dd{min-width:130px;font-size:14px}
+  #tb{padding:0 12px;gap:8px}
+  .t-rp{width:200px;min-width:200px}
 }
 
 /* ── MOBILE / RESPONSIVE ── */
@@ -779,3 +812,50 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 .cfop-recog:hover .cfop-tip{display:block}
 #cfopBar>div:first-child,#mo-cfop-bar>div:first-child{border-radius:7px 0 0 7px}
 #cfopBar>div:last-child,#mo-cfop-bar>div:last-child{border-radius:0 7px 7px 0}
+
+/* ── MOBILE NAV BAR ── */
+#mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:64px;background:#1a0d3c;border-top:1px solid rgba(255,255,255,.1);align-items:center;justify-content:space-around;z-index:100;padding:0 8px 6px}
+.mn-btn{background:none;border:none;color:rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px;width:46px;height:46px;transition:color .15s;position:relative;flex-shrink:0}
+.mn-btn svg{width:22px;height:22px}
+.mn-btn.mn-active{color:#fff}
+.mn-btn.mn-active:not(.mn-center)::after{content:'';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--purple)}
+.mn-center{background:var(--purple)!important;color:#fff!important;width:56px;height:56px;border-radius:50%;box-shadow:0 4px 20px rgba(113,16,192,.65);margin-bottom:14px}
+.mn-center svg{width:26px;height:26px}
+.mn-more-wrap{position:relative}
+#mob-more-panel{display:flex;flex-direction:column;position:absolute;bottom:calc(100% + 10px);right:0;background:#1a0d3c;border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:6px;min-width:170px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+#mob-more-panel.h{display:none}
+.mn-more-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.8);transition:background .12s}
+.mn-more-item:hover{background:rgba(255,255,255,.08)}
+.mn-more-item svg{width:18px;height:18px}
+/* Mobile level bar */
+#mob-lvl{display:none;align-items:center;gap:10px;padding:4px 14px;flex-shrink:0;height:26px}
+#mobXpBar{flex:1;height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
+#mobXpFill{height:100%;background:var(--purple);border-radius:3px;transition:width .4s}
+#mob-lvl>span{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);white-space:nowrap}
+/* Mobile bottom row */
+#mob-bot{display:none}
+#mob-cube{flex-shrink:0;background:#3c146b;border-radius:14px;padding:7px;display:flex;align-items:center;justify-content:center}
+#mob-qs{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:5px;padding-left:10px}
+.mqs-item{display:flex;flex-direction:column;align-items:flex-start;padding:5px 8px;background:rgba(255,255,255,.05);border-radius:10px}
+.mqs-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+.mqs-val{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+
+/* ── MOBILE LAYOUT (≤700px) ── */
+@media (max-width:700px){
+  :root{--sbw:0px}
+  #sb{display:none!important}
+  #mob-nav{display:flex}
+  #mob-lvl{display:flex}
+  #main{padding-bottom:64px}
+  /* Timer page */
+  .t-lact{display:none!important}
+  .t-rp{display:none!important}
+  .cube-area{display:none!important}
+  .mascot-area{bottom:140px}
+  .t-center{padding:8px 10px 0;justify-content:flex-start;overflow:hidden}
+  .timer-wrap{flex:1;padding-bottom:0;min-height:0}
+  #timerDisp{font-size:clamp(58px,18vw,100px)}
+  #mob-bot{display:flex;width:100%;align-items:center;gap:10px;padding:8px 10px 10px;flex-shrink:0}
+  .scr-area{gap:5px;max-width:100%;margin-bottom:6px}
+  #scrTxt{font-size:clamp(11px,3.5vw,16px)}
+}

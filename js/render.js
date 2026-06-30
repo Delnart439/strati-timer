@@ -11,6 +11,10 @@ function renderStats() {
   document.getElementById('b-ao5').textContent    = bao5!==null?fmtMs(bao5):'–';
   document.getElementById('b-ao12').textContent   = bao12!==null?fmtMs(bao12):'–';
   document.getElementById('b-ao100').textContent  = bao100!==null?fmtMs(bao100):'–';
+  // Mobile quick stats
+  [['mob-single',s0],['mob-mean',mn],['mob-ao5',ao5],['mob-ao12',ao12]].forEach(([id,v])=>{
+    const el=document.getElementById(id); if(el) el.textContent=v!==null?fmtMs(v):'–';
+  });
   // Stats page
   const ts = curSes().times;
   document.getElementById('st-total').textContent = ts.length;
@@ -101,6 +105,8 @@ function renderScramble() {
   const areaEl = netEl.closest('.cube-area');
   if (areaEl) { areaEl.style.display = ''; if (state.settings.hideCubeNet) areaEl.classList.add('cube-hidden'); }
   drawPuzzleImage(netEl, state.puzzle, scr);
+  const mobNetEl = document.getElementById('cubeNetMob');
+  if (mobNetEl) drawPuzzleImage(mobNetEl, state.puzzle, scr);
   // Battle mode: shared scramble + net (keyboard mode)
   const bScrEl = document.getElementById('battleScrTxt');
   const bNetEl = document.getElementById('battleCubeNet');

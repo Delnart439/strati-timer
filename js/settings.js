@@ -10,6 +10,10 @@ function renderXP() {
     document.getElementById(curId).textContent = xp.toLocaleString('fr-FR');
     document.getElementById(maxId).textContent = xpMax.toLocaleString('fr-FR');
   });
+  // Mobile level bar
+  const mobLvlEl=document.getElementById('mobLvl'), mobFillEl=document.getElementById('mobXpFill');
+  if(mobLvlEl) mobLvlEl.textContent=level;
+  if(mobFillEl) mobFillEl.style.width=pct;
 }
 
 function loadSettings() {

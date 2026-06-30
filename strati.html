@@ -85,8 +85,23 @@
         </div>
       </div>
       <button class="ib tb-ib-lg" id="helpBtn" title="Help"><i data-lucide="circle-help"></i></button>
+      <!-- Compact: merged action button -->
+      <div style="position:relative">
+        <button class="ib tb-ib-lg" id="tbMoreBtn" title="More options"><i data-lucide="more-horizontal"></i></button>
+        <div id="tbMorePanel" class="h" style="position:absolute;top:calc(100% + 8px);right:0;z-index:9999;min-width:200px;background:#3a1a6e;border:1px solid rgba(255,255,255,.18);border-radius:13px;padding:6px;box-shadow:0 8px 32px rgba(0,0,0,.55)">
+          <div class="tb-more-item" id="tbMoreBt"><i data-lucide="bluetooth"></i><span>Bluetooth / Stackmat</span></div>
+          <div class="tb-more-item" id="tbMoreAdd"><i data-lucide="plus"></i><span>Add time manually</span></div>
+          <div class="tb-more-item" id="tbMoreHelp"><i data-lucide="circle-help"></i><span>Help</span></div>
+        </div>
+      </div>
     </div>
   </div>
+</div>
+
+<!-- MOBILE LEVEL BAR -->
+<div id="mob-lvl">
+  <div id="mobXpBar"><div id="mobXpFill" style="width:10%"></div></div>
+  <span>lvl <span id="mobLvl">5</span></span>
 </div>
 
 <!-- TIMER PAGE -->
@@ -132,6 +147,18 @@
     <div class="mascot-area" id="mascotArea">
       <div class="sp-bubble" id="spBubble">Hey! Ready to solve?</div>
       <img class="mascot" id="mascot" src="Mascotte/hi.png" style="width:150px;height:150px;object-fit:contain">
+    </div>
+    <!-- MOBILE BOTTOM ROW: cube net + quick stats -->
+    <div id="mob-bot">
+      <div id="mob-cube">
+        <svg id="cubeNetMob" viewBox="0 0 204 153" width="136" height="102"></svg>
+      </div>
+      <div id="mob-qs">
+        <div class="mqs-item"><span class="mqs-lbl">SINGLE</span><span class="mqs-val" id="mob-single">–</span></div>
+        <div class="mqs-item"><span class="mqs-lbl">MEAN</span><span class="mqs-val" id="mob-mean">–</span></div>
+        <div class="mqs-item"><span class="mqs-lbl">AO5</span><span class="mqs-val" id="mob-ao5">–</span></div>
+        <div class="mqs-item"><span class="mqs-lbl">AO12</span><span class="mqs-val" id="mob-ao12">–</span></div>
+      </div>
     </div>
   </div>
 
@@ -855,6 +882,24 @@
   </div>
 </div>
 
+<!-- MOBILE BOTTOM NAV -->
+<nav id="mob-nav">
+  <button class="mn-btn" id="mn-battle" title="Battle Mode"><i data-lucide="zap"></i></button>
+  <button class="mn-btn" id="mn-cube" title="Bluetooth Cube"><i data-lucide="bot"></i></button>
+  <button class="mn-btn mn-center mn-active" id="mn-timer" title="Timer"><i data-lucide="timer"></i></button>
+  <button class="mn-btn" id="mn-stats" title="Statistics"><i data-lucide="bar-chart-2"></i></button>
+  <div class="mn-more-wrap">
+    <button class="mn-btn" id="mn-more" title="More"><i data-lucide="more-horizontal"></i></button>
+    <div id="mob-more-panel" class="h">
+      <div class="mn-more-item" data-page="algs"><i data-lucide="dumbbell"></i><span>Training</span></div>
+      <div class="mn-more-item" data-page="social"><i data-lucide="share-2"></i><span>Social</span></div>
+      <div class="mn-more-item" data-page="rank"><i data-lucide="trophy"></i><span>Ranking</span></div>
+      <div class="mn-more-item" data-page="profile"><i data-lucide="user"></i><span>Profile</span></div>
+      <div class="mn-more-item" data-page="settings"><i data-lucide="settings"></i><span>Settings</span></div>
+    </div>
+  </div>
+</nav>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 <script src="js/data.js"></script>
@@ -870,5 +915,88 @@
 <script src="js/bluetooth.js"></script>
 <script src="js/smartcube.js"></script>
 <script src="js/replay.js"></script>
+<script>
+// ── COMPACT TOP BAR MORE BUTTON ──────────────────────────────────────────────
+(function(){
+  const moreBtn = document.getElementById('tbMoreBtn');
+  const morePanel = document.getElementById('tbMorePanel');
+  if (!moreBtn || !morePanel) return;
+  moreBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    morePanel.classList.toggle('h');
+  });
+  // BT: toggle btDropdown directly (stopPropagation prevents the document close-handler)
+  document.getElementById('tbMoreBt')?.addEventListener('click', e=>{
+    e.stopPropagation();
+    morePanel.classList.add('h');
+    const dd = document.getElementById('btDropdown');
+    dd.style.display = dd.style.display === 'none' ? '' : 'none';
+  });
+  document.getElementById('tbMoreAdd')?.addEventListener('click', ()=>{
+    morePanel.classList.add('h');
+    document.getElementById('addTimeBtn').click();
+  });
+  document.getElementById('tbMoreHelp')?.addEventListener('click', ()=>{
+    morePanel.classList.add('h');
+    document.getElementById('helpBtn').click();
+  });
+  document.addEventListener('click', e=>{
+    if (!e.target.closest('#tbMoreBtn') && !e.target.closest('#tbMorePanel'))
+      morePanel.classList.add('h');
+  });
+})();
+
+// ── MOBILE NAV WIRING ────────────────────────────────────────────────────────
+(function(){
+  function mobNavActive(id){
+    document.querySelectorAll('#mob-nav .mn-btn').forEach(b=>b.classList.remove('mn-active'));
+    if(id) document.getElementById(id)?.classList.add('mn-active');
+  }
+  document.getElementById('mn-timer')?.addEventListener('click',()=>{
+    navigate('timer'); bActivateMode('timer'); mobNavActive('mn-timer');
+  });
+  document.getElementById('mn-battle')?.addEventListener('click',()=>{
+    navigate('timer'); bActivateMode('battle'); mobNavActive('mn-battle');
+  });
+  document.getElementById('mn-cube')?.addEventListener('click',()=>{
+    navigate('timer'); bActivateMode('cube'); mobNavActive('mn-cube');
+  });
+  document.getElementById('mn-stats')?.addEventListener('click',()=>{
+    navigate('stats'); mobNavActive('mn-stats');
+  });
+  document.getElementById('mn-more')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    document.getElementById('mob-more-panel')?.classList.toggle('h');
+  });
+  document.querySelectorAll('.mn-more-item[data-page]').forEach(item=>{
+    item.addEventListener('click',()=>{
+      navigate(item.dataset.page);
+      document.getElementById('mob-more-panel')?.classList.add('h');
+      mobNavActive('mn-more');
+    });
+  });
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('.mn-more-wrap'))
+      document.getElementById('mob-more-panel')?.classList.add('h');
+  });
+  // Patch navigate() to keep mobile nav in sync
+  const _nav=navigate;
+  window.navigate=p=>{
+    _nav(p);
+    if(p==='timer') mobNavActive('mn-timer');
+    else if(p==='stats') mobNavActive('mn-stats');
+    else mobNavActive('mn-more');
+  };
+  // Patch bActivateMode() to keep mode buttons in sync
+  const _bam=bActivateMode;
+  window.bActivateMode=m=>{
+    _bam(m);
+    if(m==='battle') mobNavActive('mn-battle');
+    else if(m==='cube') mobNavActive('mn-cube');
+    else mobNavActive('mn-timer');
+  };
+  lucide.createIcons();
+})();
+</script>
 </body>
 </html>
