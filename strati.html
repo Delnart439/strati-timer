@@ -73,11 +73,11 @@
       <div class="dd-menu h" id="puzDdMenu"></div>
     </div>
     <div class="tb-acts">
-      <button class="ib tb-ib-lg" id="addTimeBtn" title="Add time manually" style="display:none"></button>
-      <div id="btBtnWrap" style="display:none"><button id="btBtn" style="display:none"></button></div>
-      <button class="ib tb-ib-lg" id="helpBtn" title="Help" style="display:none"></button>
+      <button class="ib tb-ib-lg" id="addTimeBtn" title="Add time manually"><i data-lucide="plus"></i></button>
+      <button class="ib tb-ib-lg" id="btBtn" title="Bluetooth / Stackmat" style="position:relative"><i data-lucide="bluetooth"></i><span id="btDot" style="display:none;position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#00d060;box-shadow:0 0 5px #00d060"></span></button>
+      <button class="ib tb-ib-lg" id="helpBtn" title="Help"><i data-lucide="circle-help"></i></button>
       <div style="position:relative">
-        <button class="ib tb-ib-lg" id="tbMoreBtn" title="More options" style="position:relative"><i data-lucide="more-horizontal"></i><span id="btDot" style="display:none;position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#00d060;box-shadow:0 0 5px #00d060"></span></button>
+        <button class="ib tb-ib-lg" id="tbMoreBtn" title="More options" style="position:relative"><i data-lucide="more-horizontal"></i></button>
         <div id="tbMorePanel" class="h" style="position:absolute;top:calc(100% + 8px);right:0;z-index:9999;min-width:200px;background:#3a1a6e;border:1px solid rgba(255,255,255,.18);border-radius:13px;padding:6px;box-shadow:0 8px 32px rgba(0,0,0,.55)">
           <div class="tb-more-item" id="tbMoreBt"><i data-lucide="bluetooth"></i><span>Bluetooth / Stackmat</span></div>
           <div class="tb-more-item" id="tbMoreAdd"><i data-lucide="plus"></i><span>Add time manually</span></div>
@@ -120,18 +120,18 @@
     </div>
     <div id="cubeScArea" style="display:none;position:relative;flex-shrink:0">
       <div id="sc3dWrap" style="width:300px;height:300px;cursor:grab"></div>
-      <div id="scBleUI" style="position:fixed;bottom:44px;left:calc(var(--sbw) + 20px);display:flex;flex-direction:column;align-items:flex-start;gap:6px;z-index:20">
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div id="scBattery" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.55)"></div>
-          <div id="scStatus" style="font-size:12px;font-weight:700;color:rgba(255,255,255,.75)"></div>
-          <div id="scDevice" style="display:none"></div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button id="scConnBtn" style="background:var(--purple);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;padding:13px 24px;box-shadow:0 6px 24px rgba(0,0,0,.45)"><i data-lucide="bluetooth" style="width:16px;height:16px"></i>Connect Cube</button>
-          <button id="scDisconnBtn" style="display:none;background:rgba(255,255,255,.12);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;padding:13px 24px;box-shadow:0 6px 24px rgba(0,0,0,.45)">Disconnect</button>
-          <button id="scResetBtn" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.18);border-radius:50px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;padding:12px 20px;transition:background .15s,transform .1s" onmouseover="this.style.background='rgba(255,255,255,.26)';this.style.transform='scale(1.04)'" onmouseout="this.style.background='rgba(255,255,255,.15)';this.style.transform='scale(1)'">Reset Cube</button>
-          <button id="scGyroBtn" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.18);border-radius:50px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;padding:12px 20px;transition:background .15s,transform .1s" onmouseover="this.style.background='rgba(255,255,255,.26)';this.style.transform='scale(1.04)'" onmouseout="this.style.background='rgba(255,255,255,.15)';this.style.transform='scale(1)'">Reset Gyro</button>
-        </div>
+    </div>
+    <div id="scBleUI" style="position:fixed;bottom:44px;left:calc(var(--sbw) + 20px);display:none;flex-direction:column;align-items:flex-start;gap:6px;z-index:20">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div id="scBattery" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.55)"></div>
+        <div id="scStatus" style="font-size:12px;font-weight:700;color:rgba(255,255,255,.75)"></div>
+        <div id="scDevice" style="display:none"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="scConnBtn" style="background:var(--purple);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;padding:13px 24px;box-shadow:0 6px 24px rgba(0,0,0,.45)"><i data-lucide="bluetooth" style="width:16px;height:16px"></i><span class="sc-btn-lbl">Connect Cube</span></button>
+        <button id="scDisconnBtn" style="display:none;background:rgba(255,255,255,.12);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;padding:13px 24px;box-shadow:0 6px 24px rgba(0,0,0,.45);align-items:center;gap:8px"><i data-lucide="bluetooth-off" style="width:16px;height:16px"></i><span class="sc-btn-lbl">Disconnect</span></button>
+        <button id="scResetBtn" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.18);border-radius:50px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;padding:12px 20px;transition:background .15s,transform .1s;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='rgba(255,255,255,.26)';this.style.transform='scale(1.04)'" onmouseout="this.style.background='rgba(255,255,255,.15)';this.style.transform='scale(1)'"><i data-lucide="rotate-ccw" style="width:15px;height:15px"></i><span class="sc-btn-lbl">Reset Cube</span></button>
+        <button id="scGyroBtn" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.18);border-radius:50px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;padding:12px 20px;transition:background .15s,transform .1s;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='rgba(255,255,255,.26)';this.style.transform='scale(1.04)'" onmouseout="this.style.background='rgba(255,255,255,.15)';this.style.transform='scale(1)'"><i data-lucide="compass" style="width:15px;height:15px"></i><span class="sc-btn-lbl">Reset Gyro</span></button>
       </div>
     </div>
     <div class="mascot-area" id="mascotArea">
@@ -141,16 +141,24 @@
     <!-- MOBILE BOTTOM ROW: cube net + quick stats + time list -->
     <div id="mob-bot">
       <div id="mob-cube">
-        <svg id="cubeNetMob" viewBox="0 0 204 153" width="110" height="83"></svg>
+        <div id="mobCubeIcon"><i data-lucide="grid-3x3"></i></div>
+        <svg id="cubeNetMob" viewBox="0 0 204 153" width="110" height="83" style="cursor:pointer"></svg>
       </div>
       <div id="mob-right">
-        <div id="mob-qs">
-          <div class="mqs-item"><span class="mqs-lbl">SINGLE</span><span class="mqs-val" id="mob-single">–</span></div>
-          <div class="mqs-item"><span class="mqs-lbl">MEAN</span><span class="mqs-val" id="mob-mean">–</span></div>
-          <div class="mqs-item"><span class="mqs-lbl">AO5</span><span class="mqs-val" id="mob-ao5">–</span></div>
-          <div class="mqs-item"><span class="mqs-lbl">AO12</span><span class="mqs-val" id="mob-ao12">–</span></div>
-        </div>
         <div id="mob-tl"></div>
+        <div id="mob-qs">
+          <div class="mqs-row">
+            <div class="mqs-item"><span class="mqs-lbl">SOLVES</span><span class="mqs-val" id="mob-solves">0</span></div>
+            <div class="mqs-div-v"></div>
+            <div class="mqs-item"><span class="mqs-lbl">MEAN</span><span class="mqs-val" id="mob-mean">–</span></div>
+          </div>
+          <div class="mqs-div-h"></div>
+          <div class="mqs-row">
+            <div class="mqs-item"><span class="mqs-lbl">AO5</span><span class="mqs-val" id="mob-ao5">–</span></div>
+            <div class="mqs-div-v"></div>
+            <div class="mqs-item"><span class="mqs-lbl">AO12</span><span class="mqs-val" id="mob-ao12">–</span></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -922,6 +930,18 @@
 <script src="js/smartcube.js"></script>
 <script src="js/replay.js"></script>
 <script>
+// ── DIRECT BT BUTTON (mobile) ────────────────────────────────────────────────
+document.getElementById('btBtn')?.addEventListener('click', openBtModal);
+
+// ── MOBILE CUBE NET TOGGLE ────────────────────────────────────────────────────
+document.getElementById('cubeNetMob')?.addEventListener('click', ()=>{
+  document.getElementById('mob-cube').classList.add('cube-hidden');
+});
+document.getElementById('mobCubeIcon')?.addEventListener('click', ()=>{
+  document.getElementById('mob-cube').classList.remove('cube-hidden');
+  lucide.createIcons();
+});
+
 // ── COMPACT TOP BAR MORE BUTTON ──────────────────────────────────────────────
 (function(){
   const moreBtn = document.getElementById('tbMoreBtn');

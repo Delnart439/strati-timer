@@ -144,6 +144,7 @@ function bActivateMode(mode) {
   document.querySelector('.t-rp').style.display     = isBattle ? 'none' : '';
   document.getElementById('cubeArea').style.display    = isCube ? 'none' : '';
   document.getElementById('cubeScArea').style.display  = isCube ? '' : 'none';
+  document.getElementById('scBleUI').style.display     = isCube ? '' : 'none';
   document.getElementById('mode-battle').classList.toggle('active', isBattle);
   document.getElementById('pg-timer').classList.toggle('cube-mode', isCube);
 }
@@ -162,6 +163,7 @@ document.getElementById('battleCubeBtn').addEventListener('click', ()=>{
   document.querySelector('.t-rp').style.display     = 'none';
   document.getElementById('cubeArea').style.display    = '';
   document.getElementById('cubeScArea').style.display  = 'none';
+  document.getElementById('scBleUI').style.display     = 'none';
   document.getElementById('mode-battle').classList.add('active');
   document.getElementById('pg-timer').classList.remove('cube-mode');
   if(typeof bcSetMode==='function') bcSetMode('cubes');

@@ -841,8 +841,10 @@ function _drawDeviceCell(ctx, x, y, w, h, devices, puzzle) {
 
 function _shareCtxSetup(W, H) {
   const canvas = document.getElementById('shareCanvas');
+  const mobScale = window.innerWidth <= 700 ? Math.min(1, (window.innerWidth * 0.82) / W) : 1;
   canvas.width = W * 2; canvas.height = H * 2;
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  canvas.style.width = Math.round(W * mobScale) + 'px';
+  canvas.style.height = Math.round(H * mobScale) + 'px';
   const ctx = canvas.getContext('2d');
   ctx.scale(2, 2);
   ctx.clearRect(0, 0, W, H);

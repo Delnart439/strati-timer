@@ -12,7 +12,8 @@ function renderStats() {
   document.getElementById('b-ao12').textContent   = bao12!==null?fmtMs(bao12):'–';
   document.getElementById('b-ao100').textContent  = bao100!==null?fmtMs(bao100):'–';
   // Mobile quick stats
-  [['mob-single',s0],['mob-mean',mn],['mob-ao5',ao5],['mob-ao12',ao12]].forEach(([id,v])=>{
+  const mobSolves=document.getElementById('mob-solves'); if(mobSolves) mobSolves.textContent=curSes().times.length;
+  [['mob-mean',mn],['mob-ao5',ao5],['mob-ao12',ao12]].forEach(([id,v])=>{
     const el=document.getElementById(id); if(el) el.textContent=v!==null?fmtMs(v):'–';
   });
   // Stats page
