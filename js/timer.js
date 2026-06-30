@@ -102,14 +102,15 @@ function inspectTick() {
     inspectRafId = null;
     return;
   }
-  if (!inspectBeep8 && elapsed >= 8000) { inspectBeepSound(880, 0.1); inspectBeep8 = true; }
-  if (!inspectBeep12 && elapsed >= 12000) {
+  const sec = Math.min(15, Math.floor(elapsed/1000)+1);
+  if (!inspectBeep8 && sec >= 8) { inspectBeepSound(880, 0.1); inspectBeep8 = true; }
+  if (!inspectBeep12 && sec >= 12) {
     inspectBeepSound(660, 0.1);
     setTimeout(()=>inspectBeepSound(660, 0.1), 150);
     inspectBeep12 = true;
   }
   state.inspectPenalty = elapsed >= 15000 ? 2 : 0;
-  disp.textContent = elapsed >= 15000 ? '+2' : String(Math.min(15, Math.floor(elapsed/1000)+1));
+  disp.textContent = elapsed >= 15000 ? '+2' : String(sec);
   inspectRafId = requestAnimationFrame(inspectTick);
 }
 
