@@ -326,6 +326,12 @@
       </div>
       <div class="stl-grid" id="statsGrid"></div>
     </div>
+    <div class="stl-card" id="archivedCard" style="display:none">
+      <div class="stl-hdr">
+        <div class="stl-title"><i data-lucide="archive"></i> Archived Sessions</div>
+      </div>
+      <div id="archivedList" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div>
+    </div>
   </div>
 </section>
 
@@ -659,8 +665,8 @@
 <div class="ov h" id="delSesModal">
   <div class="mo" style="max-width:360px">
     <button class="mo-x" id="delSesModalClose">✕</button>
-    <div style="font-size:19px;font-weight:800;margin-bottom:6px">Delete a session</div>
-    <div style="font-size:13px;color:var(--dim);margin-bottom:16px">Choose which session to delete</div>
+    <div style="font-size:19px;font-weight:800;margin-bottom:6px">Manage sessions</div>
+    <div style="font-size:13px;color:var(--dim);margin-bottom:16px">Archive to keep data, or delete permanently</div>
     <div id="delSesList" style="display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;margin-bottom:18px"></div>
     <div id="delSesConfirmRow" style="display:none;flex-direction:column;gap:10px">
       <div style="background:rgba(255,80,80,.12);border:1px solid rgba(255,80,80,.3);border-radius:10px;padding:12px;font-size:14px;text-align:center">

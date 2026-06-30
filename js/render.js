@@ -35,6 +35,7 @@ function renderStats() {
     document.getElementById(a).textContent=t;
     document.getElementById(b).textContent=t;
   });
+  if (typeof renderArchivedSessions === 'function') renderArchivedSessions();
 }
 
 let tlSortCol = null, tlSortDir = 'asc';

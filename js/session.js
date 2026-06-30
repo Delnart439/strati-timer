@@ -32,7 +32,8 @@ document.getElementById('logoIcon').addEventListener('click', ()=>{
 // ─── SESSION MANAGEMENT ──────────────────────────────────────────────────────
 function renderSesMenu() {
   const menu = document.getElementById('sesDdMenu');
-  menu.innerHTML = state.sessions.map((s,i)=>`<div class="dd-item${i===state.sesIdx?' on':''}" data-i="${i}">${s.name}</div>`).join('');
+  menu.innerHTML = state.sessions.map((s,i)=>s.archived?'':
+    `<div class="dd-item${i===state.sesIdx?' on':''}" data-i="${i}">${s.name}</div>`).join('');
   menu.querySelectorAll('.dd-item').forEach(el=>{
     el.addEventListener('click', e=>{
       e.stopPropagation();
@@ -90,19 +91,19 @@ const delSesModal = document.getElementById('delSesModal');
 let delSesTargetIdx = -1;
 
 function openDelSesModal() {
-  if (state.sessions.length <= 1) { toast('Cannot delete the last session'); return; }
+  const activeCount = state.sessions.filter(s=>!s.archived).length;
+  if (activeCount <= 1) { toast('Cannot delete the last active session'); return; }
   delSesTargetIdx = -1;
   document.getElementById('delSesConfirmRow').style.display = 'none';
   const list = document.getElementById('delSesList');
   list.style.display = 'flex';
-  list.innerHTML = state.sessions.map((s,i) => `
-    <div data-i="${i}" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.07);border-radius:10px;padding:11px 14px;cursor:pointer;font-size:14px;font-weight:600;transition:background .15s" class="del-ses-item">
-      <span>${s.name}</span>
-      <span style="font-size:11px;color:var(--dim)">${s.times.length} solve${s.times.length!==1?'s':''}</span>
+  list.innerHTML = state.sessions.map((s,i) => s.archived ? '' : `
+    <div data-i="${i}" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.07);border-radius:10px;padding:11px 14px;font-size:14px;font-weight:600;transition:background .15s;gap:8px" class="del-ses-item">
+      <span class="del-ses-click" data-i="${i}" style="cursor:pointer;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
+      <span style="font-size:11px;color:var(--dim);flex-shrink:0">${s.times.length} solve${s.times.length!==1?'s':''}</span>
+      <button class="arc-btn" data-i="${i}" title="Archive (keep data)" style="flex-shrink:0;width:26px;height:26px;border-radius:7px;border:1.5px solid rgba(255,255,255,.18);background:transparent;color:rgba(255,255,255,.5);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0"><i data-lucide="archive" style="width:13px;height:13px"></i></button>
     </div>`).join('');
-  list.querySelectorAll('.del-ses-item').forEach(el => {
-    el.addEventListener('mouseenter', ()=>el.style.background='rgba(255,255,255,.13)');
-    el.addEventListener('mouseleave', ()=>el.style.background='rgba(255,255,255,.07)');
+  list.querySelectorAll('.del-ses-click').forEach(el => {
     el.addEventListener('click', ()=>{
       delSesTargetIdx = +el.dataset.i;
       const targetSes = state.sessions[delSesTargetIdx];
@@ -113,7 +114,69 @@ function openDelSesModal() {
       row.style.display = 'flex';
     });
   });
+  list.querySelectorAll('.arc-btn').forEach(btn => {
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      archiveSession(+btn.dataset.i);
+    });
+  });
+  if (typeof lucide !== 'undefined') lucide.createIcons();
   delSesModal.classList.remove('h');
+}
+
+function archiveSession(idx) {
+  const activeCount = state.sessions.filter(s=>!s.archived).length;
+  if (activeCount <= 1) { toast('Cannot archive the last active session'); return; }
+  state.sessions[idx].archived = true;
+  if (state.sesIdx === idx) {
+    state.sesIdx = state.sessions.findIndex(s=>!s.archived);
+  }
+  document.getElementById('sesName').textContent = curSes().name;
+  save();
+  renderStats(); renderTimeList(); pushScramble(); renderScramble();
+  openDelSesModal();
+  toast('Session archived');
+}
+
+function unarchiveSession(idx) {
+  state.sessions[idx].archived = false;
+  save();
+  renderArchivedSessions();
+  toast('Session restored');
+}
+
+function renderArchivedSessions() {
+  const card = document.getElementById('archivedCard');
+  const list = document.getElementById('archivedList');
+  if (!card || !list) return;
+  const archived = state.sessions.map((s,i)=>({s,i})).filter(({s})=>s.archived);
+  if (archived.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  list.innerHTML = archived.map(({s,i}) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.07);border-radius:10px;padding:11px 14px;gap:8px">
+      <div style="flex:1;overflow:hidden">
+        <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</div>
+        <div style="font-size:11px;color:var(--dim)">${s.times.length} solve${s.times.length!==1?'s':''} · ${s.puzzle||'3×3'}</div>
+      </div>
+      <button class="arc-restore-btn" data-i="${i}" style="flex-shrink:0;padding:7px 12px;background:rgba(255,255,255,.1);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Restore</button>
+      <button class="arc-perm-del-btn" data-i="${i}" style="flex-shrink:0;width:30px;height:30px;border-radius:8px;border:none;background:rgba(255,80,80,.15);color:var(--red);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" title="Delete permanently"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+    </div>`).join('');
+  list.querySelectorAll('.arc-restore-btn').forEach(btn => {
+    btn.addEventListener('click', ()=>unarchiveSession(+btn.dataset.i));
+  });
+  list.querySelectorAll('.arc-perm-del-btn').forEach(btn => {
+    btn.addEventListener('click', ()=>{
+      const idx = +btn.dataset.i;
+      const lostXP = state.sessions[idx].times.length;
+      state.sessions.splice(idx, 1);
+      state.sesIdx = Math.min(state.sesIdx, state.sessions.length - 1);
+      document.getElementById('sesName').textContent = curSes().name;
+      addXP(-lostXP);
+      save();
+      renderArchivedSessions(); renderStats(); renderTimeList();
+    });
+  });
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 document.getElementById('delSesBtn').addEventListener('click', openDelSesModal);
