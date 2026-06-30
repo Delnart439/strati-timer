@@ -16,6 +16,7 @@ const GAN_SVC = '0000fff0-0000-1000-8000-00805f9b34fb';
 const GAN_STATE_CHAR = '0000fff5-0000-1000-8000-00805f9b34fb';
 const GAN_ST = { DISCONNECT:0, GET_SET:1, HANDS_OFF:2, RUNNING:3, STOPPED:4, IDLE:5, HANDS_ON:6, FINISHED:7 };
 let ganDevice = null;
+let ganInspectionDone = false;
 
 function crc16ccit(buff) {
   const dv = new DataView(buff);
@@ -60,18 +61,33 @@ function onGanEvent(event) {
   const s = data.getUint8(3);
   switch (s) {
     case GAN_ST.HANDS_ON:
-      if (state.timerState === 'idle' || state.timerState === 'stopped') setTimerState('holding');
+      if (state.timerState === 'idle' || state.timerState === 'stopped') {
+        ganInspectionDone = false;
+        setTimerState('holding');
+      }
       break;
     case GAN_ST.GET_SET:
       if (state.timerState === 'holding') setTimerState('ready');
       break;
     case GAN_ST.RUNNING:
-      if (state.timerState === 'ready' || state.timerState === 'holding') startTimer();
+      if (state.timerState === 'ready' || state.timerState === 'holding') {
+        if (state.settings.inspection && !ganInspectionDone) {
+          ganInspectionDone = true;
+          startInspection();
+        } else {
+          if (state.inspectActive) finishInspection();
+          startTimer();
+        }
+      }
       break;
     case GAN_ST.STOPPED:
       if (state.timerState === 'running') {
         const min = data.getUint8(4), sec = data.getUint8(5), ms = data.getUint16(6, true);
         stopTimer((min * 60 + sec) * 1000 + ms);
+        ganInspectionDone = false;
+      } else if (state.timerState === 'inspecting') {
+        // Hands back on the pad after the inspection lift — wait for the next lift to start solving
+        setTimerState('holding');
       }
       break;
     case GAN_ST.HANDS_OFF:
@@ -105,8 +121,10 @@ document.getElementById('btScanBtn').addEventListener('click', async () => {
     statusEl.innerHTML = '<span style="color:var(--purple)">Connecting…</span>';
     device.addEventListener('gattserverdisconnected', () => {
       ganDevice = null;
+      ganInspectionDone = false;
       setGanUI(false);
-      if (state.timerState === 'holding' || state.timerState === 'ready' || state.timerState === 'running') {
+      if (state.timerState === 'inspecting' || state.timerState === 'holding' || state.timerState === 'ready' || state.timerState === 'running') {
+        if (state.inspectActive) finishInspection();
         if (state.rafId) { cancelAnimationFrame(state.rafId); state.rafId = null; }
         setTimerState('idle');
         document.getElementById('timerDisp').textContent = '0.000';
