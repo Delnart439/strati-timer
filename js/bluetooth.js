@@ -78,12 +78,7 @@ function onGanEvent(event) {
       }
       break;
     case GAN_ST.FINISHED:
-      if (state.settings.inspection && (state.timerState === 'idle' || state.timerState === 'stopped')) {
-        startInspection();
-      } else if (state.timerState === 'stopped') {
-        setTimerState('idle');
-        document.getElementById('timerDisp').textContent = '0.000';
-      }
+      if (state.settings.inspection && state.timerState === 'idle') startInspection();
       break;
     case GAN_ST.HANDS_OFF:
     case GAN_ST.IDLE:
