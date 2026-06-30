@@ -336,10 +336,10 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     if (!document.getElementById('drillModal').classList.contains('h')) return; // drill modal owns space
     if (document.getElementById('mode-battle').classList.contains('active')) return;
-    if (ganConnected) return; // GAN timer controls the timer
-    if (state.timerState==='running') { stopTimer(); return; }
+    if (state.timerState==='running' && !ganConnected) { stopTimer(); return; }
+    if ((state.timerState==='idle'||state.timerState==='stopped') && state.settings.inspection) { startInspection(); return; }
+    if (ganConnected) return; // GAN timer controls hold-to-ready and solve start
     if (state.timerState==='idle'||state.timerState==='stopped') {
-      if (state.settings.inspection) { startInspection(); return; }
       spaceDown = true;
       setTimerState('holding');
       state.holdStart = Date.now();
