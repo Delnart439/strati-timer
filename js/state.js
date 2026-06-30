@@ -4,11 +4,14 @@ let state = {
   puzzle: '3×3',
   sessions: [{name:'Session 1', puzzle:'3×3', times:[]}],
   sesIdx: 0,
-  timerState: 'idle', // idle|holding|ready|running|stopped
+  timerState: 'idle', // idle|inspecting|holding|ready|running|stopped
   startMs: 0,
   elapsed: 0,
   holdStart: 0,
   rafId: null,
+  inspectActive: false,
+  inspectStart: 0,
+  inspectPenalty: 0,
   scrHistory: [],
   scrIdx: -1,
   modalSolveIdx: -1,

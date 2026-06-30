@@ -34,7 +34,83 @@ function resetSleepTimer(){
 function setTimerState(s) {
   state.timerState = s;
   document.getElementById('timerDisp').className = s;
-  if(s==='holding'||s==='ready'||s==='running') hideMascot();
+  if(s==='inspecting'||s==='holding'||s==='ready'||s==='running') hideMascot();
+}
+
+// ─── INSPECTION (WCA-style 15s) ───────────────────────────────────────────────
+let inspectRafId = null;
+let inspectBeep8 = false, inspectBeep12 = false;
+let inspectAudioCtx = null;
+function inspectUnlockAudio() {
+  try {
+    if (!inspectAudioCtx || inspectAudioCtx.state === 'closed') inspectAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (inspectAudioCtx.state === 'suspended') inspectAudioCtx.resume();
+  } catch(e) {}
+}
+
+function inspectBeepSound(freq, dur, vol=0.4) {
+  try {
+    inspectUnlockAudio();
+    const osc = inspectAudioCtx.createOscillator();
+    const gain = inspectAudioCtx.createGain();
+    osc.connect(gain); gain.connect(inspectAudioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, inspectAudioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, inspectAudioCtx.currentTime + dur);
+    osc.start(); osc.stop(inspectAudioCtx.currentTime + dur);
+  } catch(e) {}
+}
+
+function startInspection() {
+  inspectUnlockAudio();
+  state.inspectActive = true;
+  state.inspectStart = Date.now();
+  state.inspectPenalty = 0;
+  inspectBeep8 = false; inspectBeep12 = false;
+  setTimerState('inspecting');
+  inspectTick();
+}
+
+function finishInspection() {
+  state.inspectActive = false;
+  if (inspectRafId) { cancelAnimationFrame(inspectRafId); inspectRafId = null; }
+}
+
+function inspectTick() {
+  if (!state.inspectActive) return;
+  const elapsed = Date.now() - state.inspectStart;
+  const disp = document.getElementById('timerDisp');
+  if (elapsed >= 17000) {
+    // Inspection time exceeded — automatic DNF
+    state.inspectActive = false;
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    spaceDown = false; touchDown = false;
+    const solve = {
+      ms: 0, dnf: true, plus2: false,
+      scramble: state.scrHistory[state.scrIdx]||'',
+      date: new Date().toISOString()
+    };
+    curSes().times.unshift(solve);
+    addXP(1);
+    renderStats();
+    renderTimeList();
+    setTimerState('stopped');
+    disp.textContent = 'DNF';
+    pushScramble();
+    renderScramble();
+    inspectRafId = null;
+    return;
+  }
+  if (!inspectBeep8 && elapsed >= 8000) { inspectBeepSound(880, 0.1); inspectBeep8 = true; }
+  if (!inspectBeep12 && elapsed >= 12000) {
+    inspectBeepSound(660, 0.1);
+    setTimeout(()=>inspectBeepSound(660, 0.1), 150);
+    inspectBeep12 = true;
+  }
+  state.inspectPenalty = elapsed >= 15000 ? 2 : 0;
+  disp.textContent = elapsed >= 15000 ? '+2' : String(Math.max(0, Math.ceil((15000-elapsed)/1000)));
+  inspectRafId = requestAnimationFrame(inspectTick);
 }
 
 function tick() {
@@ -58,12 +134,13 @@ function stopTimer(overrideMs) {
   const prevBestSingle=bestSingle(), prevBestAo5=bestAo(5), prevBestAo12=bestAo(12), prevBestAo100=bestAo(100);
   // Save solve
   const solve = {
-    ms, dnf:false, plus2:false,
+    ms, dnf:false, plus2: state.inspectPenalty===2,
     scramble: state.scrHistory[state.scrIdx]||'',
     date: new Date().toISOString(),
     ...(overrideMs !== undefined ? { stackmat: true } : {}),
     ...(typeof scPendingSolveData!=='undefined'&&scPendingSolveData?scPendingSolveData:{})
   };
+  state.inspectPenalty = 0;
   curSes().times.unshift(solve);
   addXP(1);
   renderStats();
@@ -261,14 +338,23 @@ document.addEventListener('keydown', e => {
     if (ganConnected) return; // GAN timer controls the timer
     if (state.timerState==='running') { stopTimer(); return; }
     if (state.timerState==='idle'||state.timerState==='stopped') {
+      if (state.settings.inspection) { startInspection(); return; }
       spaceDown = true;
       setTimerState('holding');
       state.holdStart = Date.now();
       holdTimer = setTimeout(()=>{ if(spaceDown) setTimerState('ready'); }, state.settings.delay*1000);
+      return;
+    }
+    if (state.timerState==='inspecting') {
+      spaceDown = true;
+      setTimerState('holding');
+      state.holdStart = Date.now();
+      holdTimer = setTimeout(()=>{ if(spaceDown) setTimerState('ready'); }, state.settings.delay*1000);
+      return;
     }
   }
   // Shortcuts — only on timer page (not battle mode), not while typing, not while running
-  if (state.page!=='timer' || document.getElementById('mode-battle').classList.contains('active') || isTyping() || state.timerState==='running' || state.timerState==='holding' || state.timerState==='ready') return;
+  if (state.page!=='timer' || document.getElementById('mode-battle').classList.contains('active') || isTyping() || state.timerState==='running' || state.timerState==='holding' || state.timerState==='ready' || state.timerState==='inspecting') return;
   if (e.key.toLowerCase()==='a') { document.getElementById('addTimeBtn').click(); return; }
   const times = curSes().times;
   if (!times.length) return;
@@ -295,8 +381,8 @@ document.addEventListener('keyup', e => {
     if (ganConnected) return;
     spaceDown = false;
     if (holdTimer) { clearTimeout(holdTimer); holdTimer=null; }
-    if (state.timerState==='ready') { startTimer(); return; }
-    if (state.timerState==='holding') { setTimerState('idle'); }
+    if (state.timerState==='ready') { if (state.inspectActive) finishInspection(); startTimer(); return; }
+    if (state.timerState==='holding') { setTimerState(state.inspectActive ? 'inspecting' : 'idle'); }
   }
 });
 
@@ -307,6 +393,14 @@ document.addEventListener('touchstart', e => {
   if (ganConnected) return;
   if (state.timerState==='running') { stopTimer(); return; }
   if (state.timerState==='idle'||state.timerState==='stopped') {
+    if (state.settings.inspection) { startInspection(); return; }
+    touchDown = true;
+    setTimerState('holding');
+    state.holdStart = Date.now();
+    holdTimer = setTimeout(()=>{ if(touchDown) setTimerState('ready'); }, state.settings.delay*1000);
+    return;
+  }
+  if (state.timerState==='inspecting') {
     touchDown = true;
     setTimerState('holding');
     state.holdStart = Date.now();
@@ -316,7 +410,7 @@ document.addEventListener('touchstart', e => {
 document.addEventListener('touchend', () => {
   touchDown = false;
   if (holdTimer) { clearTimeout(holdTimer); holdTimer=null; }
-  if (state.timerState==='ready') { startTimer(); return; }
-  if (state.timerState==='holding') setTimerState('idle');
+  if (state.timerState==='ready') { if (state.inspectActive) finishInspection(); startTimer(); return; }
+  if (state.timerState==='holding') setTimerState(state.inspectActive ? 'inspecting' : 'idle');
 });
 
