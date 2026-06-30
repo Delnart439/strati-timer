@@ -77,6 +77,14 @@ function onGanEvent(event) {
         stopTimer((min * 60 + sec) * 1000 + ms);
       }
       break;
+    case GAN_ST.FINISHED:
+      if (state.settings.inspection && (state.timerState === 'idle' || state.timerState === 'stopped')) {
+        startInspection();
+      } else if (state.timerState === 'stopped') {
+        setTimerState('idle');
+        document.getElementById('timerDisp').textContent = '0.000';
+      }
+      break;
     case GAN_ST.HANDS_OFF:
     case GAN_ST.IDLE:
       if (state.timerState === 'holding' || state.timerState === 'ready') {
@@ -84,6 +92,8 @@ function onGanEvent(event) {
       } else if (state.timerState === 'stopped') {
         setTimerState('idle');
         document.getElementById('timerDisp').textContent = '0.000';
+      } else if (state.timerState === 'idle' && state.settings.inspection) {
+        startInspection();
       }
       break;
   }
