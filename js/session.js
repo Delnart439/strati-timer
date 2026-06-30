@@ -1,5 +1,24 @@
 // ─── NAVIGATION ────────────────────────────────────────────────────────────
+let preArchiveSesIdx = null;
+function closeArchivePanel() {
+  const btn = document.getElementById('archiveToggleBtn');
+  const el = document.getElementById('archivedCard');
+  if (el) el.style.display = 'none';
+  if (btn) btn.classList.remove('on');
+  if (preArchiveSesIdx !== null && preArchiveSesIdx !== state.sesIdx) {
+    state.sesIdx = preArchiveSesIdx;
+    document.getElementById('sesName').textContent = curSes().name;
+    state.puzzle = curSes().puzzle || '3×3';
+    document.getElementById('puzName').textContent = state.puzzle;
+    updatePuzIcon();
+    save();
+    renderStats(); renderTimeList(); pushScramble(); renderScramble();
+  }
+  preArchiveSesIdx = null;
+}
+
 function navigate(page) {
+  if (state.page === 'stats' && page !== 'stats' && preArchiveSesIdx !== null) closeArchivePanel();
   state.page = page;
   document.querySelectorAll('.nav-item,.set-link').forEach(el=>{
     el.classList.toggle('active', el.dataset.page===page);
@@ -1749,28 +1768,15 @@ document.getElementById('graphToggleBtn').addEventListener('click', ()=>{
   if (!visible) renderStatsGraphs();
 });
 
-let preArchiveSesIdx = null;
 document.getElementById('archiveToggleBtn').addEventListener('click', ()=>{
-  const btn = document.getElementById('archiveToggleBtn');
   const el = document.getElementById('archivedCard');
   const visible = el.style.display !== 'none';
   if (visible) {
-    el.style.display = 'none';
-    btn.classList.remove('on');
-    if (preArchiveSesIdx !== null && preArchiveSesIdx !== state.sesIdx) {
-      state.sesIdx = preArchiveSesIdx;
-      document.getElementById('sesName').textContent = curSes().name;
-      state.puzzle = curSes().puzzle || '3×3';
-      document.getElementById('puzName').textContent = state.puzzle;
-      updatePuzIcon();
-      save();
-      renderStats(); renderTimeList(); pushScramble(); renderScramble();
-    }
-    preArchiveSesIdx = null;
+    closeArchivePanel();
   } else {
     preArchiveSesIdx = state.sesIdx;
     el.style.display = '';
-    btn.classList.add('on');
+    document.getElementById('archiveToggleBtn').classList.add('on');
     renderArchivedSessions();
   }
 });
