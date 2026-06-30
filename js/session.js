@@ -1749,13 +1749,30 @@ document.getElementById('graphToggleBtn').addEventListener('click', ()=>{
   if (!visible) renderStatsGraphs();
 });
 
+let preArchiveSesIdx = null;
 document.getElementById('archiveToggleBtn').addEventListener('click', ()=>{
   const btn = document.getElementById('archiveToggleBtn');
   const el = document.getElementById('archivedCard');
   const visible = el.style.display !== 'none';
-  el.style.display = visible ? 'none' : '';
-  btn.classList.toggle('on', !visible);
-  if (!visible) renderArchivedSessions();
+  if (visible) {
+    el.style.display = 'none';
+    btn.classList.remove('on');
+    if (preArchiveSesIdx !== null && preArchiveSesIdx !== state.sesIdx) {
+      state.sesIdx = preArchiveSesIdx;
+      document.getElementById('sesName').textContent = curSes().name;
+      state.puzzle = curSes().puzzle || '3×3';
+      document.getElementById('puzName').textContent = state.puzzle;
+      updatePuzIcon();
+      save();
+      renderStats(); renderTimeList(); pushScramble(); renderScramble();
+    }
+    preArchiveSesIdx = null;
+  } else {
+    preArchiveSesIdx = state.sesIdx;
+    el.style.display = '';
+    btn.classList.add('on');
+    renderArchivedSessions();
+  }
 });
 
 document.getElementById('clearBtn').addEventListener('click', ()=>{
