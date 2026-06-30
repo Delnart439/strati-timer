@@ -77,7 +77,7 @@ function renderTimeList() {
     const tCls   = t.dnf?'te-s te-dnf':t.plus2?'te-s te-p2':'te-s';
     html += `<div class="te${sClass}" data-idx="${i}">
       <span class="te-n">${ts.length-i}.</span>
-      <span class="${tCls}">${fmtMsFull(t.ms,t)}</span>
+      <span class="${tCls}">${t.dnf ? `DNF (${fmtMs(t.ms)})` : fmtMs(t.ms + (t.plus2 ? 2000 : 0)) + (t.plus2 ? '+' : '')}</span>
       <span class="te-a">${ao!==null?fmtMs(ao):'–'}</span>
     </div>`;
   });
