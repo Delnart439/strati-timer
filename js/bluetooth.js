@@ -60,13 +60,16 @@ function onGanEvent(event) {
   const s = data.getUint8(3);
   switch (s) {
     case GAN_ST.HANDS_ON:
-      if (state.timerState === 'idle' || state.timerState === 'stopped') setTimerState('holding');
+      if (state.timerState === 'idle' || state.timerState === 'stopped' || state.timerState === 'inspecting') setTimerState('holding');
       break;
     case GAN_ST.GET_SET:
       if (state.timerState === 'holding') setTimerState('ready');
       break;
     case GAN_ST.RUNNING:
-      if (state.timerState === 'ready' || state.timerState === 'holding') startTimer();
+      if (state.timerState === 'ready' || state.timerState === 'holding' || state.timerState === 'inspecting') {
+        if (state.inspectActive) finishInspection();
+        startTimer();
+      }
       break;
     case GAN_ST.STOPPED:
       if (state.timerState === 'running') {
@@ -76,8 +79,9 @@ function onGanEvent(event) {
       break;
     case GAN_ST.HANDS_OFF:
     case GAN_ST.IDLE:
-      if (state.timerState === 'holding' || state.timerState === 'ready') setTimerState('idle');
-      else if (state.timerState === 'stopped') {
+      if (state.timerState === 'holding' || state.timerState === 'ready') {
+        setTimerState(state.inspectActive ? 'inspecting' : 'idle');
+      } else if (state.timerState === 'stopped') {
         setTimerState('idle');
         document.getElementById('timerDisp').textContent = '0.000';
       }
@@ -106,7 +110,8 @@ document.getElementById('btScanBtn').addEventListener('click', async () => {
     device.addEventListener('gattserverdisconnected', () => {
       ganDevice = null;
       setGanUI(false);
-      if (state.timerState === 'holding' || state.timerState === 'ready' || state.timerState === 'running') {
+      if (state.timerState === 'inspecting' || state.timerState === 'holding' || state.timerState === 'ready' || state.timerState === 'running') {
+        if (state.inspectActive) finishInspection();
         if (state.rafId) { cancelAnimationFrame(state.rafId); state.rafId = null; }
         setTimerState('idle');
         document.getElementById('timerDisp').textContent = '0.000';
