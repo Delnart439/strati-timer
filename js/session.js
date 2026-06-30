@@ -317,7 +317,7 @@ function openSolveModal(idx, sesIdx) {
   const ts = ses.times;
   const t = ts[idx];
   document.getElementById('mo-num').textContent  = `#${ts.length - idx}`;
-  document.getElementById('mo-time').textContent = fmtMsFull(t.ms, t) + 's';
+  document.getElementById('mo-time').textContent = fmtMsFull(t.ms, t) + (t.dnf || t.plus2 ? '' : 's');
   document.getElementById('mo-scr').innerHTML = t.scramble ? scrToHtml(t.scramble) : '–';
   const d = new Date(t.date);
   document.getElementById('mo-date').textContent  = d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});

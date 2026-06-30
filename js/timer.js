@@ -374,7 +374,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key==='Delete' || e.key==='Backspace') {
     e.preventDefault();
-    document.getElementById('delSolveInfo').textContent = `Solve #${times.length}: ${last.dnf?'DNF':fmtMs(last.ms+(last.plus2?2000:0))}`;
+    document.getElementById('delSolveInfo').textContent = `Solve #${times.length}: ${last.dnf?'DNF':fmtMs(last.ms+(last.plus2?2000:0))+(last.plus2?'+':'')}`;
     delSolveModal.classList.remove('h');
   }
 });
