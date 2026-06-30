@@ -364,10 +364,13 @@ document.addEventListener('keydown', e => {
   if (e.key==='2') {
     last.plus2 = !last.plus2; if(last.plus2) last.dnf = false;
     save(); renderStats(); renderTimeList();
+    const disp = document.getElementById('timerDisp');
+    disp.textContent = last.plus2 ? fmtMs(last.ms + 2000) + '+' : fmtMs(last.ms);
   }
   if (e.key.toLowerCase()==='d') {
     last.dnf = !last.dnf; if(last.dnf) last.plus2 = false;
     save(); renderStats(); renderTimeList();
+    document.getElementById('timerDisp').textContent = last.dnf ? 'DNF' : fmtMs(last.ms);
   }
   if (e.key==='Delete' || e.key==='Backspace') {
     e.preventDefault();

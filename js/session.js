@@ -536,12 +536,18 @@ document.getElementById('mo-dnf').addEventListener('click', ()=>{
   const t = modalSes().times[state.modalSolveIdx];
   t.dnf = !t.dnf; if(t.dnf) t.plus2=false;
   save(); renderStats(); renderTimeList(); renderSocLastSes();
+  if (state.modalSolveIdx === 0 && state.modalSesIdx === state.sesIdx) {
+    document.getElementById('timerDisp').textContent = t.dnf ? 'DNF' : fmtMs(t.ms);
+  }
   openSolveModal(state.modalSolveIdx, state.modalSesIdx);
 });
 document.getElementById('mo-p2').addEventListener('click', ()=>{
   const t = modalSes().times[state.modalSolveIdx];
   t.plus2 = !t.plus2; if(t.plus2) t.dnf=false;
   save(); renderStats(); renderTimeList(); renderSocLastSes();
+  if (state.modalSolveIdx === 0 && state.modalSesIdx === state.sesIdx) {
+    document.getElementById('timerDisp').textContent = t.plus2 ? fmtMs(t.ms + 2000) + '+' : fmtMs(t.ms);
+  }
   openSolveModal(state.modalSolveIdx, state.modalSesIdx);
 });
 document.getElementById('mo-del').addEventListener('click', ()=>{
