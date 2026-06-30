@@ -131,7 +131,7 @@ function stopTimer(overrideMs) {
   const ms = overrideMs !== undefined ? overrideMs : Date.now() - state.startMs;
   state.elapsed = ms;
   const plus2 = state.inspectPenalty === 2;
-  document.getElementById('timerDisp').textContent = plus2 ? fmtMs(ms + 2000) : fmtMs(ms);
+  document.getElementById('timerDisp').textContent = plus2 ? fmtMs(ms + 2000) + '+' : fmtMs(ms);
   // Capture stats before adding solve
   const prevBestSingle=bestSingle(), prevBestAo5=bestAo(5), prevBestAo12=bestAo(12), prevBestAo100=bestAo(100);
   // Save solve
@@ -365,7 +365,7 @@ document.addEventListener('keydown', e => {
     last.plus2 = !last.plus2; if(last.plus2) last.dnf = false;
     save(); renderStats(); renderTimeList();
     const disp = document.getElementById('timerDisp');
-    disp.textContent = last.plus2 ? fmtMs(last.ms + 2000) : fmtMs(last.ms);
+    disp.textContent = last.plus2 ? fmtMs(last.ms + 2000) + '+' : fmtMs(last.ms);
   }
   if (e.key.toLowerCase()==='d') {
     last.dnf = !last.dnf; if(last.dnf) last.plus2 = false;

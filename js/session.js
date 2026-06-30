@@ -546,7 +546,7 @@ document.getElementById('mo-p2').addEventListener('click', ()=>{
   t.plus2 = !t.plus2; if(t.plus2) t.dnf=false;
   save(); renderStats(); renderTimeList(); renderSocLastSes();
   if (state.modalSolveIdx === 0 && state.modalSesIdx === state.sesIdx) {
-    document.getElementById('timerDisp').textContent = t.plus2 ? fmtMs(t.ms + 2000) : fmtMs(t.ms);
+    document.getElementById('timerDisp').textContent = t.plus2 ? fmtMs(t.ms + 2000) + '+' : fmtMs(t.ms);
   }
   openSolveModal(state.modalSolveIdx, state.modalSesIdx);
 });
