@@ -17,6 +17,9 @@ function renderXP() {
   const mobXpCurEl=document.getElementById('mobXpCur'), mobXpMaxEl=document.getElementById('mobXpMax');
   if(mobXpCurEl) mobXpCurEl.textContent=xp.toLocaleString('fr-FR');
   if(mobXpMaxEl) mobXpMaxEl.textContent=xpMax.toLocaleString('fr-FR');
+  const mnLvlEl=document.getElementById('mnLvl'), mnXpFillEl=document.getElementById('mnXpFill');
+  if(mnLvlEl) mnLvlEl.textContent=level;
+  if(mnXpFillEl) mnXpFillEl.style.width=pct;
 }
 
 function loadSettings() {
