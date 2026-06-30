@@ -159,7 +159,7 @@ function renderArchivedSessions() {
     return;
   }
   list.innerHTML = archived.map(({s,i}) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.07);border-radius:10px;padding:11px 14px;gap:8px">
+    <div class="arc-item" data-i="${i}" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.07);border-radius:10px;padding:11px 14px;gap:8px;cursor:pointer;transition:background .15s${i===state.sesIdx?';outline:1.5px solid var(--purpleL)':''}">
       <div style="flex:1;overflow:hidden">
         <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</div>
         <div style="font-size:11px;color:var(--dim)">${s.times.length} solve${s.times.length!==1?'s':''} · ${s.puzzle||'3×3'}</div>
@@ -167,11 +167,17 @@ function renderArchivedSessions() {
       <button class="arc-restore-btn" data-i="${i}" style="flex-shrink:0;padding:7px 12px;background:rgba(255,255,255,.1);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Restore</button>
       <button class="arc-perm-del-btn" data-i="${i}" style="flex-shrink:0;width:30px;height:30px;border-radius:8px;border:none;background:rgba(255,80,80,.15);color:var(--red);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" title="Delete permanently"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
     </div>`).join('');
+  list.querySelectorAll('.arc-item').forEach(el => {
+    el.addEventListener('mouseenter', ()=>el.style.background='rgba(255,255,255,.13)');
+    el.addEventListener('mouseleave', ()=>el.style.background='rgba(255,255,255,.07)');
+    el.addEventListener('click', ()=>viewArchivedSession(+el.dataset.i));
+  });
   list.querySelectorAll('.arc-restore-btn').forEach(btn => {
-    btn.addEventListener('click', ()=>unarchiveSession(+btn.dataset.i));
+    btn.addEventListener('click', e=>{ e.stopPropagation(); unarchiveSession(+btn.dataset.i); });
   });
   list.querySelectorAll('.arc-perm-del-btn').forEach(btn => {
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
       const idx = +btn.dataset.i;
       const lostXP = state.sessions[idx].times.length;
       state.sessions.splice(idx, 1);
@@ -183,6 +189,17 @@ function renderArchivedSessions() {
     });
   });
   if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function viewArchivedSession(idx) {
+  state.sesIdx = idx;
+  document.getElementById('sesName').textContent = curSes().name;
+  state.puzzle = curSes().puzzle || '3×3';
+  document.getElementById('puzName').textContent = state.puzzle;
+  updatePuzIcon();
+  save();
+  renderStats(); renderTimeList(); pushScramble(); renderScramble();
+  toast(`Viewing archived session "${curSes().name}"`);
 }
 
 document.getElementById('delSesBtn').addEventListener('click', openDelSesModal);
