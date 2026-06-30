@@ -879,17 +879,17 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
   .ses-acts{display:none!important}
   .ses-sel{padding:4px 14px;gap:4px;flex-shrink:1}
   .ses-dd{min-width:0;padding:5px 10px;font-size:13px;flex:0 1 auto}
-  /* Fox smaller */
-  .mascot{width:clamp(55px,20vw,90px)!important;height:clamp(55px,20vw,90px)!important}
+  /* Fox smaller — constrained by both width and height */
+  .mascot{width:clamp(45px,min(20vw,10svh),90px)!important;height:clamp(45px,min(20vw,10svh),90px)!important}
   .sp-bubble{font-size:11px;padding:7px 12px;max-width:160px}
-  .mascot-area{bottom:90px;right:60px}
+  .mascot-area{bottom:115px;right:60px}
   /* Timer page */
   .t-lact{display:none!important}
   .t-rp{display:none!important}
   .cube-area{display:none!important}
   .t-center{padding:8px 10px 0;justify-content:flex-start;overflow:hidden}
   .timer-wrap{flex:1;padding-bottom:0;min-height:0}
-  #timerDisp{font-size:clamp(58px,18vw,100px)}
+  #timerDisp{font-size:clamp(38px,min(18vw,12svh),90px)}
   #mob-bot{display:flex;width:100%;align-items:stretch;gap:0;padding:6px 10px 2px;flex-shrink:0;margin-top:auto}
   #mob-right{display:flex;flex-direction:row;gap:6px;min-height:0;align-items:stretch;margin-left:auto}
   #mob-tl{display:none}
@@ -901,7 +901,8 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
   .mqs-div-v{display:none}
   .mqs-item{padding:5px 12px}
   .scr-area{gap:5px;max-width:100%;margin-bottom:6px}
-  #scrTxt{font-size:clamp(13px,4vw,19px)}
+  #scrTxt{font-size:clamp(11px,min(4vw,3svh),19px)}
+  #cubeNetMob{max-height:min(83px,11svh);width:auto!important}
   /* Smart cube — single connect/disconnect icon above mob-bot left */
   .sc-btn-lbl{display:none}
   #scConnBtn,#scDisconnBtn,#scResetBtn,#scGyroBtn{padding:9px!important;gap:0!important;border-radius:11px!important}
