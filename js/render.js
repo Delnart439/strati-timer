@@ -80,6 +80,19 @@ function renderTimeList() {
     </div>`;
   });
   document.getElementById('timeList').innerHTML = html || '<div style="padding:12px 14px;color:var(--muted);font-size:12px">No solves yet</div>';
+  // Mobile time list
+  const mobTl = document.getElementById('mob-tl');
+  if (mobTl) {
+    let mhtml = '';
+    entries.slice(0, 40).forEach(({t, i}) => {
+      const n = ts.length - i;
+      const isBest = i === bestIdx;
+      const v = t.dnf ? 'DNF' : fmtMs(t.ms + (t.plus2 ? 2000 : 0)) + (t.plus2 ? '+' : '');
+      const tCls = t.dnf ? ' mob-te-dnf' : '';
+      mhtml += `<div class="mob-te${isBest?' mob-te-best':''}" data-idx="${i}"><span class="mob-te-n">${n}.</span><span class="mob-te-t${tCls}">${v}</span></div>`;
+    });
+    mobTl.innerHTML = mhtml;
+  }
   // Stats page grid
   let g='';
   const rev=[...ts].reverse();
