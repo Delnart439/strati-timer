@@ -552,6 +552,7 @@ document.getElementById('mo-del').addEventListener('click', ()=>{
   const disp = document.getElementById('timerDisp');
   const t = times[0];
   disp.textContent = t ? (t.dnf ? 'DNF' : fmtMs(t.ms+(t.plus2?2000:0))) : '0.000';
+  if (ganConnected) setTimerState(t ? 'stopped' : 'idle');
 });
 
 function copyToClipboard(text, btn) {

@@ -324,10 +324,10 @@ document.getElementById('delSolveConfirm').addEventListener('click', ()=>{
   times.splice(0, 1);
   addXP(-1);
   renderStats(); renderTimeList();
-  setTimerState('idle');
   const disp = document.getElementById('timerDisp');
   const t = times[0];
   disp.textContent = t ? (t.dnf ? 'DNF' : fmtMs(t.ms+(t.plus2?2000:0))) : '0.000';
+  setTimerState(ganConnected && t ? 'stopped' : 'idle');
   delSolveModal.classList.add('h');
 });
 
