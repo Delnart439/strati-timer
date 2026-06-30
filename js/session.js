@@ -105,7 +105,9 @@ function openDelSesModal() {
     el.addEventListener('mouseleave', ()=>el.style.background='rgba(255,255,255,.07)');
     el.addEventListener('click', ()=>{
       delSesTargetIdx = +el.dataset.i;
-      document.getElementById('delSesTargetName').textContent = state.sessions[delSesTargetIdx].name;
+      const targetSes = state.sessions[delSesTargetIdx];
+      document.getElementById('delSesTargetName').textContent = targetSes.name;
+      document.getElementById('delSesXpLoss').textContent = targetSes.times.length;
       list.style.display = 'none';
       const row = document.getElementById('delSesConfirmRow');
       row.style.display = 'flex';
@@ -123,10 +125,12 @@ document.getElementById('delSesBack').addEventListener('click', ()=>{
 });
 document.getElementById('delSesConfirm').addEventListener('click', ()=>{
   if (delSesTargetIdx < 0) return;
+  const lostXP = state.sessions[delSesTargetIdx].times.length;
   state.sessions.splice(delSesTargetIdx, 1);
   state.sesIdx = Math.min(state.sesIdx, state.sessions.length - 1);
   document.getElementById('sesName').textContent = curSes().name;
   delSesModal.classList.add('h');
+  addXP(-lostXP);
   save(); renderStats(); renderTimeList(); pushScramble(); renderScramble();
 });
 
