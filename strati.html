@@ -73,21 +73,11 @@
       <div class="dd-menu h" id="puzDdMenu"></div>
     </div>
     <div class="tb-acts">
-      <button class="ib tb-ib-lg" id="addTimeBtn" title="Add time manually"><i data-lucide="plus"></i></button>
-      <div id="btBtnWrap" style="position:relative">
-        <button class="ib tb-ib-lg" id="btBtn" title="Connect Bluetooth Timer"><i data-lucide="bluetooth"></i><span id="btDot" style="display:none;position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#00d060;box-shadow:0 0 5px #00d060"></span></button>
-        <div id="btDropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:9999;min-width:215px;background:#3a1a6e;border:1px solid rgba(255,255,255,.18);border-radius:13px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.55)">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.3);margin-bottom:10px">Bluetooth Timer</div>
-          <div id="btStatus" style="font-size:12px;color:var(--dim);margin-bottom:12px">Press scan to search for nearby Bluetooth timers.</div>
-          <button id="btScanBtn" style="width:100%;padding:10px;background:var(--purple);border:none;border-radius:50px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px"><i data-lucide="scan-line" style="width:14px;height:14px"></i> Scan for devices</button>
-          <button id="btDisconnBtn" style="display:none;width:100%;padding:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:50px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:7px"><i data-lucide="bluetooth-off" style="width:14px;height:14px"></i> Disconnect</button>
-          <div id="btUnsupported" style="display:none;margin-top:10px;font-size:11px;color:var(--red);text-align:center">Bluetooth is not supported on this device.</div>
-        </div>
-      </div>
-      <button class="ib tb-ib-lg" id="helpBtn" title="Help"><i data-lucide="circle-help"></i></button>
-      <!-- Compact: merged action button -->
+      <button class="ib tb-ib-lg" id="addTimeBtn" title="Add time manually" style="display:none"></button>
+      <div id="btBtnWrap" style="display:none"><button id="btBtn" style="display:none"></button></div>
+      <button class="ib tb-ib-lg" id="helpBtn" title="Help" style="display:none"></button>
       <div style="position:relative">
-        <button class="ib tb-ib-lg" id="tbMoreBtn" title="More options"><i data-lucide="more-horizontal"></i></button>
+        <button class="ib tb-ib-lg" id="tbMoreBtn" title="More options" style="position:relative"><i data-lucide="more-horizontal"></i><span id="btDot" style="display:none;position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#00d060;box-shadow:0 0 5px #00d060"></span></button>
         <div id="tbMorePanel" class="h" style="position:absolute;top:calc(100% + 8px);right:0;z-index:9999;min-width:200px;background:#3a1a6e;border:1px solid rgba(255,255,255,.18);border-radius:13px;padding:6px;box-shadow:0 8px 32px rgba(0,0,0,.55)">
           <div class="tb-more-item" id="tbMoreBt"><i data-lucide="bluetooth"></i><span>Bluetooth / Stackmat</span></div>
           <div class="tb-more-item" id="tbMoreAdd"><i data-lucide="plus"></i><span>Add time manually</span></div>
@@ -560,6 +550,19 @@
 </div>
 
 <!-- BLUETOOTH MODAL -->
+<div class="ov h" id="btModal">
+  <div class="mo" style="max-width:340px">
+    <button class="mo-x" id="btModalClose">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <i data-lucide="bluetooth" style="width:22px;height:22px;color:var(--purple)"></i>
+      <div style="font-size:18px;font-weight:800">Bluetooth / Stackmat</div>
+    </div>
+    <div id="btStatus" style="font-size:13px;color:var(--dim);margin-bottom:16px">Press scan to search for nearby Bluetooth timers.</div>
+    <button id="btScanBtn" style="width:100%;padding:12px;background:var(--purple);border:none;border-radius:50px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><i data-lucide="scan-line" style="width:14px;height:14px"></i> Scan for devices</button>
+    <button id="btDisconnBtn" style="display:none;width:100%;padding:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:50px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;align-items:center;justify-content:center;gap:8px"><i data-lucide="bluetooth-off" style="width:14px;height:14px"></i> Disconnect</button>
+    <div id="btUnsupported" style="display:none;margin-top:10px;font-size:11px;color:var(--red);text-align:center">Bluetooth is not supported on this device.</div>
+  </div>
+</div>
 <!-- HELP MODAL -->
 <div class="ov h" id="helpModal">
   <div class="mo" style="max-width:460px">
@@ -925,12 +928,9 @@
     e.stopPropagation();
     morePanel.classList.toggle('h');
   });
-  // BT: toggle btDropdown directly (stopPropagation prevents the document close-handler)
-  document.getElementById('tbMoreBt')?.addEventListener('click', e=>{
-    e.stopPropagation();
+  document.getElementById('tbMoreBt')?.addEventListener('click', ()=>{
     morePanel.classList.add('h');
-    const dd = document.getElementById('btDropdown');
-    dd.style.display = dd.style.display === 'none' ? '' : 'none';
+    openBtModal();
   });
   document.getElementById('tbMoreAdd')?.addEventListener('click', ()=>{
     morePanel.classList.add('h');

@@ -1,15 +1,11 @@
 
-// ── BLUETOOTH DROPDOWN ──
-const btDropdown = document.getElementById('btDropdown');
-document.getElementById('btBtn').addEventListener('click', e=>{
-  e.stopPropagation();
-  const open = btDropdown.style.display !== 'none';
-  btDropdown.style.display = open ? 'none' : '';
-  if (!open) lucide.createIcons();
-});
-document.addEventListener('click', e=>{
-  if (!document.getElementById('btBtnWrap').contains(e.target)) btDropdown.style.display = 'none';
-});
+// ── BLUETOOTH MODAL ──
+function openBtModal() {
+  const m = document.getElementById('btModal');
+  if (m) { m.classList.remove('h'); lucide.createIcons(); }
+}
+document.getElementById('btModalClose')?.addEventListener('click', ()=>document.getElementById('btModal')?.classList.add('h'));
+document.getElementById('btModal')?.addEventListener('click', e=>{ if(e.target===e.currentTarget) e.currentTarget.classList.add('h'); });
 const helpModal = document.getElementById('helpModal');
 document.getElementById('helpBtn').addEventListener('click', ()=>{ helpModal.classList.remove('h'); lucide.createIcons(); });
 document.getElementById('helpModalClose').addEventListener('click', ()=>helpModal.classList.add('h'));
