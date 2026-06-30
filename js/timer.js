@@ -130,12 +130,13 @@ function stopTimer(overrideMs) {
   if (state.rafId) { cancelAnimationFrame(state.rafId); state.rafId=null; }
   const ms = overrideMs !== undefined ? overrideMs : Date.now() - state.startMs;
   state.elapsed = ms;
-  document.getElementById('timerDisp').textContent = fmtMs(ms);
+  const plus2 = state.inspectPenalty === 2;
+  document.getElementById('timerDisp').textContent = plus2 ? fmtMs(ms + 2000) + '+' : fmtMs(ms);
   // Capture stats before adding solve
   const prevBestSingle=bestSingle(), prevBestAo5=bestAo(5), prevBestAo12=bestAo(12), prevBestAo100=bestAo(100);
   // Save solve
   const solve = {
-    ms, dnf:false, plus2: state.inspectPenalty===2,
+    ms, dnf:false, plus2,
     scramble: state.scrHistory[state.scrIdx]||'',
     date: new Date().toISOString(),
     ...(overrideMs !== undefined ? { stackmat: true } : {}),
