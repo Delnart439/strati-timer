@@ -685,11 +685,14 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 #sb.sb-collapsed .sb-set .set-link{justify-content:center;padding:10px 0}
 #sb.sb-collapsed .sb-logo{justify-content:center;padding:0 0 14px}
 
-/* Shared: tb-more-item and tbMoreBtn */
+/* Top-bar action dropdown (always on) */
 .tb-more-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.85);transition:background .12s}
 .tb-more-item:hover{background:rgba(255,255,255,.1)}
 .tb-more-item svg{width:16px;height:16px;flex-shrink:0}
-#tbMoreBtn{display:none}
+#tbMoreBtn{display:flex}
+#addTimeBtn,#helpBtn{display:none!important}
+#btBtnWrap{visibility:hidden;width:0;min-width:0;padding:0;overflow:visible}
+#btDropdown{visibility:visible;position:fixed!important;top:var(--tbh);right:12px}
 
 /* ── INTERMEDIATE WIDTHS ── */
 @media (max-width:1024px) {
@@ -717,12 +720,6 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
   #sb .sb-user{justify-content:center;padding:12px 0}
   #sb .sb-set .set-link{justify-content:center;padding:10px 0}
   #sb .sb-logo{justify-content:center;padding:0 0 14px}
-  /* Merge action buttons into ··· */
-  #addTimeBtn,#helpBtn{display:none!important}
-  /* BT wrap: invisible but kept in DOM so btDropdown can be fixed-positioned */
-  #btBtnWrap{visibility:hidden;width:0;min-width:0;padding:0;overflow:visible}
-  #btDropdown{visibility:visible;position:fixed!important;top:var(--tbh);right:12px}
-  #tbMoreBtn{display:flex}
   /* Compact top bar */
   .ses-lbl{display:none}
   .ses-sel{padding:6px 16px}
@@ -805,7 +802,6 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
   .scr-area{gap:4px}
   #scrTxt{font-size:12px}
   .ses-dd{min-width:90px}
-  .tb-acts .ib.tb-ib-lg + .ib.tb-ib-lg{display:none} /* hide extra tb buttons */
 }
 .cfop-recog{position:relative;cursor:default}
 .cfop-recog .cfop-tip{display:none;position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#1a1030;color:rgba(255,255,255,.9);font-size:10px;font-weight:700;white-space:nowrap;padding:3px 8px;border-radius:5px;pointer-events:none;z-index:20;border:1px solid rgba(255,255,255,.12)}
