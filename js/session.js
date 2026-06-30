@@ -146,12 +146,18 @@ function unarchiveSession(idx) {
 }
 
 function renderArchivedSessions() {
-  const card = document.getElementById('archivedCard');
   const list = document.getElementById('archivedList');
-  if (!card || !list) return;
+  const badge = document.getElementById('archiveCountBadge');
+  if (!list) return;
   const archived = state.sessions.map((s,i)=>({s,i})).filter(({s})=>s.archived);
-  if (archived.length === 0) { card.style.display = 'none'; return; }
-  card.style.display = '';
+  if (badge) {
+    badge.textContent = archived.length;
+    badge.style.display = archived.length > 0 ? 'flex' : 'none';
+  }
+  if (archived.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--dim);text-align:center;padding:10px">No archived sessions</div>';
+    return;
+  }
   list.innerHTML = archived.map(({s,i}) => `
     <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.07);border-radius:10px;padding:11px 14px;gap:8px">
       <div style="flex:1;overflow:hidden">
@@ -1724,6 +1730,15 @@ document.getElementById('graphToggleBtn').addEventListener('click', ()=>{
   el.style.display = visible ? 'none' : 'flex';
   btn.classList.toggle('on', !visible);
   if (!visible) renderStatsGraphs();
+});
+
+document.getElementById('archiveToggleBtn').addEventListener('click', ()=>{
+  const btn = document.getElementById('archiveToggleBtn');
+  const el = document.getElementById('archivedCard');
+  const visible = el.style.display !== 'none';
+  el.style.display = visible ? 'none' : '';
+  btn.classList.toggle('on', !visible);
+  if (!visible) renderArchivedSessions();
 });
 
 document.getElementById('clearBtn').addEventListener('click', ()=>{

@@ -230,6 +230,7 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 .graph-toggle-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.45)}
 .graph-toggle-btn.on{background:var(--purple);border-color:var(--purpleL)}
 .graph-toggle-btn svg{width:16px;height:16px}
+#archiveCountBadge{position:absolute;top:-5px;right:-5px;background:var(--purple);color:#fff;font-size:9px;font-weight:700;border-radius:50%;min-width:14px;height:14px;align-items:center;justify-content:center;padding:0 3px;line-height:1}
 .sg-tip-label{opacity:0;transition:opacity .15s;pointer-events:none}
 .sg-tip:hover .sg-tip-label{opacity:1}
 #statsGraphs{display:flex;gap:12px;margin-bottom:12px}
