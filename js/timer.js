@@ -109,7 +109,7 @@ function inspectTick() {
     inspectBeep12 = true;
   }
   state.inspectPenalty = elapsed >= 15000 ? 2 : 0;
-  disp.textContent = elapsed >= 15000 ? '+2' : String(Math.max(0, Math.ceil((15000-elapsed)/1000)));
+  disp.textContent = elapsed >= 15000 ? '+2' : String(Math.min(15, Math.floor(elapsed/1000)+1));
   inspectRafId = requestAnimationFrame(inspectTick);
 }
 
