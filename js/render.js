@@ -89,7 +89,7 @@ function renderTimeList() {
     entries.slice(0, 40).forEach(({t, i}) => {
       const n = ts.length - i;
       const isBest = i === bestIdx;
-      const v = t.dnf ? 'DNF' : fmtMs(t.ms + (t.plus2 ? 2000 : 0)) + (t.plus2 ? '+' : '');
+      const v = t.dnf ? 'DNF' : fmtMs(t.ms + (t.plus2 ? 2000 : 0));
       const tCls = t.dnf ? ' mob-te-dnf' : '';
       mhtml += `<div class="mob-te${isBest?' mob-te-best':''}" data-idx="${i}"><span class="mob-te-n">${n}.</span><span class="mob-te-t${tCls}">${v}</span></div>`;
     });
