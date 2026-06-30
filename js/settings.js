@@ -14,6 +14,9 @@ function renderXP() {
   const mobLvlEl=document.getElementById('mobLvl'), mobFillEl=document.getElementById('mobXpFill');
   if(mobLvlEl) mobLvlEl.textContent=level;
   if(mobFillEl) mobFillEl.style.width=pct;
+  const mobXpCurEl=document.getElementById('mobXpCur'), mobXpMaxEl=document.getElementById('mobXpMax');
+  if(mobXpCurEl) mobXpCurEl.textContent=xp.toLocaleString('fr-FR');
+  if(mobXpMaxEl) mobXpMaxEl.textContent=xpMax.toLocaleString('fr-FR');
 }
 
 function loadSettings() {
