@@ -705,12 +705,15 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
   /* Sidebar: icon strip */
   :root{--sbw:68px}
   #sb{width:68px;min-width:68px}
-  #sb .nav-lbl,#sb .logo-txt,#sb .logo-dots,#sb .sb-uinfo,#sb .sb-foot{display:none}
+  #sb .nav-lbl,#sb .logo-txt,#sb .logo-dots,#sb .sb-foot{display:none}
   #sb .vip-box{padding:8px 0;background:transparent;border:none;display:flex;justify-content:center}
   #sb .vip-head{justify-content:center;font-size:18px}
   #sb .vip-head svg{width:28px;height:28px}
   #sb .nav-item{padding:14px 0;justify-content:center}
-  #sb .sb-user{justify-content:center;padding:12px 0}
+  #sb .sb-user{flex-direction:column;align-items:center;padding:10px 8px;gap:5px}
+  #sb .sb-uinfo{display:flex!important;flex-direction:column;width:100%;gap:0}
+  #sb .sb-lvl,#sb .xp-txt{display:none}
+  #sb .xp-bar{margin-bottom:0;height:5px;width:100%;border-radius:3px}
   #sb .sb-set .set-link{justify-content:center;padding:10px 0}
   #sb .sb-logo{justify-content:center;padding:0 0 14px}
   /* Top bar */
