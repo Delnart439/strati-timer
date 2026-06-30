@@ -327,7 +327,7 @@ document.getElementById('delSolveConfirm').addEventListener('click', ()=>{
   setTimerState('idle');
   const disp = document.getElementById('timerDisp');
   const t = times[0];
-  disp.textContent = t ? (t.dnf ? 'DNF' : fmtMs(t.ms+(t.plus2?2000:0))) : '0.000';
+  disp.textContent = (!ganConnected && t) ? (t.dnf ? 'DNF' : fmtMs(t.ms+(t.plus2?2000:0))) : '0.000';
   delSolveModal.classList.add('h');
 });
 
