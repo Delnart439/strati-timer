@@ -17,9 +17,12 @@ function renderXP() {
   const mobXpCurEl=document.getElementById('mobXpCur'), mobXpMaxEl=document.getElementById('mobXpMax');
   if(mobXpCurEl) mobXpCurEl.textContent=xp.toLocaleString('fr-FR');
   if(mobXpMaxEl) mobXpMaxEl.textContent=xpMax.toLocaleString('fr-FR');
-  const mnTimerEl=document.getElementById('mn-timer'), mnLvlBadge=document.getElementById('mnLvlBadge');
+  const mnTimerEl=document.getElementById('mn-timer');
   if(mnTimerEl) mnTimerEl.style.setProperty('--xp-pct', pct);
-  if(mnLvlBadge) mnLvlBadge.textContent=level;
+  const mnLvlEl=document.getElementById('mnLvl'), mnXpCurBtn=document.getElementById('mnXpCurBtn'), mnXpMaxBtn=document.getElementById('mnXpMaxBtn');
+  if(mnLvlEl) mnLvlEl.textContent=level;
+  if(mnXpCurBtn) mnXpCurBtn.textContent=xp.toLocaleString('fr-FR');
+  if(mnXpMaxBtn) mnXpMaxBtn.textContent=xpMax.toLocaleString('fr-FR');
 }
 
 function loadSettings() {

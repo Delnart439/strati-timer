@@ -821,11 +821,13 @@ nav.sb-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px;display:flex;fle
 .mn-btn svg{width:22px;height:22px}
 .mn-btn.mn-active{color:#fff}
 .mn-btn.mn-active:not(.mn-center)::after{content:'';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--purple)}
-.mn-center{background:var(--purple)!important;color:#fff!important;width:56px;height:56px;border-radius:14px;margin-bottom:14px}
-.mn-center svg{width:26px;height:26px}
+.mn-center{background:var(--purple)!important;color:#fff!important;width:62px;height:66px;border-radius:14px;margin-bottom:14px;flex-direction:column;gap:4px;padding:10px 8px 8px}
+.mn-center svg{width:24px;height:24px;flex-shrink:0}
 #mn-timer{position:relative}
 #mn-timer::before{content:'';position:absolute;inset:-3px;border-radius:17px;padding:3px;background:conic-gradient(rgba(255,255,255,.9) var(--xp-pct,0%),rgba(255,255,255,.18) var(--xp-pct,0%));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
-#mnLvlBadge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 3px;background:#1a0d3c;border-radius:8px;font-size:8px;font-weight:800;color:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25);line-height:1}
+#mnTimerInfo{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1}
+#mnLvlTxt{font-size:8px;font-weight:700;color:rgba(255,255,255,.7);white-space:nowrap}
+#mnXpInfo{font-size:7px;font-weight:600;color:rgba(255,255,255,.45);white-space:nowrap}
 .mn-more-wrap{position:relative}
 #mob-more-panel{display:flex;flex-direction:column;position:absolute;bottom:calc(100% + 10px);right:0;background:#1a0d3c;border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:6px;min-width:170px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.6)}
 #mob-more-panel.h{display:none}
