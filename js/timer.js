@@ -23,6 +23,34 @@ function hideMascot(){
   document.getElementById('mascotArea').style.display='none';
 }
 
+function _fmtLvlTime(ms) {
+  if (ms < 60000) return `${Math.round(ms/1000)}s`;
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.round((ms % 60000) / 1000);
+  if (mins < 60) return secs ? `${mins}m ${secs}s` : `${mins}m`;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function showLevelUpModal(newLevel, stats, avgs) {
+  const el = document.getElementById('lvlUpModal');
+  if (!el) return;
+  document.getElementById('lum-level').textContent = newLevel;
+  document.getElementById('lum-solves').textContent = stats.solves;
+  document.getElementById('lum-time').textContent = stats.totalMs > 0 ? _fmtLvlTime(stats.totalMs) : '—';
+  document.getElementById('lum-best').textContent = stats.bestMs ? fmtMs(stats.bestMs) : '—';
+  document.getElementById('lum-ao5').textContent = avgs?.ao5 != null ? fmtMs(avgs.ao5) : '—';
+  document.getElementById('lum-ao12').textContent = avgs?.ao12 != null ? fmtMs(avgs.ao12) : '—';
+  el.classList.remove('h');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('lvlUpModal');
+  if (!el) return;
+  document.getElementById('lvlUpClose').addEventListener('click', () => el.classList.add('h'));
+  el.addEventListener('click', e => { if (e.target === el) el.classList.add('h'); });
+});
+
 function resetSleepTimer(){
   if(_sleepTimer) clearTimeout(_sleepTimer);
   _sleepTimer=setTimeout(()=>{
@@ -92,7 +120,7 @@ function inspectTick() {
       date: new Date().toISOString()
     };
     curSes().times.unshift(solve);
-    addXP(1);
+    { const _lu = addXP(1); if (_lu) showLevelUpModal(_lu.newLevel, _lu.stats); }
     renderStats();
     renderTimeList();
     setTimerState('stopped');
@@ -144,7 +172,7 @@ function stopTimer(overrideMs) {
   };
   state.inspectPenalty = 0;
   curSes().times.unshift(solve);
-  addXP(1);
+  const _lvlUp = addXP(1, ms);
   renderStats();
   renderTimeList();
   setTimerState('stopped');
@@ -155,13 +183,13 @@ function stopTimer(overrideMs) {
   const worst=valids.length>1?Math.max(...valids):null;
   resetSleepTimer();
   if(nbSingle!==null&&(prevBestSingle===null||nbSingle<prevBestSingle))
-    showMascot('Mascotte/happy.png','Congrats, new PB single!',20000);
+    showMascot('Mascotte/happy.png','Congrats, PB single!',20000);
   else if(nbAo5!==null&&(prevBestAo5===null||nbAo5<prevBestAo5))
-    showMascot('Mascotte/happy.png',"Congrats, you did your best average of 5! Let's celebrate?",20000);
+    showMascot('Mascotte/happy.png','Congrats, PB ao5!',20000);
   else if(nbAo12!==null&&(prevBestAo12===null||nbAo12<prevBestAo12))
-    showMascot('Mascotte/happy.png',"Congrats, you did your best average of 12! Let's celebrate?",20000);
+    showMascot('Mascotte/happy.png','Congrats, PB ao12!',20000);
   else if(nbAo100!==null&&(prevBestAo100===null||nbAo100<prevBestAo100))
-    showMascot('Mascotte/happy.png',"Congrats, you did your best average of 100! Let's celebrate?",20000);
+    showMascot('Mascotte/happy.png','Congrats, PB ao100!',20000);
   else if(prevBestAo5!==null&&ms<prevBestAo5)
     showMascot('Mascotte/happy.png','Wow!',20000);
   else if(worst!==null&&ms===worst&&valids.length>=3)
@@ -172,6 +200,7 @@ function stopTimer(overrideMs) {
     showMascot('Mascotte/happy.png','Better!',20000);
   else
     hideMascot();
+  if (_lvlUp) showLevelUpModal(_lvlUp.newLevel, _lvlUp.stats, { ao5: nbAo5, ao12: nbAo12 });
   // Generate next scramble
   pushScramble();
   renderScramble();

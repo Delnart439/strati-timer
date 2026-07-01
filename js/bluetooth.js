@@ -293,6 +293,7 @@ let bHoldTimers = [null,null];
 let bRaf = null;
 let bScores = [0,0];
 let bRoundActive = false;
+let bHistory = [[], []]; // [{time, scramble, result}]
 
 function bFmt(ms){ const t=ms/1000; return t<60?t.toFixed(3):`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`; }
 
@@ -335,15 +336,22 @@ function bCheckRoundEnd(){
   const c1=document.getElementById('b1-card');
   const c2=document.getElementById('b2-card');
   c1.classList.remove('winner'); c2.classList.remove('winner');
+  let roundResult = 'draw';
   if(bState[0].t<bState[1].t){
-    bScores[0]++; resultEl.textContent='Player 1 wins the round!'; c1.classList.add('winner');
+    bScores[0]++; resultEl.textContent='Player 1 wins the round!'; c1.classList.add('winner'); roundResult = 'p1';
   } else if(bState[1].t<bState[0].t){
-    bScores[1]++; resultEl.textContent='Player 2 wins the round!'; c2.classList.add('winner');
+    bScores[1]++; resultEl.textContent='Player 2 wins the round!'; c2.classList.add('winner'); roundResult = 'p2';
   } else {
     resultEl.textContent="It's a tie!";
   }
   document.getElementById('b1-score').textContent=bScores[0];
   document.getElementById('b2-score').textContent=bScores[1];
+  // Record history before pushing new scramble
+  const scramble = state.scrHistory[state.scrIdx] || '';
+  const round = bHistory[0].length + 1;
+  bHistory[0].push({time: bState[0].t, scramble, result: roundResult==='p1'?'won':roundResult==='p2'?'lost':'draw', round});
+  bHistory[1].push({time: bState[1].t, scramble, result: roundResult==='p2'?'won':roundResult==='p1'?'lost':'draw', round});
+  renderBattleHistory();
   // New scramble immediately
   pushScramble(); renderScramble();
   if (bcMode === 'cubes') bcInitAllScrambles();
@@ -351,6 +359,46 @@ function bCheckRoundEnd(){
   bSetState(0,'idle'); bSetState(1,'idle');
   bRoundActive=false;
 }
+
+function renderBattleHistory() {
+  for (let p = 0; p < 2; p++) {
+    const list = document.getElementById(`b${p+1}-hist`);
+    if (!list) continue;
+    list.innerHTML = '';
+    // Show newest first
+    const entries = bHistory[p].slice().reverse();
+    entries.forEach((entry, revIdx) => {
+      const origIdx = bHistory[p].length - 1 - revIdx;
+      const div = document.createElement('div');
+      div.className = `bh-entry bh-${entry.result}`;
+      const badge = entry.result === 'won' ? 'WIN' : entry.result === 'lost' ? 'LOSS' : 'DRAW';
+      div.innerHTML = `<span class="bh-n">#${entry.round}</span><span class="bh-t">${bFmt(entry.time)}</span><span class="bh-badge">${badge}</span>`;
+      div.addEventListener('click', () => openBSolveModal(p, origIdx));
+      list.appendChild(div);
+    });
+  }
+}
+
+function openBSolveModal(playerIdx, solveIdx) {
+  const entry = bHistory[playerIdx][solveIdx];
+  if (!entry) return;
+  document.getElementById('bsm-round').textContent = `ROUND ${entry.round} — PLAYER ${playerIdx + 1}`;
+  document.getElementById('bsm-time').textContent = bFmt(entry.time);
+  document.getElementById('bsm-scr').textContent = entry.scramble || '—';
+  const res = entry.result;
+  const el = document.getElementById('bsm-result');
+  el.textContent = res === 'won' ? 'WIN' : res === 'lost' ? 'LOSS' : 'DRAW';
+  el.style.background = res === 'won' ? 'rgba(0,200,83,.2)' : res === 'lost' ? 'rgba(220,38,38,.2)' : 'rgba(255,255,255,.1)';
+  el.style.color = res === 'won' ? 'var(--green)' : res === 'lost' ? '#f87171' : 'var(--dim)';
+  document.getElementById('bSolveModal').classList.remove('h');
+}
+
+document.getElementById('bSolveModalClose').addEventListener('click', () => {
+  document.getElementById('bSolveModal').classList.add('h');
+});
+document.getElementById('bSolveModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.add('h');
+});
 
 document.addEventListener('keydown', e=>{
   if(!document.getElementById('mode-battle').classList.contains('active')) return;
@@ -705,7 +753,7 @@ async function bcConnect(i) {
   }
   if (connBtn) { connBtn.disabled = true; connBtn.textContent = 'Connecting…'; }
   try {
-    const conn = await window.SmartCubeLib.connectSmartCube({ deviceSelection: 'filtered', deviceType: 'auto' });
+    const conn = await window.SmartCubeLib.connectSmartCube({ deviceSelection: 'filtered', enableAddressSearch: true });
     bcConns[i] = conn;
     bcFacelets[i] = null;
     bcWasSolved[i] = true;
@@ -730,6 +778,7 @@ async function bcConnect(i) {
     bcUpdateCard(i);
     bSetState(i, 'idle');
   } catch (e) {
+    console.error('[bcConnect] failed:', e);
     if (connBtn) { connBtn.disabled = false; connBtn.textContent = 'Connect Cube'; }
   }
 }
@@ -847,9 +896,14 @@ function bcSetMode(mode) {
     bSetState(i, 'idle');
   }
   bScores = [0, 0];
+  bHistory = [[], []];
   document.getElementById('b1-score').textContent = '0';
   document.getElementById('b2-score').textContent = '0';
   document.getElementById('battleResult').textContent = '';
+  for (let p = 0; p < 2; p++) {
+    const list = document.getElementById(`b${p+1}-hist`);
+    if (list) list.innerHTML = '';
+  }
 }
 
 lucide.createIcons();

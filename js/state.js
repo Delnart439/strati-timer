@@ -60,8 +60,18 @@ function xpForLevel(level) {
   return Math.min(level * 1000, 10000);
 }
 
-function addXP(delta) {
+let _lvlSolvesDone = 0, _lvlTotalMs = 0, _lvlBestMs = null;
+
+function addXP(delta, solveMs) {
   const s = state.settings;
+  const prevLevel = s.level;
+  if (delta > 0 && solveMs != null && solveMs > 0) {
+    _lvlSolvesDone++;
+    _lvlTotalMs += solveMs;
+    if (_lvlBestMs === null || solveMs < _lvlBestMs) _lvlBestMs = solveMs;
+  } else if (delta > 0) {
+    _lvlSolvesDone++;
+  }
   s.xp += delta;
   // Level up
   while (s.xp >= xpForLevel(s.level)) {
@@ -77,4 +87,10 @@ function addXP(delta) {
   s.xpMax = xpForLevel(s.level);
   save();
   if (typeof renderXP === 'function') renderXP();
+  if (s.level > prevLevel) {
+    const stats = { solves: _lvlSolvesDone, totalMs: _lvlTotalMs, bestMs: _lvlBestMs };
+    _lvlSolvesDone = 0; _lvlTotalMs = 0; _lvlBestMs = null;
+    return { newLevel: s.level, stats };
+  }
+  return null;
 }

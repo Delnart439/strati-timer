@@ -168,7 +168,17 @@
   <div class="t-submode" id="mode-battle">
     <div style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Battle Mode</div>
     <div style="font-size:clamp(16px,2vw,24px);font-weight:600;color:#fff;text-align:center;line-height:1.7;max-width:860px;padding:0 8px" id="battleScrTxt"></div>
-    <svg id="battleCubeNet" viewBox="0 0 204 153" width="260" height="195" style="display:block"></svg>
+    <div class="battle-net-row">
+      <div class="battle-hist-box" id="b1-hist-box">
+        <div class="battle-hist-lbl">Player 1</div>
+        <div class="battle-hist-list" id="b1-hist"></div>
+      </div>
+      <svg id="battleCubeNet" viewBox="0 0 204 153" width="200" height="150" style="display:block"></svg>
+      <div class="battle-hist-box" id="b2-hist-box">
+        <div class="battle-hist-lbl">Player 2</div>
+        <div class="battle-hist-list" id="b2-hist"></div>
+      </div>
+    </div>
     <div class="battle-result" id="battleResult"></div>
     <div class="battle-wrap">
       <div class="battle-player" id="b1-card">
@@ -221,6 +231,17 @@
           <button class="b-ready-btn" id="b2-ready-btn" style="display:none" onclick="bcPlayerReady(1)">Ready <span style="opacity:.55;font-size:.8em;font-weight:600">U4</span></button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="ov h" id="bSolveModal">
+    <div class="mo" style="max-width:380px">
+      <button class="mo-x" id="bSolveModalClose">✕</button>
+      <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;text-align:center;margin-bottom:6px" id="bsm-round"></div>
+      <div class="mo-time" id="bsm-time" style="font-size:48px"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;margin:10px 0 6px;text-align:center">SCRAMBLE</div>
+      <div style="font-size:13px;line-height:1.7;color:#fff;text-align:center;word-break:break-word;padding:0 8px" id="bsm-scr"></div>
+      <div style="margin-top:14px;padding:8px 20px;border-radius:10px;text-align:center;font-weight:800;font-size:14px;letter-spacing:.5px" id="bsm-result"></div>
     </div>
   </div>
 
@@ -563,6 +584,38 @@
 
 <footer class="app-footer"></footer>
 </main>
+</div>
+
+<!-- LEVEL UP MODAL -->
+<div class="ov h" id="lvlUpModal">
+  <div class="mo" style="max-width:340px;text-align:center">
+    <div style="font-size:40px;margin-bottom:4px">🎉</div>
+    <div style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Level up!</div>
+    <div style="font-size:52px;font-weight:900;color:var(--purple);line-height:1;margin-bottom:18px" id="lum-level"></div>
+    <div class="lum-grid">
+      <div class="lum-row">
+        <span class="lum-lbl">Solves</span>
+        <span class="lum-val" id="lum-solves"></span>
+      </div>
+      <div class="lum-row">
+        <span class="lum-lbl">Training time</span>
+        <span class="lum-val" id="lum-time"></span>
+      </div>
+      <div class="lum-row">
+        <span class="lum-lbl">Best single</span>
+        <span class="lum-val" id="lum-best"></span>
+      </div>
+      <div class="lum-row">
+        <span class="lum-lbl">Ao5</span>
+        <span class="lum-val" id="lum-ao5"></span>
+      </div>
+      <div class="lum-row">
+        <span class="lum-lbl">Ao12</span>
+        <span class="lum-val" id="lum-ao12"></span>
+      </div>
+    </div>
+    <button id="lvlUpClose" style="margin-top:20px;padding:10px 32px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-size:14px;font-weight:700;cursor:pointer;width:100%">Let's go!</button>
+  </div>
 </div>
 
 <!-- BLUETOOTH MODAL -->
