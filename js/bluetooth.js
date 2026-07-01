@@ -152,6 +152,7 @@ function bActivateMode(mode) {
   const isCube   = mode === 'cube';
   document.querySelector('.t-center').style.display = isBattle ? 'none' : '';
   document.querySelector('.t-rp').style.display     = isBattle ? 'none' : '';
+  document.getElementById('tb').style.display       = isBattle ? 'none' : '';
   document.getElementById('cubeArea').style.display    = isCube ? 'none' : '';
   document.getElementById('cubeScArea').style.display  = isCube ? '' : 'none';
   document.getElementById('scBleUI').style.display     = isCube ? '' : 'none';
@@ -171,6 +172,7 @@ document.getElementById('battleCubeBtn').addEventListener('click', ()=>{
   document.getElementById('battleCubeBtn').classList.add('on');
   document.querySelector('.t-center').style.display = 'none';
   document.querySelector('.t-rp').style.display     = 'none';
+  document.getElementById('tb').style.display       = 'none';
   document.getElementById('cubeArea').style.display    = '';
   document.getElementById('cubeScArea').style.display  = 'none';
   document.getElementById('scBleUI').style.display     = 'none';
@@ -210,10 +212,13 @@ function bgOnEvent(i, event) {
       if (bState[i].state === 'idle' || bState[i].state === 'stopped') bSetState(i, 'holding');
       break;
     case GAN_ST.GET_SET:
-      if (bState[i].state === 'holding') bSetState(i, 'ready');
+      if (bState[i].state === 'holding') {
+        bSetState(i, 'ready');
+        if (bState[0].state === 'ready' && bState[1].state === 'ready') bcCountdown();
+      }
       break;
     case GAN_ST.RUNNING:
-      if (bState[i].state === 'ready' || bState[i].state === 'holding') {
+      if ((bState[i].state === 'ready' || bState[i].state === 'holding') && !bcCountingDown) {
         bState[i].st = Date.now(); bState[i].t = 0;
         document.getElementById(bIds[i] + '-time').textContent = '0.000';
         document.getElementById('battleResult').textContent = '';
@@ -292,10 +297,37 @@ const bHoldMs = 300;
 let bHoldTimers = [null,null];
 let bRaf = null;
 let bScores = [0,0];
+let bNames = ['Player 1', 'Player 2'];
 let bRoundActive = false;
 let bHistory = [[], []]; // [{time, scramble, result}]
 
-function bFmt(ms){ const t=ms/1000; return t<60?t.toFixed(3):`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`; }
+function bFmt(ms){ if (!isFinite(ms)) return 'DNF'; const t=ms/1000; return t<60?t.toFixed(3):`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`; }
+
+function bStartEditName(i) {
+  const pid = 'b' + (i + 1);
+  const txt = document.getElementById(pid + '-name-txt');
+  const edit = document.getElementById(pid + '-name-edit');
+  const input = document.getElementById(pid + '-name-input');
+  if (!txt || !edit || !input) return;
+  input.value = bNames[i];
+  txt.style.display = 'none';
+  edit.style.display = '';
+  input.focus(); input.select();
+  if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [edit] });
+}
+
+function bConfirmName(i) {
+  const pid = 'b' + (i + 1);
+  const txt = document.getElementById(pid + '-name-txt');
+  const edit = document.getElementById(pid + '-name-edit');
+  const input = document.getElementById(pid + '-name-input');
+  if (!txt || !edit || !input || edit.style.display === 'none') return;
+  const newName = input.value.trim() || ('Player ' + (i + 1));
+  bNames[i] = newName;
+  txt.textContent = newName;
+  txt.style.display = '';
+  edit.style.display = 'none';
+}
 
 function bTick(){
   bIds.forEach((id,i)=>{
@@ -312,11 +344,8 @@ function bSetState(i,s){
   const hintEl=document.getElementById(bIds[i]+'-hint');
   const key=bKeys[i];
   timeEl.className='battle-time '+s;
+  timeEl.style.color = ''; // clear any inline override (e.g. DNF red)
   if(bcMode==='cubes'){
-    if(s==='idle')hintEl.textContent=bcConns[i]?'Scramble your cube, then tap Ready':'Connect your cube to play';
-    else if(s==='ready'){hintEl.textContent='Waiting for opponent…';}
-    else if(s==='running')hintEl.textContent='Solve!';
-    else if(s==='stopped')hintEl.textContent='Waiting for opponent…';
     bcUpdateCard(i);
   } else {
     const hasBt = !!bgDevices[i];
@@ -338,9 +367,9 @@ function bCheckRoundEnd(){
   c1.classList.remove('winner'); c2.classList.remove('winner');
   let roundResult = 'draw';
   if(bState[0].t<bState[1].t){
-    bScores[0]++; resultEl.textContent='Player 1 wins the round!'; c1.classList.add('winner'); roundResult = 'p1';
+    bScores[0]++; resultEl.textContent=bNames[0]+' wins the match!'; c1.classList.add('winner'); roundResult = 'p1';
   } else if(bState[1].t<bState[0].t){
-    bScores[1]++; resultEl.textContent='Player 2 wins the round!'; c2.classList.add('winner'); roundResult = 'p2';
+    bScores[1]++; resultEl.textContent=bNames[1]+' wins the match!'; c2.classList.add('winner'); roundResult = 'p2';
   } else {
     resultEl.textContent="It's a tie!";
   }
@@ -372,7 +401,7 @@ function renderBattleHistory() {
       const div = document.createElement('div');
       div.className = `bh-entry bh-${entry.result}`;
       const badge = entry.result === 'won' ? 'WIN' : entry.result === 'lost' ? 'LOSS' : 'DRAW';
-      div.innerHTML = `<span class="bh-n">#${entry.round}</span><span class="bh-t">${bFmt(entry.time)}</span><span class="bh-badge">${badge}</span>`;
+      div.innerHTML = `<span class="bh-n">${entry.round}.</span><span class="bh-t">${bFmt(entry.time)}</span><span class="bh-badge">${badge}</span>`;
       div.addEventListener('click', () => openBSolveModal(p, origIdx));
       list.appendChild(div);
     });
@@ -406,9 +435,12 @@ document.addEventListener('keydown', e=>{
   const i=bKeys.indexOf(e.code);
   if(i<0||e.repeat) return;
   if(bgDevices[i]) return;
-  if(bState[i].state==='idle'){
+  if(bState[i].state==='idle'||bState[i].state==='stopped'){
     bSetState(i,'holding');
-    bHoldTimers[i]=setTimeout(()=>{ bSetState(i,'ready'); },bHoldMs);
+    bHoldTimers[i]=setTimeout(()=>{
+      bSetState(i,'ready');
+      if(bState[0].state==='ready'&&bState[1].state==='ready') bcCountdown();
+    },bHoldMs);
   } else if(bState[i].state==='running'){
     bState[i].t=Date.now()-bState[i].st;
     document.getElementById(bIds[i]+'-time').textContent=bFmt(bState[i].t);
@@ -427,13 +459,9 @@ document.addEventListener('keyup', e=>{
     clearTimeout(bHoldTimers[i]);
     bSetState(i,'idle');
   } else if(bState[i].state==='ready'){
-    bState[i].st=Date.now(); bState[i].t=0;
-    document.getElementById(bIds[i]+'-time').textContent='0.000';
-    document.getElementById('battleResult').textContent='';
-    document.getElementById('b1-card').classList.remove('winner');
-    document.getElementById('b2-card').classList.remove('winner');
-    bSetState(i,'running');
-    if(!bRaf) bRaf=requestAnimationFrame(bTick);
+    if(bcCountingDown) return; // countdown already running, wait for GO
+    clearTimeout(bHoldTimers[i]);
+    bSetState(i,'idle'); // lifted too early — reset
   }
 });
 
@@ -444,6 +472,7 @@ let bcSubs = [null, null];
 let bcFacelets = [null, null];
 let bcWasSolved = [true, true];
 let bcCountingDown = false;
+let bcEarlyMove = [false, false];
 let bcViews = [null, null];
 let bcScrMoves = [[], []];
 let bcScrIdx = [0, 0];
@@ -504,6 +533,16 @@ function bcUpdateScrHighlight(i) {
 }
 
 function bcOnMove(i, mv) {
+  // Move during countdown = DNF
+  if (bcCountingDown && bState[i].state === 'ready') {
+    if (!bcEarlyMove[i]) {
+      bcEarlyMove[i] = true;
+      const timeEl = document.getElementById(bIds[i] + '-time');
+      if (timeEl) { timeEl.textContent = 'DNF'; timeEl.style.color = 'var(--red)'; }
+    }
+    return;
+  }
+
   // ×4 on any face triggers ready
   if (bState[i].state === 'idle' && bcScrDone[i]) {
     const face = bcFaceBase(mv);
@@ -567,7 +606,9 @@ async function bcResetCube(i) {
   try { if (conn.capabilities?.reset) await conn.sendCommand({type:'REQUEST_RESET'}); } catch(e) {}
   bcFacelets[i] = SC_SOLVED; bcWasSolved[i] = true;
   bcViews[i]?.updateColors(SC_SOLVED);
-  bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrDone[i] = false; bcUCount[i] = 0;
+  bcScrIdx[i] = 0; bcScrCount[i] = 0; bcScrR2Dir[i] = null;
+  bcErrSeq[i] = []; bcErrDir[i] = null;
+  bcScrDone[i] = false; bcUCount[i] = 0; bcULastFace[i] = null;
   bcUpdateScrHighlight(i);
   bcUpdateCard(i);
 }
@@ -709,36 +750,41 @@ function bcUpdateCard(i) {
   const connBtn = document.getElementById(pid + '-conn-btn');
   const connInfo = document.getElementById(pid + '-conn-info');
   const cubeNameEl = document.getElementById(pid + '-cube-name');
-  const actionsEl = document.getElementById(pid + '-cube-actions');
   const readyBtn = document.getElementById(pid + '-ready-btn');
   if (!connBtn) return;
+  const hintEl = document.getElementById(pid + '-hint');
   if (!conn) {
     connBtn.style.display = '';
     connBtn.disabled = false;
-    connBtn.textContent = 'Connect Cube';
     if (connInfo) connInfo.style.display = 'none';
-    if (actionsEl) actionsEl.style.display = 'none';
     if (readyBtn) readyBtn.style.display = 'none';
+    if (hintEl) hintEl.innerHTML = '';
   } else {
     connBtn.style.display = 'none';
-    if (connInfo) connInfo.style.display = '';
-    if (actionsEl) actionsEl.style.display = '';
+    if (connInfo) connInfo.style.display = 'flex';
     if (cubeNameEl) cubeNameEl.textContent = conn.deviceName || ('Cube ' + (i + 1));
+    const st = bState[i].state;
+    if (hintEl) {
+      if (st === 'stopped') hintEl.innerHTML = 'Waiting for opponent…';
+      else if (st === 'idle' && !bcScrDone[i]) hintEl.innerHTML = 'Scrambling…';
+      else if (st === 'idle' && bcScrDone[i]) hintEl.innerHTML = 'Tap ready or U4';
+      else if (st === 'running') hintEl.innerHTML = 'Solving!';
+      else hintEl.innerHTML = '';
+    }
     if (readyBtn) {
       readyBtn.style.display = '';
-      const st = bState[i].state;
       if (st === 'idle') {
         readyBtn.disabled = !bcScrDone[i];
         readyBtn.className = 'b-ready-btn';
-        readyBtn.textContent = bcScrDone[i] ? 'Ready' : 'Scramble first…';
+        readyBtn.innerHTML = 'Ready ? <span style="opacity:.55;font-size:.8em;font-weight:600">(U4)</span>';
       } else if (st === 'ready') {
         readyBtn.disabled = true;
         readyBtn.className = 'b-ready-btn checked';
-        readyBtn.textContent = '✓ Ready';
+        readyBtn.innerHTML = '✓ Ready';
       } else {
         readyBtn.disabled = true;
         readyBtn.className = 'b-ready-btn';
-        readyBtn.textContent = st === 'running' ? 'Solving…' : 'Done';
+        readyBtn.innerHTML = st === 'running' ? 'Solving…' : 'Done';
       }
     }
   }
@@ -751,7 +797,7 @@ async function bcConnect(i) {
     alert('Smart cube library not available.');
     return;
   }
-  if (connBtn) { connBtn.disabled = true; connBtn.textContent = 'Connecting…'; }
+  if (connBtn) { connBtn.disabled = true; connBtn.style.opacity = '0.4'; }
   try {
     const conn = await window.SmartCubeLib.connectSmartCube({ deviceSelection: 'filtered', enableAddressSearch: true });
     bcConns[i] = conn;
@@ -779,7 +825,7 @@ async function bcConnect(i) {
     bSetState(i, 'idle');
   } catch (e) {
     console.error('[bcConnect] failed:', e);
-    if (connBtn) { connBtn.disabled = false; connBtn.textContent = 'Connect Cube'; }
+    if (connBtn) { connBtn.disabled = false; connBtn.style.opacity = ''; }
   }
 }
 
@@ -836,6 +882,7 @@ function bcBeep(freq, dur, vol = 0.35) {
 function bcCountdown() {
   if (bcCountingDown) return;
   bcCountingDown = true;
+  bcEarlyMove[0] = false; bcEarlyMove[1] = false;
   const resultEl = document.getElementById('battleResult');
   resultEl.style.fontSize = '3em';
   let n = 3;
@@ -849,17 +896,27 @@ function bcCountdown() {
       setTimeout(tick, 800);
     } else {
       resultEl.textContent = 'GO!';
-      bcBeep(880, 0.3);
-      if (bState[0].state === 'ready' && bState[1].state === 'ready') {
-        const now = Date.now();
-        for (let j = 0; j < 2; j++) {
+      bcBeep(880, 0.25, 0.5);
+      bcBeep(1100, 0.35, 0.3);
+      const now = Date.now();
+      let anyRunning = false;
+      for (let j = 0; j < 2; j++) {
+        if ((bState[j].state === 'ready' || bState[j].state === 'running') && bcEarlyMove[j]) {
+          // DNF — moved during countdown
+          bState[j].t = Infinity;
+          bSetState(j, 'stopped');
+          const timeEl = document.getElementById(bIds[j] + '-time');
+          if (timeEl) { timeEl.textContent = 'DNF'; timeEl.style.color = 'var(--red)'; }
+        } else if (bState[j].state === 'ready') {
           bState[j].st = now; bState[j].t = 0;
           document.getElementById(bIds[j] + '-time').textContent = '0.000';
           document.getElementById('b' + (j + 1) + '-card').classList.remove('winner');
           bSetState(j, 'running');
+          anyRunning = true;
         }
-        if (!bRaf) bRaf = requestAnimationFrame(bTick);
       }
+      if (anyRunning && !bRaf) bRaf = requestAnimationFrame(bTick);
+      bCheckRoundEnd(); // resolve immediately if both DNF
       bcCountingDown = false;
       resultEl.style.fontSize = '';
       setTimeout(() => { if (resultEl.textContent === 'GO!') resultEl.textContent = ''; }, 700);
@@ -882,10 +939,18 @@ function bcSetMode(mode) {
     const wrap3d = document.getElementById('b' + (i + 1) + '-3d-wrap');
     const scrTxt = document.getElementById('b' + (i + 1) + '-scr-txt');
     const stUi   = document.getElementById('b' + (i + 1) + '-st-ui');
+    const connBtn = document.getElementById('b' + (i + 1) + '-conn-btn');
+    const connInfo = document.getElementById('b' + (i + 1) + '-conn-info');
+    const hintEl2 = document.getElementById('b' + (i + 1) + '-hint');
     if (keyEl) keyEl.style.display = inCubes ? 'none' : '';
+    if (hintEl2) hintEl2.style.display = '';
     if (cubeUi) cubeUi.style.display = inCubes ? '' : 'none';
     if (stUi) stUi.style.display = inCubes ? 'none' : '';
     if (scrTxt) scrTxt.style.display = inCubes ? '' : 'none';
+    if (!inCubes) {
+      if (connBtn) connBtn.style.display = 'none';
+      if (connInfo) connInfo.style.display = 'none';
+    }
     if (inCubes && wrap3d) {
       wrap3d.style.display = '';
       if (!bcViews[i]) bcViews[i] = createBattleCubeView(wrap3d);
