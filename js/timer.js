@@ -312,6 +312,7 @@ document.querySelectorAll('.sv.clickable').forEach(el=>{
   el.addEventListener('click',()=>{
     const v=el.textContent.trim();
     if(v==='–') return;
+    if(el.id==='s-single'){ if(splitTimes().length) openSolveModal(0); return; }
     openAoDetail(el.dataset.stat, el.dataset.type);
   });
 });

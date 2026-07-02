@@ -613,9 +613,6 @@ document.getElementById('timeList').addEventListener('click', e=>{
   if (te) openSolveModal(+te.dataset.idx);
 });
 
-document.getElementById('s-single').addEventListener('click', ()=>{
-  if (splitTimes().length) openSolveModal(0);
-});
 
 document.getElementById('statsGrid').addEventListener('click', e=>{
   const sc = e.target.closest('.sc');
