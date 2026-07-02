@@ -1,8 +1,10 @@
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function renderStats() {
-  const s0=bestSingle(), ao5=calcAo(5), ao12=calcAo(12), ao100=calcAo(100), mn=calcMean();
-  const bs0=s0, bao5=bestAo(5), bao12=bestAo(12), bao100=bestAo(100);
-  document.getElementById('s-single').textContent = s0!==null?fmtMs(s0):'–';
+  const ao5=calcAo(5), ao12=calcAo(12), ao100=calcAo(100), mn=calcMean();
+  const ts=splitTimes(), lastT=ts.length?ts[ts.length-1]:null;
+  const cur0=lastT?(lastT.dnf?Infinity:(lastT.plus2?lastT.ms+2000:lastT.ms)):null;
+  const bs0=bestSingle(), bao5=bestAo(5), bao12=bestAo(12), bao100=bestAo(100);
+  document.getElementById('s-single').textContent = cur0!==null?(cur0===Infinity?'DNF':fmtMs(cur0)):'–';
   document.getElementById('s-ao5').textContent    = ao5!==null?fmtMs(ao5):'–';
   document.getElementById('s-ao12').textContent   = ao12!==null?fmtMs(ao12):'–';
   document.getElementById('s-ao100').textContent  = ao100!==null?fmtMs(ao100):'–';
@@ -17,9 +19,8 @@ function renderStats() {
     const el=document.getElementById(id); if(el) el.textContent=v!==null?fmtMs(v):'–';
   });
   // Stats page
-  const ts = splitTimes();
   document.getElementById('st-total').textContent = ts.length;
-  document.getElementById('st-best').textContent  = s0!==null?fmtMs(s0):'–';
+  document.getElementById('st-best').textContent  = bs0!==null?fmtMs(bs0):'–';
   document.getElementById('st-ao5').textContent   = ao5!==null?fmtMs(ao5):'–';
   document.getElementById('st-ao12').textContent  = ao12!==null?fmtMs(ao12):'–';
   document.getElementById('st-ao100').textContent = ao100!==null?fmtMs(ao100):'–';
@@ -30,7 +31,7 @@ function renderStats() {
   document.getElementById('stb-ao100').textContent  = bao100!==null?fmtMs(bao100):'–';
   // Profile/Social
   [['pr-s','prof-s'],['pr-5','prof-5'],['pr-12','prof-12'],['pr-100','prof-100']].forEach(([a,b],i)=>{
-    const v=[s0,bao5,bao12,bao100][i];
+    const v=[bs0,bao5,bao12,bao100][i];
     const t = v!==null?fmtMs(v):'–';
     document.getElementById(a).textContent=t;
     document.getElementById(b).textContent=t;
