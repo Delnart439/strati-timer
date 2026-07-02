@@ -101,27 +101,34 @@ function bestSingle() {
 const _rnd = n => Math.floor(Math.random() * n);
 const _pick = arr => arr[_rnd(arr.length)];
 
-// Axis-aware NxN generator: no two consecutive moves on the same axis (U/D=0, F/B=1, R/L=2)
-function genAxisScramble(moveBases, count) {
-  const axisOf = m => /[UD]/.test(m) ? 0 : /[FB]/.test(m) ? 1 : 2;
-  const sfxs = ["", "'", '2'];
+// cstimer-style mega(): groups = array of face arrays per axis.
+// Within a group run, each face can only be used once (bitmask); switching group resets mask.
+// Opposite faces on the same axis can appear consecutively (unlike a naive same-axis blocker).
+function _mega(groups, suffixes, count) {
   const result = [];
-  let lastAxis = -1;
+  let lastG = -1, used = 0;
   for (let i = 0; i < count; i++) {
-    const pool = moveBases.filter(m => axisOf(m) !== lastAxis);
-    const base = pool[_rnd(pool.length)];
-    result.push(base + sfxs[_rnd(3)]);
-    lastAxis = axisOf(base);
+    let g, f;
+    do {
+      g = _rnd(groups.length);
+      f = _rnd(groups[g].length);
+      if (g !== lastG) { used = 0; lastG = g; }
+    } while ((used >> f) & 1);
+    used |= 1 << f;
+    result.push(groups[g][f] + suffixes[_rnd(suffixes.length)]);
   }
   return result.join(' ');
 }
 
-// 3×3 / 3OH: 20 moves, all 6 faces, no same axis twice in a row
+const _sfx3 = ["", "2", "'"];
+const _sfx2 = ["", "'"];
+
+// 3×3 / 3OH: 20 moves
 function gen3x3() {
-  return genAxisScramble(['U','D','F','B','L','R'], 20);
+  return _mega([["U","D"],["R","L"],["F","B"]], _sfx3, 20);
 }
 
-// 3BLD: same as 3×3 + 2 wide moves for cube orientation (Rw/Uw/Fw, no same face twice)
+// 3BLD: 3×3 base + 2 orientation wide moves
 function gen3x3BLD() {
   const base = gen3x3();
   const wides = ['Rw',"Rw'",'Rw2','Uw',"Uw'",'Uw2','Fw',"Fw'",'Fw2'];
@@ -130,73 +137,47 @@ function gen3x3BLD() {
   return base + ' ' + m1 + ' ' + m2;
 }
 
-// 2×2: 9 moves using R, U, F only (3 independent axes)
+// 2×2: 9 moves — R, U, F only (each face is its own group = no same face twice)
 function gen2x2() {
-  return genAxisScramble(['U','F','R'], 9);
+  return _mega([["U"],["F"],["R"]], _sfx3, 9);
 }
 
-// 4×4: 44 moves — outer + wide moves (no Bw/Dw)
+// 4×4: 40 moves — outer + Uw/Dw, Rw/Lw, Fw/Bw per axis
 function gen4x4() {
-  return genAxisScramble(['U','D','F','B','L','R','Uw','Fw','Rw'], 44);
+  return _mega([["U","D","Uw","Dw"],["R","L","Rw","Lw"],["F","B","Fw","Bw"]], _sfx3, 40);
 }
 
-// 5×5: 60 moves — same move set as 4×4
+// 5×5: 60 moves — same axis groups as 4×4 (outer + 2-wide)
 function gen5x5() {
-  return genAxisScramble(['U','D','F','B','L','R','Uw','Dw','Fw','Bw','Lw','Rw'], 60);
+  return _mega([["U","D","Uw","Dw"],["R","L","Rw","Lw"],["F","B","Fw","Bw"]], _sfx3, 60);
 }
 
-// 6×6: 80 moves — cstimer style: outer + Uw/Rw/Fw + 3Uw/3Rw/3Fw
+// 6×6: 80 moves — outer + 2-wide + one 3-wide per axis (3Uw/3Rw/3Fw)
 function gen6x6() {
-  return genAxisScramble(['U','D','F','B','L','R','Uw','Rw','Fw','3Uw','3Rw','3Fw'], 80);
+  return _mega([["U","D","Uw","Dw","3Uw"],["R","L","Rw","Lw","3Rw"],["F","B","Fw","Bw","3Fw"]], _sfx3, 80);
 }
 
-// 7×7: 100 moves — same as 6×6
+// 7×7: 100 moves — outer + 2-wide + 3-wide both directions per axis
 function gen7x7() {
-  return genAxisScramble(['U','D','F','B','L','R','Uw','Dw','Fw','Bw','Lw','Rw',
-    '3Uw','3Dw','3Fw','3Bw','3Lw','3Rw'], 100);
+  return _mega([["U","D","Uw","Dw","3Uw","3Dw"],["R","L","Rw","Lw","3Rw","3Lw"],["F","B","Fw","Bw","3Fw","3Bw"]], _sfx3, 100);
 }
 
-// Pyraminx: 11 base moves (U L R B, no same face twice) + 0–4 random tip moves
+// Pyraminx: 10 moves (U L R B, no same face twice) + random tips
 function genPyraminx() {
-  const bases = ['U','L','R','B'], sfxs = ["","'"];
-  const result = [];
-  let last = '';
-  for (let i = 0; i < 11; i++) {
-    let f; do { f = _pick(bases); } while (f === last);
-    result.push(f + sfxs[_rnd(2)]); last = f;
-  }
+  const result = _mega([["U"],["L"],["R"],["B"]], _sfx2, 10).split(' ');
   const tips = ['u','l','r','b'].sort(() => Math.random() - .5).slice(0, _rnd(5));
-  tips.forEach(t => result.push(t + sfxs[_rnd(2)]));
+  tips.forEach(t => result.push(t + _sfx2[_rnd(2)]));
   return result.join(' ');
 }
 
-// FTO: ~24 moves, 8 faces (U F R L D B BL BR), CW/CCW only, no same or opposite face twice in a row
-// Move set matches cstimer (ra="U U' F F' r r' l l' D D' B B' R R' L L'" with l→BL, r→BR)
+// FTO: 30 moves — opposite faces grouped per axis (cstimer groups: U/D, F/B, L/BR, R/BL)
 function genFTO() {
-  const faces = ['U','F','R','L','D','B','BL','BR'];
-  const opposites = { U:'D', D:'U', F:'B', B:'F', R:'L', L:'R', BL:'BR', BR:'BL' };
-  const sfxs = ["","'"];
-  const result = [];
-  let last = '', lastOpp = '';
-  for (let i = 0; i < 24; i++) {
-    let f;
-    do { f = _pick(faces); } while (f === last || f === lastOpp);
-    result.push(f + _pick(sfxs));
-    last = f; lastOpp = opposites[f];
-  }
-  return result.join(' ');
+  return _mega([["U","D"],["F","B"],["L","BR"],["R","BL"]], _sfx2, 30);
 }
 
-// Skewb: 11 moves using R L U B (vertex-turn notation, no 2-suffix, no same face twice)
+// Skewb: 11 moves — each face is its own group (no same face twice), CW/CCW only
 function genSkewb() {
-  const bases = ['R','L','U','B'], sfxs = ["","'"];
-  const result = [];
-  let last = '';
-  for (let i = 0; i < 11; i++) {
-    let f; do { f = _pick(bases); } while (f === last);
-    result.push(f + sfxs[_rnd(2)]); last = f;
-  }
-  return result.join(' ');
+  return _mega([["R"],["L"],["U"],["B"]], _sfx2, 11);
 }
 
 // Megaminx: WCA format — 7 rows of 5×(R±± D±±) + U/U'
