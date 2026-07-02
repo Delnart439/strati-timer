@@ -31,7 +31,8 @@ function save() {
   localStorage.setItem('strati', JSON.stringify({
     sessions: state.sessions, sesIdx: state.sesIdx,
     algStatus: state.algStatus, settings: state.settings, drillResults: state.drillResults,
-    scrHistory: state.scrHistory.slice(-10)
+    scrHistory: state.scrHistory.slice(-10),
+    splitActive: state.splitActive, splitIdx: state.splitIdx
   }));
 }
 
@@ -52,6 +53,8 @@ function load() {
       state.settings.xpMax = xpForLevel(state.settings.level);
     }
     if (d.scrHistory) state.scrHistory = d.scrHistory;
+    if (d.splitActive !== undefined) state.splitActive = d.splitActive;
+    if (d.splitIdx !== undefined) state.splitIdx = d.splitIdx;
   } catch(e) {}
 }
 

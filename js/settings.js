@@ -75,6 +75,8 @@ function toast(msg) {
 // ─── INIT ────────────────────────────────────────────────────────────────────
 load();
 if (!state.settings.createdAt) { state.settings.createdAt = Date.now(); save(); }
+if (typeof initSplitTrack === 'function') initSplitTrack();
+if (typeof updateSplitBtn === 'function') updateSplitBtn();
 loadSettings();
 pushScramble();
 renderScramble();

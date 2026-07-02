@@ -77,8 +77,9 @@ const bestIdx = (() => {
     const tCls   = t.dnf?'te-s te-dnf':t.plus2?'te-s te-p2':'te-s';
     html += `<div class="te${sClass}" data-idx="${i}">
       <span class="te-n">${ts.length-i}.</span>
-      <span class="${tCls}">${t.dnf ? `DNF (${fmtMs(t.ms)})` : fmtMs(t.ms + (t.plus2 ? 2000 : 0)) + (t.plus2 ? '+' : '')}</span>
+      <span class="${tCls}" ${t.dnf ? `title="${fmtMs(t.ms)}"` : ''}>${t.dnf ? 'DNF' : fmtMs(t.ms + (t.plus2 ? 2000 : 0)) + (t.plus2 ? '+' : '')}</span>
       <span class="te-a">${ao!==null?fmtMs(ao):'–'}</span>
+      <button class="te-del" onclick="event.stopPropagation();quickDelTime(${i})" title="Delete solve">×</button>
     </div>`;
   });
   document.getElementById('timeList').innerHTML = html || '<div style="padding:12px 14px;color:var(--muted);font-size:12px">No solves yet</div>';

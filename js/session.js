@@ -49,7 +49,7 @@ function navigate(page) {
   document.getElementById('tb').style.display = (page==='timer'||page==='stats') ? '' : 'none';
   document.getElementById('puzBtn').style.display = page==='timer' ? '' : 'none';
   document.querySelector('.tb-acts').style.display = page==='timer' ? '' : 'none';
-  if (page==='timer') { showMascot('Mascotte/hi.png','Hey! Ready to solve?',0); resetSleepTimer(); }
+  if (page==='timer') { if (typeof bActivateMode === 'function') bActivateMode('timer'); showMascot('Mascotte/hi.png','Hey! Ready to solve?',0); resetSleepTimer(); }
   if (page==='stats') { renderStats(); renderTimeList(); }
   if (page==='algs') { selectCat('3x3'); renderAlgCounts(); }
   if (page==='social') { renderStats(); renderTimeList(); renderAlgCounts(); renderAlgChipIcons(); applySocialShare(); renderRecoFeed(); }
@@ -337,7 +337,7 @@ function openSolveModal(idx, sesIdx) {
   const ts = ses.times;
   const t = ts[idx];
   document.getElementById('mo-num').textContent  = `#${ts.length - idx}`;
-  document.getElementById('mo-time').textContent = t.dnf ? 'DNF' : fmtMs(t.ms + (t.plus2 ? 2000 : 0)) + (t.plus2 ? '+' : 's');
+  document.getElementById('mo-time').textContent = t.dnf ? `DNF (${fmtMs(t.ms)})` : fmtMs(t.ms + (t.plus2 ? 2000 : 0)) + (t.plus2 ? '+' : 's');
   document.getElementById('mo-scr').innerHTML = t.scramble ? scrToHtml(t.scramble) : '–';
   const d = new Date(t.date);
   document.getElementById('mo-date').textContent  = d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
@@ -580,6 +580,19 @@ document.getElementById('mo-del').addEventListener('click', ()=>{
   disp.textContent = t ? (t.dnf ? 'DNF' : fmtMs(t.ms+(t.plus2?2000:0))) : '0.000';
   if (ganConnected) setTimerState(t ? 'stopped' : 'idle');
 });
+
+function quickDelTime(idx) {
+  const t = curSes().times[idx];
+  if (!t) return;
+  const label = t.dnf ? 'DNF' : fmtMs(t.ms + (t.plus2 ? 2000 : 0)) + (t.plus2 ? '+' : '');
+  if (!confirm(`Delete solve ${label}?`)) return;
+  curSes().times.splice(idx, 1);
+  save(); renderStats(); renderTimeList(); renderSocLastSes();
+  const times = curSes().times;
+  const disp = document.getElementById('timerDisp');
+  const t2 = times[0];
+  disp.textContent = t2 ? (t2.dnf ? 'DNF' : fmtMs(t2.ms+(t2.plus2?2000:0))) : '0.000';
+}
 
 function copyToClipboard(text, btn) {
   navigator.clipboard.writeText(text).then(()=>{
