@@ -313,6 +313,11 @@ document.querySelectorAll('.sv.clickable').forEach(el=>{
     const v=el.textContent.trim();
     if(v==='–') return;
     if(el.id==='s-single'){ if(splitTimes().length) openSolveModal(0); return; }
+    if(el.id==='b-single'){
+      const ts=splitTimes(), best=Math.min(...ts.filter(t=>!t.dnf).map(t=>t.plus2?t.ms+2000:t.ms));
+      const idx=ts.findIndex(t=>!t.dnf&&(t.plus2?t.ms+2000:t.ms)===best);
+      if(idx>=0) openSolveModal(idx); return;
+    }
     openAoDetail(el.dataset.stat, el.dataset.type);
   });
 });
