@@ -613,6 +613,11 @@ document.getElementById('timeList').addEventListener('click', e=>{
   if (te) openSolveModal(+te.dataset.idx);
 });
 
+document.getElementById('s-single').addEventListener('click', ()=>{
+  const ts = splitTimes();
+  if (ts.length) openSolveModal(ts.length - 1);
+});
+
 document.getElementById('statsGrid').addEventListener('click', e=>{
   const sc = e.target.closest('.sc');
   if (sc && !e.target.closest('.sc-share')) openSolveModal(+sc.dataset.idx);
