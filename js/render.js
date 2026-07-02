@@ -12,12 +12,12 @@ function renderStats() {
   document.getElementById('b-ao12').textContent   = bao12!==null?fmtMs(bao12):'–';
   document.getElementById('b-ao100').textContent  = bao100!==null?fmtMs(bao100):'–';
   // Mobile quick stats
-  const mobSolves=document.getElementById('mob-solves'); if(mobSolves) mobSolves.textContent=curSes().times.length;
+  const mobSolves=document.getElementById('mob-solves'); if(mobSolves) mobSolves.textContent=splitTimes().length;
   [['mob-mean',mn],['mob-ao5',ao5],['mob-ao12',ao12]].forEach(([id,v])=>{
     const el=document.getElementById(id); if(el) el.textContent=v!==null?fmtMs(v):'–';
   });
   // Stats page
-  const ts = curSes().times;
+  const ts = splitTimes();
   document.getElementById('st-total').textContent = ts.length;
   document.getElementById('st-best').textContent  = s0!==null?fmtMs(s0):'–';
   document.getElementById('st-ao5').textContent   = ao5!==null?fmtMs(ao5):'–';
@@ -41,8 +41,8 @@ function renderStats() {
 let tlSortCol = null, tlSortDir = 'asc';
 
 function renderTimeList() {
-  const ts = curSes().times;
-  const bestIdx = (() => {
+  const ts = splitTimes();
+const bestIdx = (() => {
     let bi=-1, bv=Infinity;
     ts.forEach((t,i)=>{if(!t.dnf){const v=t.plus2?t.ms+2000:t.ms;if(v<bv){bv=v;bi=i;}}});
     return bi;
@@ -97,7 +97,6 @@ function renderTimeList() {
   }
   // Stats page grid
   let g='';
-  const rev=[...ts].reverse();
   ts.forEach((t,i)=>{
     const n=ts.length-i;
     g+=`<div class="sc" data-idx="${i}"><div class="sc-n">${n}.</div><span class="sc-t">${fmtMs2(t.ms,t)}</span><button class="sc-share" onclick="event.stopPropagation();shareOptClick('single',${i})" title="Share this solve"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button></div>`;

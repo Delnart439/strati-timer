@@ -14,6 +14,8 @@ let state = {
   inspectPenalty: 0,
   scrHistory: [],
   scrIdx: -1,
+  splitActive: false,
+  splitIdx: 0,
   modalSolveIdx: -1,
   modalSesIdx: -1,
   modalAlgSet: 'OLL',

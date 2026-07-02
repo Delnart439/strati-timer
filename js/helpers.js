@@ -28,8 +28,23 @@ function sesMs() {
   return curSes().times.map(t => t.dnf ? Infinity : (t.plus2 ? t.ms+2000 : t.ms));
 }
 
-function calcAo(n) {
+// Returns the active time slice — full session or just the training run
+let _splitSesTrack = -1;
+function splitTimes() {
+  // Auto-reset split when user switches sessions
+  if (state.sesIdx !== _splitSesTrack) {
+    state.splitActive = false; state.splitIdx = 0;
+    _splitSesTrack = state.sesIdx;
+    if (typeof updateSplitBtn === 'function') updateSplitBtn();
+  }
   const ts = curSes().times;
+  if (!state.splitActive) return ts;
+  const k = ts.length - state.splitIdx;
+  return k > 0 ? ts.slice(0, k) : [];
+}
+
+function calcAo(n) {
+  const ts = splitTimes();
   if (ts.length < n) return null;
   const last = ts.slice(0, n);
   const dnfs = last.filter(t=>t.dnf).length;
@@ -41,7 +56,7 @@ function calcAo(n) {
 }
 
 function bestAo(n) {
-  const ts = curSes().times;
+  const ts = splitTimes();
   if (ts.length < n) return null;
   let best = null;
   for (let i = 0; i <= ts.length - n; i++) {
@@ -58,7 +73,7 @@ function bestAo(n) {
 }
 
 function ao5At(idx) {
-  const ts = curSes().times;
+  const ts = splitTimes();
   const n = 5;
   if (idx + n > ts.length) return null;
   const chunk = ts.slice(idx, idx+n);
@@ -71,13 +86,13 @@ function ao5At(idx) {
 }
 
 function calcMean() {
-  const ts = curSes().times.filter(t=>!t.dnf);
+  const ts = splitTimes().filter(t=>!t.dnf);
   if (!ts.length) return null;
   return ts.reduce((a,t)=>a+(t.plus2?t.ms+2000:t.ms),0)/ts.length;
 }
 
 function bestSingle() {
-  const valid = curSes().times.filter(t=>!t.dnf);
+  const valid = splitTimes().filter(t=>!t.dnf);
   if (!valid.length) return null;
   return Math.min(...valid.map(t=>t.plus2?t.ms+2000:t.ms));
 }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Strati Timer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Nunito:wght@400;500;600;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <link rel="stylesheet" href="css/strati.css">
 </head>
@@ -166,10 +166,19 @@
 
   <!-- BATTLE MODE SUB-MODE -->
   <div class="t-submode" id="mode-battle">
-    <div style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Battle Mode</div>
+    <div class="b-header-row">
+      <div style="font-size:13px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Battle Mode</div>
+      <div class="b-fmt-sel">
+        <button class="b-fmt-btn b-fmt-active" data-fmt="basic" onclick="bSetFormat('basic')">Basic</button>
+        <button class="b-fmt-btn" data-fmt="r3" onclick="bSetFormat('r3')">3 Rounds</button>
+        <button class="b-fmt-btn" data-fmt="r5" onclick="bSetFormat('r5')">5 Rounds</button>
+      </div>
+    </div>
+    <div class="b-match-info" id="bMatchInfo"></div>
     <div style="font-size:clamp(16px,2vw,24px);font-weight:600;color:#fff;text-align:center;line-height:1.7;max-width:860px;padding:0 8px" id="battleScrTxt"></div>
     <svg id="battleCubeNet" viewBox="0 0 204 153" width="200" height="150" style="display:block"></svg>
     <div class="battle-result" id="battleResult"></div>
+    <button class="b-new-match-btn h" id="bNewMatchBtn" onclick="bNewMatch()">New Match</button>
     <div class="battle-wrap">
       <div class="battle-player" id="b1-card">
         <div class="b-st-ui" id="b1-st-ui">
@@ -199,8 +208,8 @@
         <div class="battle-hist-box" id="b1-hist-box">
           <div class="battle-hist-list" id="b1-hist"></div>
         </div>
-        <div class="battle-hint" id="b1-hint">Hold <strong>Space</strong> to ready</div>
-        <div class="battle-key" id="b1-key">Key: Space</div>
+        <div class="battle-hint" id="b1-hint"></div>
+        <button class="b-ready-btn b-key-ready-btn" id="b1-key-ready" onclick="bKeyReady(0)">Ready ? <span style="opacity:.55;font-size:.8em;font-weight:600">(Space)</span></button>
         <div class="b-cube-ui" id="b1-cube-ui" style="display:none">
           <button class="b-ready-btn" id="b1-ready-btn" style="display:none" onclick="bcPlayerReady(0)">Ready ? <span style="opacity:.55;font-size:.8em;font-weight:600">(U4)</span></button>
         </div>
@@ -233,12 +242,67 @@
         <div class="battle-hist-box" id="b2-hist-box">
           <div class="battle-hist-list" id="b2-hist"></div>
         </div>
-        <div class="battle-hint" id="b2-hint">Hold <strong>Enter</strong> to ready</div>
-        <div class="battle-key" id="b2-key">Key: Enter</div>
+        <div class="battle-hint" id="b2-hint"></div>
+        <button class="b-ready-btn b-key-ready-btn" id="b2-key-ready" onclick="bKeyReady(1)">Ready ? <span style="opacity:.55;font-size:.8em;font-weight:600">(Enter)</span></button>
         <div class="b-cube-ui" id="b2-cube-ui" style="display:none">
           <button class="b-ready-btn" id="b2-ready-btn" style="display:none" onclick="bcPlayerReady(1)">Ready ? <span style="opacity:.55;font-size:.8em;font-weight:600">(U4)</span></button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="ov h" id="bMatchModal">
+    <div class="mo" style="max-width:680px;text-align:center">
+      <div style="display:flex;justify-content:center;margin-bottom:10px">
+        <i data-lucide="zap" style="width:40px;height:40px;color:#a78bfa;stroke-width:2"></i>
+      </div>
+      <div style="font-size:34px;font-weight:900;color:#fff;margin-bottom:4px" id="bmm-winner-name"></div>
+      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:26px" id="bmm-winner-text"></div>
+      <div style="display:flex;justify-content:center;gap:16px;align-items:stretch;margin-bottom:22px">
+        <div style="flex:1;background:rgba(255,255,255,.07);border-radius:14px;padding:16px 14px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px" id="bmm-p1name">Player 1</div>
+          <div style="font-size:60px;font-weight:900;color:#fff;line-height:1" id="bmm-p1score">0</div>
+        </div>
+        <div style="display:flex;align-items:center;font-size:24px;font-weight:700;color:var(--dim);padding:0 4px">–</div>
+        <div style="flex:1;background:rgba(255,255,255,.07);border-radius:14px;padding:16px 14px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px" id="bmm-p2name">Player 2</div>
+          <div style="font-size:60px;font-weight:900;color:#fff;line-height:1" id="bmm-p2score">0</div>
+        </div>
+      </div>
+      <div class="bmm-recap" id="bmm-recap"></div>
+      <div style="display:flex;gap:8px;margin-top:28px">
+        <button onclick="bShareMatchCard()" style="padding:9px 0;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;font-size:13px;font-weight:700;cursor:pointer;flex:0 0 48px;display:flex;align-items:center;justify-content:center" title="Download image">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button onclick="bCopyMatchCard(this)" style="padding:9px 0;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;font-size:13px;font-weight:700;cursor:pointer;flex:0 0 48px;display:flex;align-items:center;justify-content:center" title="Copy image">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        </button>
+        <button onclick="bNewMatch();document.getElementById('bMatchModal').classList.add('h')" style="padding:9px 0;border-radius:12px;border:none;background:var(--purple);color:#fff;font-size:14px;font-weight:800;cursor:pointer;flex:1">New Match</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ov h" id="bRoundModal">
+    <div class="mo" style="max-width:320px;text-align:center">
+      <div style="margin-bottom:8px;display:flex;justify-content:center" id="brm-emoji">
+        <i data-lucide="zap" style="width:34px;height:34px;color:#a78bfa;stroke-width:2"></i>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px" id="brm-round">Round 1 of 3</div>
+      <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:2px" id="brm-winner-name">Player 1</div>
+      <div style="font-size:15px;font-weight:700;color:var(--dim);margin-bottom:4px" id="brm-winner-text">wins the round!</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:14px;min-height:16px" id="brm-note"></div>
+      <div style="display:flex;justify-content:center;gap:32px;align-items:center;margin-bottom:20px">
+        <div style="text-align:center">
+          <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:.5px;margin-bottom:2px" id="brm-p1name">Player 1</div>
+          <div style="font-size:48px;font-weight:900;color:var(--purple);line-height:1" id="brm-p1score">1</div>
+        </div>
+        <div style="font-size:20px;font-weight:700;color:var(--dim)">–</div>
+        <div style="text-align:center">
+          <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:.5px;margin-bottom:2px" id="brm-p2name">Player 2</div>
+          <div style="font-size:48px;font-weight:900;color:var(--purple);line-height:1" id="brm-p2score">0</div>
+        </div>
+      </div>
+      <button onclick="bContinueNextRound()" style="padding:9px 28px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-size:14px;font-weight:800;cursor:pointer;width:100%">Continue →</button>
     </div>
   </div>
 
@@ -293,7 +357,7 @@
       <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:2px">mean</div>
       <div id="s-mean" style="text-align:center;font-size:18px;font-weight:700;margin-bottom:8px">–</div>
       <div class="tl-area">
-        <div class="tl-hdr"><span></span><span class="sortable" data-sort="single" style="text-align:center">single</span><span class="sortable" data-sort="ao5" style="text-align:center">ao5</span></div>
+<div class="tl-hdr"><span style="display:flex;align-items:center;justify-content:flex-start"><div class="split-pill" id="splitPill" onclick="toggleSplit()" title="Training run"><div class="split-pill-slider"></div><span id="splitOptAll" class="split-pill-opt active">ALL</span><span id="splitOptNew" class="split-pill-opt">+</span></div></span><span class="sortable" data-sort="single">single</span><span class="sortable" data-sort="ao5">ao5</span></div>
         <div id="timeList"></div>
       </div>
     </div>

@@ -1,3 +1,23 @@
+// ─── TRAINING RUN SPLIT ─────────────────────────────────────────────────────
+function updateSplitBtn() {
+  document.getElementById('splitPill')?.classList.toggle('on', state.splitActive);
+  document.getElementById('splitOptAll')?.classList.toggle('active', !state.splitActive);
+  document.getElementById('splitOptNew')?.classList.toggle('active', state.splitActive);
+}
+
+function toggleSplit() {
+  if (state.splitActive) {
+    state.splitActive = false;
+    state.splitIdx = 0;
+  } else {
+    state.splitActive = true;
+    state.splitIdx = curSes().times.length;
+  }
+  updateSplitBtn();
+  renderStats();
+  renderTimeList();
+}
+
 // ─── NAVIGATION ────────────────────────────────────────────────────────────
 let preArchiveSesIdx = null;
 function closeArchivePanel() {

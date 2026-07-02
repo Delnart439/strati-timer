@@ -164,6 +164,7 @@ document.querySelectorAll('.ac[data-mode]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     if(btn.dataset.mode==='battle' && typeof bcSetMode==='function') bcSetMode('keys');
     bActivateMode(btn.dataset.mode);
+    if(btn.dataset.mode==='battle') btn.blur();
   });
 });
 
@@ -179,6 +180,7 @@ document.getElementById('battleCubeBtn').addEventListener('click', ()=>{
   document.getElementById('mode-battle').classList.add('active');
   document.getElementById('pg-timer').classList.remove('cube-mode');
   if(typeof bcSetMode==='function') bcSetMode('cubes');
+  document.activeElement?.blur();
 });
 
 // ── BATTLE STACKMAT BLE (keys mode, one per player) ──
@@ -296,12 +298,73 @@ const bIds = ['b1','b2'];
 const bHoldMs = 300;
 let bHoldTimers = [null,null];
 let bRaf = null;
-let bScores = [0,0];
+let bScores = [0,0];          // solve wins in current round
 let bNames = ['Player 1', 'Player 2'];
 let bRoundActive = false;
-let bHistory = [[], []]; // [{time, scramble, result}]
+let bHistory = [[], []];
+let bMatchOver = false;
+// Format
+let bFormat = 'basic';        // 'basic' | 'r3' | 'r5'
+let bRoundsNeeded = 0;        // rounds needed to win match (2 or 3)
+// Round tracking (rounds mode only)
+let bRoundScores = [0, 0];    // rounds won in match
+let bCurrentRound = 1;
+let bSolvesInRound = 0;
+let bRoundBestTime = [Infinity, Infinity];
+let bMatchHistory = [];       // [{roundNum, winner, p1Solves, p2Solves, p1Best, p2Best, tiebreak}]
 
 function bFmt(ms){ if (!isFinite(ms)) return 'DNF'; const t=ms/1000; return t<60?t.toFixed(3):`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`; }
+
+function bSetFormat(fmt) {
+  bFormat = fmt;
+  bRoundsNeeded = fmt === 'r3' ? 2 : fmt === 'r5' ? 3 : 0;
+  document.querySelectorAll('.b-fmt-btn').forEach(b =>
+    b.classList.toggle('b-fmt-active', b.dataset.fmt === fmt)
+  );
+  bNewMatch();
+}
+
+function bUpdateMatchInfo() {
+  const el = document.getElementById('bMatchInfo');
+  if (!el) return;
+  if (bFormat === 'basic') { el.textContent = ''; return; }
+  const total = bFormat === 'r3' ? 3 : 5;
+  el.textContent = `Round ${bCurrentRound} of ${total} · ${bRoundScores[0]}–${bRoundScores[1]}`;
+}
+
+function bKeyReady(i) {
+  if (bcMode !== 'keys') return;
+  if (bMatchOver) return;
+  if (!document.getElementById('bRoundModal').classList.contains('h')) return;
+  if (bState[i].state === 'idle' || bState[i].state === 'stopped') {
+    bSetState(i, 'ready');
+    if (bState[0].state === 'ready' && bState[1].state === 'ready') bcCountdown();
+  } else if (bState[i].state === 'ready' && !bcCountingDown) {
+    bSetState(i, 'idle');
+  }
+}
+
+function bNewMatch() {
+  bScores[0] = 0; bScores[1] = 0;
+  bRoundScores[0] = 0; bRoundScores[1] = 0;
+  bCurrentRound = 1;
+  bSolvesInRound = 0;
+  bRoundBestTime = [Infinity, Infinity];
+  bMatchHistory = [];
+  bHistory[0] = []; bHistory[1] = [];
+  bMatchOver = false;
+  document.getElementById('b1-score').textContent = '0';
+  document.getElementById('b2-score').textContent = '0';
+  document.getElementById('b1-card').classList.remove('winner');
+  document.getElementById('b2-card').classList.remove('winner');
+  const resultEl = document.getElementById('battleResult');
+  if (resultEl) { resultEl.textContent = ''; resultEl.style.color = ''; }
+  document.getElementById('bNewMatchBtn')?.classList.add('h');
+  renderBattleHistory();
+  bUpdateMatchInfo();
+  if (bState[0].state !== 'idle') bSetState(0, 'idle');
+  if (bState[1].state !== 'idle') bSetState(1, 'idle');
+}
 
 function bStartEditName(i) {
   const pid = 'b' + (i + 1);
@@ -349,45 +412,514 @@ function bSetState(i,s){
     bcUpdateCard(i);
   } else {
     const hasBt = !!bgDevices[i];
-    if(s==='idle'){hintEl.innerHTML = hasBt ? 'Place hands on timer' : `Hold <strong>${key}</strong> to ready`;}
-    else if(s==='holding'){hintEl.innerHTML = hasBt ? 'Hold still…' : `Keep holding <strong>${key}</strong>…`;}
-    else if(s==='ready'){hintEl.innerHTML = hasBt ? 'Lift hands to start!' : `Release <strong>${key}</strong> to start!`;}
+    if(s==='idle'){hintEl.innerHTML = hasBt ? 'Place hands on timer' : '';}
+    else if(s==='holding'){hintEl.innerHTML = hasBt ? 'Hold still…' : '';}
+    else if(s==='ready'){hintEl.innerHTML = `Waiting for opponent…`;}
     else if(s==='running'){hintEl.innerHTML = hasBt ? 'Solve!' : `Press <strong>${key}</strong> to stop`;}
     else if(s==='stopped'){hintEl.innerHTML=`Waiting for opponent…`;}
+    // Update key-mode ready button
+    const pid = 'b' + (i + 1);
+    const keyReadyBtn = document.getElementById(pid + '-key-ready');
+    if (keyReadyBtn) {
+      const k = bKeys[i];
+      if (s === 'idle' || s === 'stopped') {
+        keyReadyBtn.style.display = ''; keyReadyBtn.disabled = false;
+        keyReadyBtn.className = 'b-ready-btn b-key-ready-btn';
+        keyReadyBtn.innerHTML = `Ready ? <span style="opacity:.55;font-size:.8em;font-weight:600">(${k})</span>`;
+      } else if (s === 'ready') {
+        keyReadyBtn.style.display = ''; keyReadyBtn.disabled = false;
+        keyReadyBtn.className = 'b-ready-btn b-key-ready-btn checked';
+        keyReadyBtn.innerHTML = `✓ Ready <span style="opacity:.55;font-size:.8em;font-weight:600">(${k})</span>`;
+      } else {
+        keyReadyBtn.style.display = 'none';
+      }
+    }
   }
 }
 
 function bCheckRoundEnd(){
   if(bState[0].state!=='stopped'||bState[1].state!=='stopped') return;
-  if(bRoundActive) return;
+  if(bRoundActive||bMatchOver) return;
   bRoundActive=true;
   const resultEl=document.getElementById('battleResult');
   const c1=document.getElementById('b1-card');
   const c2=document.getElementById('b2-card');
   c1.classList.remove('winner'); c2.classList.remove('winner');
-  let roundResult = 'draw';
-  if(bState[0].t<bState[1].t){
-    bScores[0]++; resultEl.textContent=bNames[0]+' wins the match!'; c1.classList.add('winner'); roundResult = 'p1';
-  } else if(bState[1].t<bState[0].t){
-    bScores[1]++; resultEl.textContent=bNames[1]+' wins the match!'; c2.classList.add('winner'); roundResult = 'p2';
-  } else {
-    resultEl.textContent="It's a tie!";
-  }
+
+  // Track best times for tiebreak
+  if(isFinite(bState[0].t)) bRoundBestTime[0]=Math.min(bRoundBestTime[0],bState[0].t);
+  if(isFinite(bState[1].t)) bRoundBestTime[1]=Math.min(bRoundBestTime[1],bState[1].t);
+
+  // Individual solve winner
+  let solveResult='draw';
+  if(bState[0].t<bState[1].t){ bScores[0]++; c1.classList.add('winner'); solveResult='p1'; }
+  else if(bState[1].t<bState[0].t){ bScores[1]++; c2.classList.add('winner'); solveResult='p2'; }
+
   document.getElementById('b1-score').textContent=bScores[0];
   document.getElementById('b2-score').textContent=bScores[1];
-  // Record history before pushing new scramble
-  const scramble = state.scrHistory[state.scrIdx] || '';
-  const round = bHistory[0].length + 1;
-  bHistory[0].push({time: bState[0].t, scramble, result: roundResult==='p1'?'won':roundResult==='p2'?'lost':'draw', round});
-  bHistory[1].push({time: bState[1].t, scramble, result: roundResult==='p2'?'won':roundResult==='p1'?'lost':'draw', round});
+
+  // Record history
+  const scramble=state.scrHistory[state.scrIdx]||'';
+  const solveNum=bHistory[0].length+1;
+  bHistory[0].push({time:bState[0].t,scramble,result:solveResult==='p1'?'won':solveResult==='p2'?'lost':'draw',round:solveNum});
+  bHistory[1].push({time:bState[1].t,scramble,result:solveResult==='p2'?'won':solveResult==='p1'?'lost':'draw',round:solveNum});
   renderBattleHistory();
-  // New scramble immediately
-  pushScramble(); renderScramble();
-  if (bcMode === 'cubes') bcInitAllScrambles();
-  // Reset both to idle (keep times visible)
-  bSetState(0,'idle'); bSetState(1,'idle');
+
+  // ── BASIC MODE: no match structure ──
+  if(bFormat==='basic'){
+    if(solveResult==='p1') resultEl.textContent=bNames[0]+' wins the round!';
+    else if(solveResult==='p2') resultEl.textContent=bNames[1]+' wins the round!';
+    else resultEl.textContent="It's a tie!";
+    pushScramble(); renderScramble();
+    if(bcMode==='cubes') bcInitAllScrambles();
+    bSetState(0,'idle'); bSetState(1,'idle');
+    bRoundActive=false;
+    return;
+  }
+
+  // ── ROUNDS MODE ──
+  bSolvesInRound++;
+  const SOLVE_TARGET=3, MAX_SOLVES=7;
+  const roundOver=bScores[0]>=SOLVE_TARGET||bScores[1]>=SOLVE_TARGET||bSolvesInRound>=MAX_SOLVES;
+
+  if(!roundOver){
+    // Solve done, round continues
+    const lead=bScores[0]>bScores[1]?bNames[0]:bScores[1]>bScores[0]?bNames[1]:null;
+    const scoreStr=`${bScores[0]}–${bScores[1]}`;
+    if(solveResult==='p1') resultEl.textContent=`${bNames[0]} wins the solve! (${scoreStr})`;
+    else if(solveResult==='p2') resultEl.textContent=`${bNames[1]} wins the solve! (${scoreStr})`;
+    else resultEl.textContent=`Tied solve! (${scoreStr})`;
+    pushScramble(); renderScramble();
+    if(bcMode==='cubes') bcInitAllScrambles();
+    bSetState(0,'idle'); bSetState(1,'idle');
+    bRoundActive=false;
+    return;
+  }
+
+  // Round is over — determine round winner
+  let roundWinner=-1;
+  if(bScores[0]>bScores[1]) roundWinner=0;
+  else if(bScores[1]>bScores[0]) roundWinner=1;
+  else{
+    // Tiebreak: best single in the round
+    if(bRoundBestTime[0]<bRoundBestTime[1]) roundWinner=0;
+    else if(bRoundBestTime[1]<bRoundBestTime[0]) roundWinner=1;
+  }
+  if(roundWinner>=0) bRoundScores[roundWinner]++;
+  if(roundWinner===0) c1.classList.add('winner');
+  else if(roundWinner===1) c2.classList.add('winner');
+
+  // Save round to match history
+  bMatchHistory.push({
+    roundNum: bCurrentRound,
+    winner: roundWinner,
+    p1Solves: bScores[0], p2Solves: bScores[1],
+    p1Best: isFinite(bRoundBestTime[0]) ? bRoundBestTime[0] : null,
+    p2Best: isFinite(bRoundBestTime[1]) ? bRoundBestTime[1] : null,
+    tiebreak: roundWinner>=0 && bScores[0]===bScores[1] && bSolvesInRound>=MAX_SOLVES,
+    p1Times: bHistory[0].map(e => e.time),
+    p2Times: bHistory[1].map(e => e.time)
+  });
+
+  // Check match end
+  if(bRoundScores[0]>=bRoundsNeeded||bRoundScores[1]>=bRoundsNeeded){
+    bMatchOver=true;
+    bCurrentRound++;
+    bShowMatchEndModal();
+    bRoundActive=false;
+    return;
+  }
+
+  // Show round-end modal — continue when player clicks
+  const totalRounds=bFormat==='r3'?3:5;
+  const note=roundWinner>=0&&bScores[0]===bScores[1]&&bSolvesInRound>=MAX_SOLVES?'Decided by best single':'';
+  document.getElementById('brm-round').textContent=`Round ${bCurrentRound} of ${totalRounds}`;
+  document.getElementById('brm-winner-name').textContent=roundWinner>=0?bNames[roundWinner]:'Draw';
+  document.getElementById('brm-winner-text').textContent=roundWinner>=0?'wins the round!':'';
+  document.getElementById('brm-note').textContent=note;
+  document.getElementById('brm-p1name').textContent=bNames[0];
+  document.getElementById('brm-p2name').textContent=bNames[1];
+  document.getElementById('brm-p1score').textContent=bRoundScores[0];
+  document.getElementById('brm-p2score').textContent=bRoundScores[1];
+  const roundModal = document.getElementById('bRoundModal');
+  roundModal.classList.remove('h');
+  lucide.createIcons({ nodes: [roundModal] });
+  bCurrentRound++;
   bRoundActive=false;
 }
+
+function bContinueNextRound(){
+  document.getElementById('bRoundModal').classList.add('h');
+  bScores[0]=0; bScores[1]=0;
+  bSolvesInRound=0;
+  bRoundBestTime=[Infinity,Infinity];
+  bHistory[0]=[]; bHistory[1]=[];
+  renderBattleHistory();
+  bUpdateMatchInfo();
+  document.getElementById('b1-score').textContent='0';
+  document.getElementById('b2-score').textContent='0';
+  document.getElementById('b1-card').classList.remove('winner');
+  document.getElementById('b2-card').classList.remove('winner');
+  const resultEl=document.getElementById('battleResult');
+  if(resultEl){resultEl.textContent='';resultEl.style.color='';}
+  pushScramble(); renderScramble();
+  if(bcMode==='cubes') bcInitAllScrambles();
+  bSetState(0,'idle'); bSetState(1,'idle');
+}
+
+function bShowMatchEndModal() {
+  const w = bRoundScores[0] >= bRoundsNeeded ? 0 : 1;
+  document.getElementById('bmm-winner-name').textContent = bNames[w];
+  document.getElementById('bmm-winner-text').textContent = 'wins the match!';
+  document.getElementById('bmm-p1name').textContent = bNames[0];
+  document.getElementById('bmm-p2name').textContent = bNames[1];
+  const p1s = document.getElementById('bmm-p1score');
+  const p2s = document.getElementById('bmm-p2score');
+  p1s.textContent = bRoundScores[0];
+  p2s.textContent = bRoundScores[1];
+  p1s.style.color = w === 0 ? '#a78bfa' : '#fff';
+  p2s.style.color = w === 1 ? '#a78bfa' : '#fff';
+  // Build rounds recap
+  const recap = document.getElementById('bmm-recap');
+  recap.innerHTML = '';
+  bMatchHistory.forEach(r => {
+    const winnerName = r.winner >= 0 ? bNames[r.winner] : 'Draw';
+    const tieNote = r.tiebreak ? ' <span style="font-size:9px;color:var(--dim)">(★ best single)</span>' : '';
+    const n = Math.max((r.p1Times||[]).length, (r.p2Times||[]).length);
+    let timesHtml = '';
+    for (let i = 0; i < n; i++) {
+      const t1 = r.p1Times?.[i]; const t2 = r.p2Times?.[i];
+      const p1win = t1 !== undefined && t2 !== undefined && t1 < t2;
+      const p2win = t1 !== undefined && t2 !== undefined && t2 < t1;
+      timesHtml += `<div class="bmm-solve-row">
+        <span class="bmm-t ${p1win?'bmm-t-win':''}">${t1!==undefined?bFmt(t1):'—'}</span>
+        <span class="bmm-sep">vs</span>
+        <span class="bmm-t ${p2win?'bmm-t-win':''}">${t2!==undefined?bFmt(t2):'—'}</span>
+      </div>`;
+    }
+    const p1ScoreCol = r.winner === 0 ? 'color:var(--purple)' : '';
+    const p2ScoreCol = r.winner === 1 ? 'color:var(--purple)' : '';
+    const row = document.createElement('div');
+    row.className = 'bmm-round-row';
+    row.innerHTML = `
+      <div class="bmm-round-badge">R${r.roundNum}</div>
+      <div class="bmm-round-info">
+        <div class="bmm-round-winner">${winnerName}${tieNote}</div>
+        <div class="bmm-round-score"><span style="${p1ScoreCol}">${r.p1Solves}</span><span style="opacity:.4">–</span><span style="${p2ScoreCol}">${r.p2Solves}</span></div>
+      </div>
+      <div class="bmm-solve-list">${timesHtml}</div>`;
+    recap.appendChild(row);
+  });
+  const modal = document.getElementById('bMatchModal');
+  modal.classList.remove('h');
+  lucide.createIcons({ nodes: [modal] });
+}
+
+function bShareMatchCard() {
+  const logo = new Image();
+  logo.src = 'Mascotte/logo.png';
+  logo.onload = () => _bDrawMatchCard(logo, 'share');
+  logo.onerror = () => _bDrawMatchCard(null, 'share');
+}
+
+function bCopyMatchCard(btn) {
+  const logo = new Image();
+  logo.src = 'Mascotte/logo.png';
+  logo.onload = () => _bDrawMatchCard(logo, 'copy', btn);
+  logo.onerror = () => _bDrawMatchCard(null, 'copy', btn);
+}
+
+function _bDrawMatchCard(logo, mode, btn) {
+  const w = bRoundScores[0] > bRoundScores[1] ? 0 : 1;
+  const W = 560, PAD = 28;
+  const RCOLS = 3, RHGAP = 10, RVGAP = 22;
+  const BADGE_H = 20, RHEAD = 50, RSOLVE = 22, RPAD = 12;
+  // Group rounds into rows of 3
+  const rGroups = [];
+  for (let i = 0; i < bMatchHistory.length; i += RCOLS)
+    rGroups.push(bMatchHistory.slice(i, i + RCOLS));
+  const rGroupH = rGroups.map(g =>
+    Math.max(...g.map(r => RHEAD + Math.max((r.p1Times||[]).length,(r.p2Times||[]).length) * RSOLVE + RPAD))
+  );
+  const totalRoundsH = rGroupH.reduce((s,h) => s + h + RVGAP, 0) - (rGroupH.length > 0 ? RVGAP : 0);
+  // 156 = fixed top section; 72 = footer (accounts for reduced gap above + padding below)
+  const H = 156 + totalRoundsH + 72;
+
+  const cv = document.createElement('canvas');
+  cv.width = W * 2; cv.height = H * 2;
+  const ctx = cv.getContext('2d');
+  ctx.scale(2, 2);
+
+  // Clip to rounded card
+  ctx.beginPath();
+  roundRect(ctx, 0, 0, W, H, 20);
+  ctx.save();
+  ctx.clip();
+
+  // Background gradient
+  ctx.fillStyle = '#231450';
+  ctx.fillRect(0, 0, W, H);
+
+
+  let y = 18;
+
+  // Winner name
+  ctx.fillStyle = '#fff';
+  ctx.font = '900 28px system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(bNames[w], W/2, y + 24);
+  y += 32;
+
+  // "wins the match!"
+  ctx.fillStyle = '#fff';
+  ctx.font = '700 18px system-ui,sans-serif';
+  ctx.fillText('wins the match!', W/2, y + 16);
+  y += 34;
+
+  // Score block
+  const scoreY = y;
+  const scoreW = 116, BOX_GAP = 20;
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath();
+  roundRect(ctx, W/2 - scoreW - BOX_GAP/2, scoreY, scoreW, 52, 12);
+  ctx.fill();
+  ctx.beginPath();
+  roundRect(ctx, W/2 + BOX_GAP/2, scoreY, scoreW, 52, 12);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '700 9px system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(bNames[0].toUpperCase(), W/2 - scoreW/2 - BOX_GAP/2, scoreY + 14);
+  ctx.fillStyle = w === 0 ? '#a78bfa' : '#fff';
+  ctx.font = '900 36px system-ui,sans-serif';
+  ctx.fillText(bRoundScores[0], W/2 - scoreW/2 - BOX_GAP/2, scoreY + 46);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '700 18px system-ui,sans-serif';
+  ctx.fillText('–', W/2, scoreY + 32);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '700 9px system-ui,sans-serif';
+  ctx.fillText(bNames[1].toUpperCase(), W/2 + scoreW/2 + BOX_GAP/2, scoreY + 14);
+  ctx.fillStyle = w === 1 ? '#a78bfa' : '#fff';
+  ctx.font = '900 36px system-ui,sans-serif';
+  ctx.fillText(bRoundScores[1], W/2 + scoreW/2 + BOX_GAP/2, scoreY + 46);
+
+  y = scoreY + 62;
+
+  // Divider
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+  y += 10;
+
+  // Rounds recap — 3 round cards per row
+  const availW = W - PAD * 2;
+  const cardW = (availW - (RCOLS - 1) * RHGAP) / RCOLS;
+
+  rGroups.forEach((group, gi) => {
+    const cardH = rGroupH[gi];
+    group.forEach((r, ci) => {
+      const cx = PAD + ci * (cardW + RHGAP);
+      const cy = y;
+      const n = Math.max((r.p1Times||[]).length, (r.p2Times||[]).length);
+
+      // Card — filled + purple contour
+      const cardTop = cy + BADGE_H / 2;
+      ctx.fillStyle = '#2a1660';
+      ctx.beginPath();
+      roundRect(ctx, cx, cardTop, cardW, cardH - BADGE_H / 2, 10);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(124,58,237,0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      roundRect(ctx, cx, cardTop, cardW, cardH - BADGE_H / 2, 10);
+      ctx.stroke();
+
+      // Round badge — centered on the card's top edge, same bg + purple border
+      const badgeLabel = `R${r.roundNum}`;
+      ctx.font = '700 11px system-ui,sans-serif';
+      const bw = ctx.measureText(badgeLabel).width + 16;
+      const bx = cx + (cardW - bw) / 2;
+      ctx.fillStyle = '#2a1660';
+      ctx.beginPath();
+      roundRect(ctx, bx, cy, bw, BADGE_H, 7);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(124,58,237,0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      roundRect(ctx, bx, cy, bw, BADGE_H, 7);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.textAlign = 'center';
+      ctx.fillText(badgeLabel, bx + bw / 2, cy + 14);
+
+      // Winner name (left) + score (right)
+      const winnerName = r.winner >= 0 ? bNames[r.winner] : 'Draw';
+      ctx.fillStyle = '#fff';
+      ctx.font = '800 12px system-ui,sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(winnerName + (r.tiebreak ? ' ★' : ''), cx + 8, cardTop + 18);
+
+      // Score — winning side in purple
+      const scoreX = cx + cardW - 8;
+      ctx.font = '700 11px system-ui,sans-serif';
+      const dashW = ctx.measureText('–').width;
+      const p2tw = ctx.measureText(String(r.p2Solves)).width;
+      const p1tw = ctx.measureText(String(r.p1Solves)).width;
+      const scoreGap = 3;
+      // draw right to left: p2 → dash → p1
+      ctx.fillStyle = r.winner === 1 ? '#a78bfa' : 'rgba(255,255,255,0.35)';
+      ctx.textAlign = 'right';
+      ctx.fillText(r.p2Solves, scoreX, cardTop + 18);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillText('–', scoreX - p2tw - scoreGap, cardTop + 18);
+      ctx.fillStyle = r.winner === 0 ? '#a78bfa' : 'rgba(255,255,255,0.35)';
+      ctx.fillText(r.p1Solves, scoreX - p2tw - scoreGap - dashW - scoreGap, cardTop + 18);
+
+      // Time list box — grey/purple background + border, vertically centered
+      const mid = cx + cardW / 2;
+      if (n > 0) {
+        const boxPadH = 8;
+        const boxTop2 = cardTop + 28;
+        const boxBot2 = cardTop + cardH - BADGE_H / 2 - 6;
+        const boxH2 = boxBot2 - boxTop2;
+        const rowsH = (n - 1) * RSOLVE + 14;
+        const listStartY = boxTop2 + (boxH2 - rowsH) / 2 + 13;
+
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        ctx.beginPath();
+        roundRect(ctx, cx + boxPadH, boxTop2, cardW - 2 * boxPadH, boxH2, 6);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(124,58,237,0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        roundRect(ctx, cx + boxPadH, boxTop2, cardW - 2 * boxPadH, boxH2, 6);
+        ctx.stroke();
+
+        ctx.font = '500 10px system-ui,sans-serif';
+        const vsHalf = ctx.measureText('vs').width / 2;
+        const tGap = 8;
+        for (let i = 0; i < n; i++) {
+          const t1 = r.p1Times?.[i]; const t2 = r.p2Times?.[i];
+          const p1win = t1 !== undefined && t2 !== undefined && t1 < t2;
+          const p2win = t1 !== undefined && t2 !== undefined && t2 < t1;
+          const sy = listStartY + i * RSOLVE;
+
+          ctx.textAlign = 'right';
+          ctx.fillStyle = p1win ? '#a78bfa' : 'rgba(255,255,255,0.5)';
+          ctx.font = (p1win ? '700' : '500') + ' 13px system-ui,sans-serif';
+          ctx.fillText(t1 !== undefined ? bFmt(t1) : '—', mid - vsHalf - tGap, sy);
+
+          ctx.textAlign = 'center';
+          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          ctx.font = '500 10px system-ui,sans-serif';
+          ctx.fillText('vs', mid, sy);
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = p2win ? '#a78bfa' : 'rgba(255,255,255,0.5)';
+          ctx.font = (p2win ? '700' : '500') + ' 13px system-ui,sans-serif';
+          ctx.fillText(t2 !== undefined ? bFmt(t2) : '—', mid + vsHalf + tGap, sy);
+        }
+      }
+    });
+    y += cardH + RVGAP;
+  });
+
+  // Footer — [logo] strati timer / MATCH [zap]
+  y -= 4;
+  const LOGO_SIZE = 30;
+  const FS = 28, FS_MATCH = 20, GAP = 5;
+  const ZAP_SIZE = 20, ZAP_GAP = 7;
+  ctx.font = `800 ${FS}px Nunito,system-ui,sans-serif`;
+  const stratiW = ctx.measureText('strati').width;
+  ctx.font = `300 ${FS}px Nunito,system-ui,sans-serif`;
+  const timerW = ctx.measureText('timer').width;
+  ctx.font = `300 ${FS}px system-ui,sans-serif`;
+  const slashW = ctx.measureText(' / ').width;
+  ctx.font = `800 ${FS_MATCH}px system-ui,sans-serif`;
+  const matchW = ctx.measureText('MATCH').width;
+  const totalW = (logo ? LOGO_SIZE + GAP : 0) + stratiW + GAP + timerW + slashW + matchW + ZAP_GAP + ZAP_SIZE;
+  let fx = (W - totalW) / 2;
+
+  if (logo) {
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, fx, y + 2, LOGO_SIZE, LOGO_SIZE, 7);
+    ctx.clip();
+    ctx.drawImage(logo, fx, y + 2, LOGO_SIZE, LOGO_SIZE);
+    ctx.restore();
+    fx += LOGO_SIZE + GAP;
+  }
+
+  const textY = y + LOGO_SIZE - 1;
+  ctx.font = `800 ${FS}px Nunito,system-ui,sans-serif`;
+  ctx.fillStyle = '#7c3aed';
+  ctx.textAlign = 'left';
+  ctx.fillText('strati', fx, textY);
+  fx += stratiW + GAP;
+
+  ctx.font = `300 ${FS}px Nunito,system-ui,sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText('timer', fx, textY);
+  fx += timerW;
+
+  ctx.font = `300 ${FS}px system-ui,sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillText(' / ', fx, textY);
+  fx += slashW;
+
+  ctx.font = `800 ${FS_MATCH}px system-ui,sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText('MATCH', fx, textY);
+  fx += matchW + ZAP_GAP;
+
+  // Zap icon inline after MATCH
+  {
+    const zapScale = ZAP_SIZE / 24;
+    const zapTop = textY - ZAP_SIZE + 4;
+    ctx.save();
+    ctx.translate(fx, zapTop);
+    ctx.scale(zapScale, zapScale);
+    ctx.beginPath();
+    ctx.moveTo(13, 2); ctx.lineTo(3, 14); ctx.lineTo(12, 14);
+    ctx.lineTo(11, 22); ctx.lineTo(21, 10); ctx.lineTo(12, 10);
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+    ctx.lineWidth = 1.5 / zapScale;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.restore();
+
+  // Taint check — toDataURL throws on cross-origin images (local logo)
+  try { cv.toDataURL('image/png'); } catch(e) { _bDrawMatchCard(null, mode, btn); return; }
+
+  cv.toBlob(async blob => {
+    if (mode === 'copy') {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        if (btn) {
+          const orig = btn.innerHTML;
+          btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+          setTimeout(() => { btn.innerHTML = orig; }, 1500);
+        }
+      } catch(e) { alert('Copy not supported in this browser.'); }
+      return;
+    }
+    // download mode
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'strati-battle.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
+
+
 
 function renderBattleHistory() {
   for (let p = 0; p < 2; p++) {
@@ -435,33 +967,20 @@ document.addEventListener('keydown', e=>{
   const i=bKeys.indexOf(e.code);
   if(i<0||e.repeat) return;
   if(bgDevices[i]) return;
+  if(bMatchOver) return;
+  if(!document.getElementById('bRoundModal').classList.contains('h')) return;
+  // Prevent focused buttons from intercepting the key
+  if(document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
   if(bState[i].state==='idle'||bState[i].state==='stopped'){
-    bSetState(i,'holding');
-    bHoldTimers[i]=setTimeout(()=>{
-      bSetState(i,'ready');
-      if(bState[0].state==='ready'&&bState[1].state==='ready') bcCountdown();
-    },bHoldMs);
+    bSetState(i,'ready');
+    if(bState[0].state==='ready'&&bState[1].state==='ready') bcCountdown();
+  } else if(bState[i].state==='ready'&&!bcCountingDown){
+    bSetState(i,'idle'); // press again to cancel ready
   } else if(bState[i].state==='running'){
     bState[i].t=Date.now()-bState[i].st;
     document.getElementById(bIds[i]+'-time').textContent=bFmt(bState[i].t);
     bSetState(i,'stopped');
     bCheckRoundEnd();
-  }
-});
-
-document.addEventListener('keyup', e=>{
-  if(!document.getElementById('mode-battle').classList.contains('active')) return;
-  if(bcMode==='cubes') return;
-  const i=bKeys.indexOf(e.code);
-  if(i<0) return;
-  if(bgDevices[i]) return;
-  if(bState[i].state==='holding'){
-    clearTimeout(bHoldTimers[i]);
-    bSetState(i,'idle');
-  } else if(bState[i].state==='ready'){
-    if(bcCountingDown) return; // countdown already running, wait for GO
-    clearTimeout(bHoldTimers[i]);
-    bSetState(i,'idle'); // lifted too early — reset
   }
 });
 
@@ -798,6 +1317,8 @@ async function bcConnect(i) {
     return;
   }
   if (connBtn) { connBtn.disabled = true; connBtn.style.opacity = '0.4'; }
+  const hintEl = document.getElementById(pid + '-hint');
+  if (hintEl) hintEl.innerHTML = 'Connecting…';
   try {
     const conn = await window.SmartCubeLib.connectSmartCube({ deviceSelection: 'filtered', enableAddressSearch: true });
     bcConns[i] = conn;
@@ -826,6 +1347,7 @@ async function bcConnect(i) {
   } catch (e) {
     console.error('[bcConnect] failed:', e);
     if (connBtn) { connBtn.disabled = false; connBtn.style.opacity = ''; }
+    if (hintEl) hintEl.innerHTML = '';
   }
 }
 
@@ -859,6 +1381,7 @@ function bcOnSolved(i) {
 
 function bcPlayerReady(i) {
   if (bcMode !== 'cubes' || !bcConns[i] || bState[i].state !== 'idle' || !bcScrDone[i]) return;
+  if (!document.getElementById('bRoundModal').classList.contains('h')) return;
   bSetState(i, 'ready');
   if (bState[0].state === 'ready' && bState[1].state === 'ready') bcCountdown();
 }
@@ -942,7 +1465,9 @@ function bcSetMode(mode) {
     const connBtn = document.getElementById('b' + (i + 1) + '-conn-btn');
     const connInfo = document.getElementById('b' + (i + 1) + '-conn-info');
     const hintEl2 = document.getElementById('b' + (i + 1) + '-hint');
+    const keyReadyBtn2 = document.getElementById('b' + (i + 1) + '-key-ready');
     if (keyEl) keyEl.style.display = inCubes ? 'none' : '';
+    if (keyReadyBtn2) keyReadyBtn2.style.display = inCubes ? 'none' : '';
     if (hintEl2) hintEl2.style.display = '';
     if (cubeUi) cubeUi.style.display = inCubes ? '' : 'none';
     if (stUi) stUi.style.display = inCubes ? 'none' : '';
