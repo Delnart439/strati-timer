@@ -156,8 +156,16 @@ function gen2x2() {
   return _mega([["U"],["F"],["R"]], _sfx3, 9);
 }
 
-// 4×4: 40 moves — outer + one wide per axis (Uw/Rw/Fw only, no Dw/Lw/Bw)
 function gen4x4() {
+  if (typeof scrMgr !== 'undefined') {
+    try {
+      var fn = scrMgr.get('444wca');
+      if (typeof fn === 'function') {
+        var scr = fn();
+        if (scr && scr.trim().length > 10) return scr.trim();
+      }
+    } catch(e) {}
+  }
   return _mega([["U","D","Uw"],["R","L","Rw"],["F","B","Fw"]], _sfx3, 40);
 }
 
