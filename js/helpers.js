@@ -123,8 +123,22 @@ function _mega(groups, suffixes, count) {
 const _sfx3 = ["", "2", "'"];
 const _sfx2 = ["", "'"];
 
-// 3×3 / 3OH: 20 moves
+// 3×3 / 3OH: random-state via min2phase (WCA-quality)
 function gen3x3() {
+  if (typeof min2phase !== 'undefined') {
+    try {
+      const facelet = min2phase.randomCube();
+      const sol = min2phase.solve(facelet).trim();
+      if (sol && !sol.startsWith('Error')) {
+        const moves = sol.split(/\s+/).filter(Boolean);
+        return moves.reverse().map(m => {
+          if (m.endsWith("'")) return m.slice(0, -1);
+          if (m.endsWith('2')) return m;
+          return m + "'";
+        }).join(' ');
+      }
+    } catch(e) {}
+  }
   return _mega([["U","D"],["R","L"],["F","B"]], _sfx3, 20);
 }
 
@@ -147,7 +161,7 @@ function gen4x4() {
   return _mega([["U","D","Uw"],["R","L","Rw"],["F","B","Fw"]], _sfx3, 40);
 }
 
-// 5×5: 60 moves — same axis groups as 4×4 (outer + 2-wide)
+// 5×5: 60 moves — outer + both 2-wide per axis (Uw+Dw cover only 4 of 5 layers → both needed)
 function gen5x5() {
   return _mega([["U","D","Uw","Dw"],["R","L","Rw","Lw"],["F","B","Fw","Bw"]], _sfx3, 60);
 }
@@ -205,7 +219,7 @@ function genSquare1() {
 
 // Clock: WCA format — pin+face turns for front face, y2, face turns for back
 function genClock() {
-  const n = () => _rnd(6) + 1; // 1-6 clicks
+  const n = () => _rnd(5) + 1; // 1-5 clicks (WCA: max 5 per direction)
   const s = () => _rnd(2) ? '+' : '-';
   const front = ['UR','DR','DL','UL'].map(p => `${p}${n()}${s()}`).join(' ')
     + ' ' + ['U','R','D','L','ALL'].map(f => `${f}${n()}${s()}`).join(' ');

@@ -77,6 +77,8 @@ load();
 if (!state.settings.createdAt) { state.settings.createdAt = Date.now(); save(); }
 if (typeof initSplitTrack === 'function') initSplitTrack();
 if (typeof updateSplitBtn === 'function') updateSplitBtn();
+// Pre-initialize min2phase pruning tables in background so first 3x3 scramble is instant
+if (typeof min2phase !== 'undefined') setTimeout(() => min2phase.initFull(), 100);
 loadSettings();
 pushScramble();
 renderScramble();
