@@ -1,7 +1,7 @@
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function renderStats() {
   const ao5=calcAo(5), ao12=calcAo(12), ao100=calcAo(100), mn=calcMean();
-  const ts=splitTimes(), lastT=ts.length?ts[ts.length-1]:null;
+  const ts=splitTimes(), lastT=ts.length?ts[0]:null;
   const cur0=lastT?(lastT.dnf?Infinity:(lastT.plus2?lastT.ms+2000:lastT.ms)):null;
   const bs0=bestSingle(), bao5=bestAo(5), bao12=bestAo(12), bao100=bestAo(100);
   document.getElementById('s-single').textContent = cur0!==null?(cur0===Infinity?'DNF':fmtMs(cur0)):'–';

@@ -614,8 +614,7 @@ document.getElementById('timeList').addEventListener('click', e=>{
 });
 
 document.getElementById('s-single').addEventListener('click', ()=>{
-  const ts = splitTimes();
-  if (ts.length) openSolveModal(ts.length - 1);
+  if (splitTimes().length) openSolveModal(0);
 });
 
 document.getElementById('statsGrid').addEventListener('click', e=>{
