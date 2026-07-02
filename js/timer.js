@@ -239,19 +239,10 @@ function openAoDetail(stat, type) {
   const list  = document.getElementById('aoDetailList');
 
   if (stat==='single') {
-    // Find best or current single
     const valid = ts.filter(t=>!t.dnf);
     if (!valid.length) return;
     const t = type==='best' ? valid.reduce((a,b)=>(a.ms<b.ms?a:b)) : ts[0];
-    const idx = ts.indexOf(t);
-    title.textContent = type==='best' ? 'Best single' : 'Current single';
-    avgEl.textContent = fmtMsFull(t.ms, t);
-    list.innerHTML = `<div style="text-align:center;font-size:13px;color:var(--dim);cursor:pointer;text-decoration:underline" data-open-idx="${idx}">Solve #${ts.length-idx} — click to view</div>`;
-    list.querySelector('[data-open-idx]').addEventListener('click', e=>{
-      modal.classList.add('h');
-      openSolveModal(+e.currentTarget.dataset.openIdx);
-    });
-    modal.classList.remove('h');
+    openSolveModal(ts.indexOf(t));
     return;
   }
 
@@ -320,6 +311,23 @@ document.querySelectorAll('.sv.clickable').forEach(el=>{
     }
     openAoDetail(el.dataset.stat, el.dataset.type);
   });
+});
+
+// Stats tab — wire all clickable stat values
+[
+  ['st-best',    ()=>openAoDetail('single','best')],
+  ['stb-single', ()=>openAoDetail('single','best')],
+  ['st-ao5',     ()=>openAoDetail('ao5','current')],
+  ['st-ao12',    ()=>openAoDetail('ao12','current')],
+  ['st-ao100',   ()=>openAoDetail('ao100','current')],
+  ['stb-ao5',    ()=>openAoDetail('ao5','best')],
+  ['stb-ao12',   ()=>openAoDetail('ao12','best')],
+  ['stb-ao100',  ()=>openAoDetail('ao100','best')],
+].forEach(([id, fn])=>{
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.style.cursor='pointer';
+  el.addEventListener('click',()=>{ if(el.textContent.trim()!=='–') fn(); });
 });
 
 const delSolveModal = document.getElementById('delSolveModal');
