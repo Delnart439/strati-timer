@@ -142,9 +142,9 @@ function gen2x2() {
   return _mega([["U"],["F"],["R"]], _sfx3, 9);
 }
 
-// 4×4: 40 moves — outer + Uw/Dw, Rw/Lw, Fw/Bw per axis
+// 4×4: 40 moves — outer + one wide per axis (Uw/Rw/Fw only, no Dw/Lw/Bw)
 function gen4x4() {
-  return _mega([["U","D","Uw","Dw"],["R","L","Rw","Lw"],["F","B","Fw","Bw"]], _sfx3, 40);
+  return _mega([["U","D","Uw"],["R","L","Rw"],["F","B","Fw"]], _sfx3, 40);
 }
 
 // 5×5: 60 moves — same axis groups as 4×4 (outer + 2-wide)
